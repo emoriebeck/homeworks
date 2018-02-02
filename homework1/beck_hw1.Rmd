@@ -69,17 +69,19 @@ Yes, a $\chi^2$ test of independence suggests that minority status and gender ar
 Produce a histogram for ses. Include a blue vertical line indicating the mean, a red vertical line indicating the median, and the normal density curve (in green). Make sure the axes are appropriately labeled. Do the data seem to be normally distributed? 
 ```{r}
 tmp <- HSB %>%
-  mutate(sdses = sd(ses, na.rm = T), medses = median(ses, na.rm = T),
-         gmeanses = mean(ses, na.rm = T))
+  mutate(sdses = sd(ses, na.rm = T), `Median SES` = median(ses, na.rm = T),
+         `Mean SES` = mean(ses, na.rm = T))
 tmp2 <- tmp %>%
-  gather(key = measure, value = value, gmeanses, medses)
+  gather(key = Measure, value = value, `Mean SES`, `Median SES`)
 tmp %>%
   ggplot(aes(x = ses)) +
   geom_histogram(aes(y = ..density..), binwidth = 0.25, color = "black", 
                  fill = "lightgray") + 
-  stat_function(fun = dnorm, size = 1.25, color = "darkgreen", 
-                args = list(mean = HSB$gmeanses, sd = HSB$sdses)) +
-  geom_vline(data = tmp2, aes(xintercept = value, color = measure)) +
+  stat_function(fun = dnorm, size = 1.25, color = "darkgreen", alpha = .75,
+                args = list(mean = unique(tmp$`Mean SES`), sd = unique(tmp$sdses))) +
+  geom_vline(data = tmp2, aes(xintercept = value, 
+      color = Measure, linetype = Measure), alpha = .75, size = 1.5) +
+  scale_color_manual(values = c("blue", "red")) +
   labs(x = "SES", y = "Density") +
   theme_classic() +
   theme(legend.position = "bottom")
@@ -103,11 +105,11 @@ Produce a scatterplot of meanses (y axis) versus size (x axis). Make sure the ax
 ```{r}
 HSB %>% 
   mutate(sector = mapvalues(sector, 0:1, c("Public", "Catholic"))) %>%
-  ggplot(aes(x = size, y = meanses, color = sector)) +
+  ggplot(aes(x = size, y = meanses)) +
   scale_color_manual(values = c("blue", "red")) +
   geom_point(aes(color = sector), alpha = .5, size = .5) +
-  geom_smooth(method = "lm", se = F) +
-  geom_smooth(method = "loess", se = F) +
+  geom_smooth(method = "lm", se = F) + #aes(color = sector), 
+  geom_smooth(method = "loess", se = F) + #aes(color = sector), 
   labs(x = "School Size", y = "Mean SES", color = "Sector") +
   theme_classic() + 
   theme(axis.text = element_text(face = "bold"),
@@ -116,6 +118,8 @@ HSB %>%
         legend.title = element_text(face = "bold"),
         legend.position = "bottom")
 ```
+
+This figure seems to suggest
 
 # Question 9 
 Plot the best-fitting line relating mathach to ses and include the 99% confidence interval around the line. 
