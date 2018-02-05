@@ -47,14 +47,18 @@ with(HSB, cor(mathach, ses))
 # Question 4 
 Produce a cross-classification table for female and minority. Make sure that the rows and columns of the table have appropriate labels (not just numbers).  
 ```{r}
-HSB %>% 
-  mutate(female = mapvalues(female, 0:1, c("male", "female")),
-         minority = mapvalues(minority, 0:1, c("non-minority", "minority"))) %>%
-  group_by(female, minority) %>%
-  summarize(n = n()) %>%
-  spread(key = female, value = n) %>%
+source("http://pcwww.liv.ac.uk/~william/R/crosstab.r")
+tab <- HSB %>% 
+  mutate(female = mapvalues(female, 0:1, c("Male", "Female")),
+         minority = mapvalues(minority, 0:1, c("Non-Minority", "Minority"))) %>% 
+  crosstab(., row.vars = "female", col.vars = "minority", type = "f")
+
+tab$table %>%
   kable(., "latex", booktabs = T) %>%
-  kable_styling(latex_options = c("striped","repeat_header"), full_width = F)
+  kable_styling(latex_options = c("striped","repeat_header"), full_width = F) %>%
+  column_spec(4, bold = T, border_left = T) %>%
+  row_spec(2, hline_after = T) %>%
+  row_spec(3, bold = T)
 ```
 
 # Question 5 
@@ -71,7 +75,8 @@ Produce a histogram for ses. Include a blue vertical line indicating the mean, a
 The data appear to be mostly normally distributed with a slight negative skew. However, because the median and the mean are nearly indistinguishable and the density curve appears normal, any non-normality is unlikely to greatly influence the results.  
 ```{r}
 tmp <- HSB %>%
-  mutate(sdses = sd(ses, na.rm = T), `Median SES` = median(ses, na.rm = T),
+  mutate(sdses = sd(ses, na.rm = T), 
+         `Median SES` = median(ses, na.rm = T),
          `Mean SES` = mean(ses, na.rm = T))
 tmp2 <- tmp %>%
   gather(key = Measure, value = value, `Mean SES`, `Median SES`)
@@ -143,6 +148,7 @@ cbind(HSB, predict(m, interval = "conf", level = .99)) %>%
 # Question 10 
 Produce a two-panel plot. In the upper panel, show the boxplots of mathach separately for each public school. In the lower panel, show the boxplots of mathach separately for each Catholic school. 
 ```{r, fig.height=10, fig.width=7}
+# factor the Schools to be ordered by median, so the plot doesn't look terrible
 orders <- HSB %>%
   group_by(School) %>%
   summarize(median = median(mathach, na.rm = T)) %>%
