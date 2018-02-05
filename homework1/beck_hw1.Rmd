@@ -67,6 +67,8 @@ Yes, a $\chi^2$ test of independence suggests that minority status and gender ar
 
 # Question 6 
 Produce a histogram for ses. Include a blue vertical line indicating the mean, a red vertical line indicating the median, and the normal density curve (in green). Make sure the axes are appropriately labeled. Do the data seem to be normally distributed? 
+
+The data appear to be mostly normally distributed with a slight negative skew. However, because the median and the mean are nearly indistinguishable and the density curve appears normal, any non-normality is unlikely to greatly influence the results.  
 ```{r}
 tmp <- HSB %>%
   mutate(sdses = sd(ses, na.rm = T), `Median SES` = median(ses, na.rm = T),
@@ -81,18 +83,19 @@ tmp %>%
                 args = list(mean = unique(tmp$`Mean SES`), sd = unique(tmp$sdses))) +
   geom_vline(data = tmp2, aes(xintercept = value, 
       color = Measure, linetype = Measure), alpha = .75, size = 1.5) +
-  scale_color_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("cyan", "red")) +
   labs(x = "SES", y = "Density") +
   theme_classic() +
   theme(legend.position = "bottom")
 ```
 
 # Question 7 
-Produce a Q-Q plot for ses. Does this change your opinion regarding normality? 
+Produce a Q-Q plot for ses. Does this change your opinion regarding normality?  
+Looking at the Q-Q plot, earlier concerns about non-normality seem to be more justified. The departure of the data from the theoretic line at the positive extreme highlights the negative skew noted in the histogram.  
 ```{r}
 HSB %>% 
   ggplot(aes(sample=ses)) + 
-  stat_qq_band() +
+  stat_qq_band(fill = "blue", alpha = .25) +
   stat_qq_line() + 
   stat_qq_point() +
   labs(x = "Actual", y = "Theoretical", 
@@ -102,14 +105,17 @@ HSB %>%
 
 # Question 8 
 Produce a scatterplot of meanses (y axis) versus size (x axis). Make sure the axes are appropriately labeled. Add the best-fitting linear regression line as well as a loess (nonlinear) fit line. Color the plot symbols so that public schools are red and Catholic schools are blue. What does this figure tell you? 
+
+Without grouping the best fitting line by sector, the relationship between school size and SES appears to be non-linear -- that is, the largest and smallest schools tend to have lower SES, while the middle-sized schools have higher SES. However, closer examination reveals (e.g. the dashed loess lines grouped by sector) sugget that this relationship depends on sector. Catholic schools tend to be smaller than public schools overall and have have higher SES, regardless of size. SES Does not appear to be a function of school size for Catholic school students, but it does appear to be related to the SES of public school students, with middle sized schools having the highest SES.  
 ```{r}
 HSB %>% 
   mutate(sector = mapvalues(sector, 0:1, c("Public", "Catholic"))) %>%
   ggplot(aes(x = size, y = meanses)) +
   scale_color_manual(values = c("blue", "red")) +
   geom_point(aes(color = sector), alpha = .5, size = .5) +
-  geom_smooth(method = "lm", se = F) + #aes(color = sector), 
-  geom_smooth(method = "loess", se = F) + #aes(color = sector), 
+  geom_smooth(method = "lm", se = F, color = "darkgreen") + #aes(color = sector), 
+  geom_smooth(method = "loess", se = F, color = "darkgreen") + #aes(color = sector),
+  geom_smooth(aes(color = sector), method = "loess", se = F, linetype = "dashed") + #
   labs(x = "School Size", y = "Mean SES", color = "Sector") +
   theme_classic() + 
   theme(axis.text = element_text(face = "bold"),
