@@ -1,5 +1,8 @@
 ---
 title: "Homework 1"
+subtitle: "Psych 5068"
+author: "Emorie D Beck"
+date: \today
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -24,7 +27,8 @@ library(tidyverse)
 Read in the HSB.csv file and save it in a dataframe called HSB_Data, excluding the variables, pracad and disclim. Verify you have done this correctly by printing the first several lines of the dataframe. 
 ```{r Q1}
 data_path <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework1/HSB.csv"
-HSB <- read.csv(url(data_path), stringsAsFactors = F) %>% 
+HSB <- url(data_path) %>%
+  read.csv(stringsAsFactors = F) %>% 
   tbl_df() %>%
   select(-pracad, -disclim)
 
@@ -41,7 +45,7 @@ describe(HSB %>% select(mathach, ses))
 # Question 3 
 What is the overall correlation between mathach and ses? 
 ```{r}
-with(HSB, cor(mathach, ses))
+with(HSB, cor(mathach, ses, "pairwise"))
 ```
 
 # Question 4 

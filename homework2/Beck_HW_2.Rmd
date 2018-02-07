@@ -31,10 +31,14 @@ library(tidyverse)
 ## Data
 ```{r data}
 data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homeowrk2/HSB.csv"
-dat      <- read.csv(url(data_url)) %>% tbl_df
+dat      <- read.csv(url(data_url)) %>% tbl_df %>%
+  mutate(female = factor(female, levels = 0:1, labels = c("Male", "Female")),
+         minority = factor(minority, levels = 0:1, labels = c("Non-Minority","Minority")),
+         sector = factor(sector, levels = 0:1, labels = c("Public", "Catholic")))
 ```
 
 ## Local Functions
+I don't like stargazer or the other packages that are supposed to create tables from merMod objects, so I wrote my own. The only feature I haven't implemented yet is including the ICC becuase I would need to refit the unconditional model.    
 ```{r funs}
 table_fun <- function(model){
   fixed <- broom::tidy(model) %>% filter(group == "fixed") %>%
@@ -204,17 +208,55 @@ $$\beta_{1j} = \gamma_{10} + \gamma{11}sector_j + u_{1j}$$
 $$\beta_{2j} = \gamma_{20} + \gamma{21}sector_j + u_{2j}$$
 $$\beta_{3j} = \gamma_{30} + \gamma{31}sector_j + u_{3j}$$
 
+```{r}
+mod3  <- lmer(mathach ~ minority*sector + female*sector + GC.ses*sector + 
+                (minority + female + GC.ses | School), data = dat)
+tidy3 <- broom::tidy(mod3)
+tab3  <- table_fun(mod3)
+
+tab3 %>% 
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("type", "Term", "b", "CI")) %>%
+  collapse_rows(1)
+```
+
+
 ## Part a 
-Does sector significantly predict the Level 1 intercepts ($\beta_{0j}$)?  If so, provide an interpretation of the relationship. 
+Does sector significantly predict the Level 1 intercepts ($\beta_{0j}$)?  If so, provide an interpretation of the relationship.  
+
+Sector predicts the level 1 intercepts, $\gamma01 = `r (tab3 %>% filter(term == "sector"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sector"))$CI`$. In other words, Catholic schools have higher average SES than public schools by $`r (tab3 %>% filter(term == "sector"))$b`$.  
 
 ## Part b
 Does sector significantly predict the Level 1 slope for minority ($\beta_{1j}$)?  If so, provide an interpretation of the relationship. 
 
+Sector is also a significant predictor of the the level 1 slope for minority -- that is, SES varies as a function of both minority status and school sector, $\gamma01 = `r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$CI`$. In other words, Minority students at Catholic high schools have SES that is on average $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$ than non-minority students at public high schools $`r (tab3 %>% filter(term == "(Intercept)"))$b`$.
+
 ## Part c 
-Does sector significantly predict the Level 1 slope for ses ($\beta_{3j}$)?  If so, provide an interpretation of the relationship. 
+Does sector significantly predict the Level 1 slope for ses ($\beta_{3j}$)?  If so, provide an interpretation of the relationship.  
+
+Sector is also a significant predictor of the the level 1 slope for ses -- that is, SES varies as a function of both minority status and school sector, $\gamma01 = `r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$CI`$. In other words, Minority students at Catholic high schools have SES that is on average $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$ than non-minority students at public high schools $`r (tab3 %>% filter(term == "(Intercept)"))$b`$.
 
 ## Part d
 How much Level 2 variance is accounted for by this model compared to the model (Question 3) that does not contain sector?  Note that this will require calculating four values, one for each of the four Level 2 equations.  You will find something unusual when you do this; comment on why you think the odd result is occurring.   
 
+```{r}
+tidy2 %>% filter(grepl("sd_", term)) %>% select(term, estimate, group) %>% mutate(Model = "Q3 Model") %>% 
+full_join(tidy3 %>% filter(grepl("sd_", term)) %>% select(term, estimate, group) %>% mutate(Model = "Q4 Model")) %>%
+  mutate(estimate = estimate^2) %>%
+  spread(key = Model, value = estimate) %>%
+  mutate(diff = `Q4 Model`-`Q3 Model`) %>%
+  kable(., "latex", booktabs = T, digits = 2,
+        col.names = c("Term", "Source", "Q3 Model", "Q4 Model", "Difference in Variance")) 
+```
+
+Across the models, we see that some sources of variance increase and some decrease when sector is included at Level 2. The variance of the intercepts as well minority and group-centered SES slopes decreased, while the variances of the gender slopes and Level 1 Residuals actually increased. Based on the magnitude of the changes. In other words, we are explaining *less* variance at Level 2 than we were previously. This makes sense when you interpret the $\tau$ matrix as conditional variances (conditional on the new Level 2 predictor sector). What this means is that when we include sector in the model, we reduce differences across schools, at least for mean math achievement, SES, and minority status. 
+
+
+
 ## Part e
 Does this model provide a significantly better fit than the previous model?  
+```{r 4e}
+(c2 <- anova(mod2, mod3))
+```
+
+Yes, the deviance of the model that includes sector in Level 2 is smaller deviance than the model that does not, $\chi^2(4) = `r round(c2$Chisq[2],2)`$, $p<.001$.  
