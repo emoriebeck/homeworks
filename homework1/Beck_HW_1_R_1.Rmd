@@ -1,0 +1,173 @@
+---
+title: "Homework 1"
+subtitle: "Psych 5068"
+author: "Emorie D Beck"
+date: \today
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, error = F)
+```
+
+```{r, results = 'hide'}
+library(psych)
+library(lme4)
+library(knitr)
+library(kableExtra)
+library(qqplotr)
+library(plyr)
+library(tidyverse)
+```
+
+
+# Question 1 
+Read in the HSB.csv file and save it in a dataframe called HSB_Data, excluding the variables, pracad and disclim. Verify you have done this correctly by printing the first several lines of the dataframe. 
+```{r Q1}
+data_path <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework1/HSB.csv"
+HSB <- url(data_path) %>%
+  read.csv(stringsAsFactors = F) %>% 
+  tbl_df() %>%
+  select(-pracad, -disclim)
+
+# print first few rows
+head(HSB)
+```
+
+# Question 2 
+Produce basic descriptive information for just these two variables: mathach and ses, using a single command. 
+```{r}
+describe(HSB %>% select(mathach, ses))
+```
+
+# Question 3 
+What is the overall correlation between mathach and ses? 
+```{r}
+with(HSB, cor(mathach, ses, "pairwise"))
+```
+
+# Question 4 
+Produce a cross-classification table for female and minority. Make sure that the rows and columns of the table have appropriate labels (not just numbers).  
+```{r}
+source("http://pcwww.liv.ac.uk/~william/R/crosstab.r")
+tab <- HSB %>% 
+  mutate(female = mapvalues(female, 0:1, c("Male", "Female")),
+         minority = mapvalues(minority, 0:1, c("Non-Minority", "Minority"))) %>% 
+  crosstab(., row.vars = "female", col.vars = "minority", type = "f")
+
+tab$table %>%
+  kable(., "latex", booktabs = T) %>%
+  kable_styling(latex_options = c("striped","repeat_header"), full_width = F) %>%
+  column_spec(4, bold = T, border_left = T) %>%
+  row_spec(2, hline_after = T) %>%
+  row_spec(3, bold = T)
+```
+
+# Question 5 
+Are the two variables in Question 4 independent of each other? 
+```{r}
+chi <- chisq.test(HSB$minority, HSB$female)
+```
+
+Yes, a $\chi^2$ test of independence suggests that minority status and gender are independent, $\chi^2$(`r chi$parameter`) = `r round(chi$statistic, 2)`, $p$ < `r round(chi$p.value, 2)`.  
+
+# Question 6 
+Produce a histogram for ses. Include a blue vertical line indicating the mean, a red vertical line indicating the median, and the normal density curve (in green). Make sure the axes are appropriately labeled. Do the data seem to be normally distributed? 
+
+The data appear to be mostly normally distributed with a slight negative skew. However, because the median and the mean are nearly indistinguishable and the density curve appears normal, any non-normality is unlikely to greatly influence the results.  
+```{r}
+tmp <- HSB %>%
+  mutate(sdses = sd(ses, na.rm = T), 
+         `Median SES` = median(ses, na.rm = T),
+         `Mean SES` = mean(ses, na.rm = T))
+tmp2 <- tmp %>%
+  gather(key = Measure, value = value, `Mean SES`, `Median SES`)
+tmp %>%
+  ggplot(aes(x = ses)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.25, color = "black", 
+                 fill = "lightgray") + 
+  stat_function(fun = dnorm, size = 1.25, color = "darkgreen", alpha = .75,
+                args = list(mean = unique(tmp$`Mean SES`), sd = unique(tmp$sdses))) +
+  geom_vline(data = tmp2, aes(xintercept = value, 
+      color = Measure, linetype = Measure), alpha = .75, size = 1.5) +
+  scale_color_manual(values = c("cyan", "red")) +
+  labs(x = "SES", y = "Density") +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+# Question 7 
+Produce a Q-Q plot for ses. Does this change your opinion regarding normality?  
+Looking at the Q-Q plot, earlier concerns about non-normality seem to be more justified. The departure of the data from the theoretic line at the positive extreme highlights the negative skew noted in the histogram.  
+```{r}
+HSB %>% 
+  ggplot(aes(sample=ses)) + 
+  stat_qq_band(fill = "blue", alpha = .25) +
+  stat_qq_line() + 
+  stat_qq_point() +
+  labs(x = "Actual", y = "Theoretical", 
+       title = "Q-Q Plot of Studentized Residuals") +
+  theme_classic()
+```
+
+# Question 8 
+Produce a scatterplot of meanses (y axis) versus size (x axis). Make sure the axes are appropriately labeled. Add the best-fitting linear regression line as well as a loess (nonlinear) fit line. Color the plot symbols so that public schools are red and Catholic schools are blue. What does this figure tell you? 
+
+Without grouping the best fitting line by sector, the relationship between school size and SES appears to be non-linear -- that is, the largest and smallest schools tend to have lower SES, while the middle-sized schools have higher SES. However, closer examination reveals (e.g. the dashed loess lines grouped by sector) sugget that this relationship depends on sector. Catholic schools tend to be smaller than public schools overall and have have higher SES, regardless of size. SES Does not appear to be a function of school size for Catholic school students, but it does appear to be related to the SES of public school students, with middle sized schools having the highest SES.  
+```{r}
+HSB %>% 
+  mutate(sector = mapvalues(sector, 0:1, c("Public", "Catholic"))) %>%
+  ggplot(aes(x = size, y = meanses)) +
+  scale_color_manual(values = c("blue", "red")) +
+  geom_point(aes(color = sector), alpha = .5, size = .5) +
+  geom_smooth(method = "lm", se = F, color = "darkgreen") + #aes(color = sector), 
+  geom_smooth(method = "loess", se = F, color = "darkgreen") + #aes(color = sector),
+  geom_smooth(aes(color = sector), method = "loess", se = F, linetype = "dashed") + #
+  labs(x = "School Size", y = "Mean SES", color = "Sector") +
+  theme_classic() + 
+  theme(axis.text = element_text(face = "bold"),
+        axis.title = element_text(face = "bold", size = rel(1.2)),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.position = "bottom")
+```
+
+This figure seems to suggest
+
+# Question 9 
+Plot the best-fitting line relating mathach to ses and include the 99% confidence interval around the line. 
+```{r}
+m <- lm(mathach ~ ses, data = HSB)
+
+cbind(HSB, predict(m, interval = "conf", level = .99)) %>%
+  ggplot(aes(x = ses, y = fit)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = .25, fill = "blue") +
+  geom_line() +
+  labs(x = "SES", y = "Fitted Values") +
+  theme_classic()
+```
+
+# Question 10 
+Produce a two-panel plot. In the upper panel, show the boxplots of mathach separately for each public school. In the lower panel, show the boxplots of mathach separately for each Catholic school. 
+```{r, fig.height=10, fig.width=7}
+# factor the Schools to be ordered by median, so the plot doesn't look terrible
+orders <- HSB %>%
+  group_by(School) %>%
+  summarize(median = median(mathach, na.rm = T)) %>%
+  arrange(median)
+
+HSB %>%
+  mutate(sector = mapvalues(sector, 0:1, c("Public", "Catholic")),
+         sector = factor(sector, levels = c("Public", "Catholic")),
+         School = factor(School, levels = orders$School)) %>%
+  ggplot(aes(x = School, y = mathach, fill = School)) +
+  geom_boxplot(size = .25) +
+  coord_flip() +
+  facet_grid(sector~., scales = "free_y") +
+  theme_classic() +
+  theme(legend.position = "none",
+        axis.text.y = element_text(size = rel(.5)))
+```
+
