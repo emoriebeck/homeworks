@@ -2,8 +2,10 @@ table_fun <- function(model){
   fixed <- broom::tidy(model) %>% filter(group == "fixed") %>%
     select(term, estimate) 
   ## add random effects ##
-  rand <- as.matrix(VarCorr(model)[[1]])
+  rand <- VarCorr(model)[[1]]
+  if(nrow(rand) > 1){
   rand <- rand[1:nrow(rand), 1:nrow(rand)]
+  }
   colnames(rand)[colnames(rand) == "(Intercept)"] <- "Intercept"
   rownames(rand)[rownames(rand) == "(Intercept)"] <- "Intercept"
   vars <- rownames(rand)
