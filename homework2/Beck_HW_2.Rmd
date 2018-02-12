@@ -8,6 +8,7 @@ output:
     includes:
             in_header:
                 header.tex
+    keep_tex: yes
 editor_options: 
   chunk_output_type: console
 ---
@@ -115,6 +116,7 @@ lmerICC <- function(obj) {
 }
 
 mod0 <- lmer(mathach ~ 1 + (1 | School), data = dat)
+tidy0 <- broom::tidy(mod0)
 lmerICC(mod0)
 ```
 
@@ -130,37 +132,44 @@ tidy1 <- broom::tidy(mod1)
 tab   <- table_fun(mod1)
 
 options(knitr.kable.NA = '')
-tab %>% 
+tab %>% select(-type) %>%
   kable(., "latex", escape = F, booktabs = T,
-        col.names = c("type", "Term", "b", "CI")) %>%
+        col.names = c( "Term", "b", "CI")) %>%
   group_rows("Fixed", 1,2) %>%
   group_rows("Random", 3,4) %>%
-  group_rows("Model Terms", 5,6) 
+  group_rows("Model Terms", 5,6) %>%
+  kable_styling(latex_options = c("repeat_header"),full_width = F)
 ```
 
 ## Part A  
-a) Is math achievement significantly related to minority status?  
-Yes, match minority status predicts math achievement, $`r \gamma_{10} = (tab %>% filter(term == "minorityMinority"))$b`$, 95\% CI $= `r (tab %>% filter(term == "minorityMinority"))$CI`$.  
+Is math achievement significantly related to minority status?  
+Yes, match minority status predicts math achievement, $\gamma_{10} = `r (tab %>% filter(term == "minorityMinority"))$b`$, 95\% CI $= `r (tab %>% filter(term == "minorityMinority"))$CI`$.  
 
 ## Part B  
-(b) What is the expected (mean) level of math achievement for non-minority students?  
-The expected mean level of math achievement for non-minority students is $`r \gamma_{00} = (tab %>% filter(term == "(Intercept)"))$b`$, 95\% CI $= `r (tab %>% filter(term == "(Intercept)"))$CI`$.  
+ What is the expected (mean) level of math achievement for non-minority students?  
+The expected mean level of math achievement for non-minority students is $\gamma_{00} = `r (tab %>% filter(term == "(Intercept)"))$b`$, 95\% CI $= `r (tab %>% filter(term == "(Intercept)"))$CI`$.  
 
 ## Part C  
-(c) What is the expected (mean) level of math achievement for minority students?  
+ What is the expected (mean) level of math achievement for minority students?  
 The expected mean level of math achievement for non-minority students is $`r as.numeric((tab %>% filter(term == "(Intercept)"))$b) + as.numeric((tab %>% filter(term == "minorityMinority"))$b)`$
 
 
 ## Part D  
-(d) How much Level 1 variance is accounted for by this model compared to the fully unconditional model?   
+ How much Level 1 variance is accounted for by this model compared to the fully unconditional model?   
+```{r}
+sig.d <- (sigma(mod0) - sigma(mod1))/sigma(mod0)
+```
+
+This model explains $`r round(sig.d,2)*100`\%`$ of more of the variance in math achievement than the fully unconditional model.  
+
 
 # Question 3  
 Now add student sex (female: male=0, female=1) and group-centered SES to the Level 1 model:  
-$$mathach_{ij} = \beta_{0j} + \beta_{1j}minority_{ij} + \beta_{2j}female_{ij} + \beta_{3j}(ses_{ij}-meanses_{j}) + r_{ij}$$  
-$$\beta_{0j} = \gamma_{00} + u_{0j}$$  
-$$\beta_{1j} = \gamma_{10} + u_{1j}$$  
-$$\beta_{2j} = \gamma_{20} + u_{2j}$$  
-$$\beta_{3j} = \gamma_{30} + u_{3j}$$  
+$$mathach_{ij} = \beta_{0j} + \beta_{1j}minority_{ij} + \beta_{2j}female_{ij} + \beta_{3j}(ses_{ij}-meanses_{j}) + r_{ij}$$
+$$\beta_{0j} = \gamma_{00} + u_{0j}$$
+$$\beta_{1j} = \gamma_{10} + u_{1j}$$
+$$\beta_{2j} = \gamma_{20} + u_{2j}$$
+$$\beta_{3j} = \gamma_{30} + u_{3j}$$
 
 ```{r Q3, results = 'asis'}
 dat <- dat %>%
@@ -170,40 +179,44 @@ mod2  <- lmer(mathach ~ minority + female + GC.ses + (minority + female + GC.ses
 tidy2 <- broom::tidy(mod2)
 tab2  <- table_fun(mod2)
 
-tab2 %>% 
+tab2 %>% select(-type) %>%
   kable(., "latex", escape = F, booktabs = T,
-        col.names = c("type", "Term", "b", "CI")) %>%
-  collapse_rows(1)
+        col.names = c( "Term", "b", "CI")) %>%
+  group_rows("Fixed", 1,4) %>%
+  group_rows("Random", 5,8) %>%
+  group_rows("Model Terms", 9,10) %>%
+  kable_styling(latex_options = c("repeat_header"),full_width = F)
 ```
 
 ## Part a  
-(a) Is there a significant sex difference in math achievement, controlling for minority status and SES? 
-Yes, females have lower math achievement than males, controlling for SES and minority status, $\gamma_{20} = `r (tab2 %>% filter(term == "female"))$b`$, 95\% CI $`r(tab2 %>% filter(term == "female"))$CI`$.  
+ Is there a significant sex difference in math achievement, controlling for minority status and SES? 
+Yes, females have lower math achievement than males, controlling for SES and minority status, $\gamma_{20} = `r (tab2 %>% filter(term == "femaleFemale"))["b"]`, 95\% CI `r (tab2 %>% filter(term == "femaleFemale"))["CI"]`$.  
 
 ## Part b   
-(b) Is the effect of student-level SES significant?  Explain how the coefficient for this effect ($\beta_{3j}$) should be interpreted.  
-Controlling for gender and minority status, a one unit increase in SES is associated with a $`r (tab2 %>% filter(term == "GC.ses"))$b`$ (95\% CI $`r(tab2 %>% filter(term == "female"))$CI`$) increase in math achievement.  
+ Is the effect of student-level SES significant?  Explain how the coefficient for this effect ($\beta_{3j}$) should be interpreted.  
+Controlling for gender and minority status, a one unit increase in SES is associated with a $`r (tab2 %>% filter(term == "GC.ses"))["b"]`$ \(95\% CI $`r (tab2 %>% filter(term == "GC.ses"))["CI"]`$\) increase in math achievement.  
+
 ## Part c  
-(c) What is the expected (mean) level of math achievement for minority male students with SES equal to their school average?  
-$Y_{ij} = \gamma_{00} + \gamma_{10}*1 + \gamma_{20}*0 + \gamma_{30}*0$   
+ What is the expected (mean) level of math achievement for minority male students with SES equal to their school average?  
+$Y_{ij} = \gamma_{00} + \gamma_{10}*1 + \gamma_{20}*0 + \gamma_{30}*0$  
 $Y_{ij} = \gamma_{00} + \gamma_{10}$  
-$Y_{ij} = `r (tab2 %>% filter(term == "(Intercept)"))$b` + `r (tab2 %>% filter(term == "minority"))$b`$  
-$Y_{ij} = `r round((tidy2 %>% filter(term == "(Intercept)"))$estimate + (tidy2 %>% filter(term == "minority"))$estimate, 2)`$  
+$Y_{ij} = `r (tab2 %>% filter(term == "(Intercept)"))["b"]` + `r (tab2 %>% filter(term == "minorityMinority"))["b"]`$  
+$Y_{ij} = `r round((tidy2 %>% filter(term == "(Intercept)"))["estimate"] + (tidy2 %>% filter(term == "minorityMinority"))["estimate"], 2)`$  
 
 ## Part d  
-(d) How much Level 1 variance is accounted for by this model compared to the fully unconditional model?   
+ How much Level 1 variance is accounted for by this model compared to the fully unconditional model?   
 `r round(sigma(mod2),2)`\% of the variance is accounted for by the fully conditional model.  
 
 ## Part e  
 (e) Does this model provide a significantly better fit than the previous model?   
 ```{r 3e}
-(c1 <- anova(mod1, mod2))
+(c1 <- anova(mod1, mod2)) 
 ```
 
 Yes, the deviance of the model that includes gender and SES have smaller deviance than the model that does not, $\chi^2(9) = `r round(c1$Chisq[2],2)`$, $p<.001$.  
 
 ## Part f  
-(f) Explain why there are 9 degrees of freedom for the $\chi^2$ test in the previous question.   
+Explain why there are 9 degrees of freedom for the $\chi^2$ test in the previous question.   
 The smaller model (that did not include gender and SES) had 6 degrees of freedom, while the larger model had 15 degrees of freedom. The deviance test we conducted is $\chi^2$ distributed with degrees of freedom equal to the degrees of freedom of the larger minus the smaller model.  
 
 # Question 4  
@@ -220,26 +233,30 @@ mod3  <- lmer(mathach ~ minority*sector + female*sector + GC.ses*sector +
 tidy3 <- broom::tidy(mod3)
 tab3  <- table_fun(mod3)
 
-tab3 %>% 
+tab3 %>% select(-type) %>%
   kable(., "latex", escape = F, booktabs = T,
-        col.names = c("type", "Term", "b", "CI")) 
+        col.names = c( "Term", "b", "CI")) %>%
+  group_rows("Fixed", 1,8) %>%
+  group_rows("Random", 9,12) %>%
+  group_rows("Model Terms", 13,14) %>%
+  kable_styling(latex_options = c("repeat_header"),full_width = F)
 ```
 
 
 ## Part a  
 Does sector significantly predict the Level 1 intercepts ($\beta_{0j}$)?  If so, provide an interpretation of the relationship.  
 
-Sector predicts the level 1 intercepts, $\gamma01 = `r (tab3 %>% filter(term == "sector"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sector"))$CI`$. In other words, Catholic schools have higher average SES than public schools by $`r (tab3 %>% filter(term == "sector"))$b`$.  
+Sector predicts the level 1 intercepts, $\gamma01 = `r (tab3 %>% filter(term == "sectorCatholic"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sector"))$CI`$. In other words, Catholic schools have higher average math achievement than public schools by $`r (tab3 %>% filter(term == "sectorCatholic"))$b`$.  
 
 ## Part b
 Does sector significantly predict the Level 1 slope for minority ($\beta_{1j}$)?  If so, provide an interpretation of the relationship. 
 
-Sector is also a significant predictor of the the level 1 slope for minority -- that is, SES varies as a function of both minority status and school sector, $\gamma01 = `r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$CI`$. In other words, Minority students at Catholic high schools have SES that is on average $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$ than non-minority students at public high schools $`r (tab3 %>% filter(term == "(Intercept)"))$b`$.
+Sector is also a significant predictor of the the level 1 slope for minority -- that is, math achievement varies as a function of both minority status and school sector, $\gamma01 = `r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$CI`$. In other words, Minority students at Catholic high schools have math achievement that is on average $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$ than non-minority students at public high schools $`r (tab3 %>% filter(term == "(Intercept)"))$b`$.
 
 ## Part c 
 Does sector significantly predict the Level 1 slope for ses ($\beta_{3j}$)?  If so, provide an interpretation of the relationship.  
 
-Sector is also a significant predictor of the the level 1 slope for ses -- that is, SES varies as a function of both minority status and school sector, $\gamma01 = `r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$CI`$. In other words, Minority students at Catholic high schools have SES that is on average $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$ than non-minority students at public high schools $`r (tab3 %>% filter(term == "(Intercept)"))$b`$.
+Sector is also a significant predictor of the the level 1 slope for ses -- that is, math achievement varies as a function of both minority status and school sector, $\gamma01 = `r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$CI`$. In other words, Minority students at Catholic high schools have math achievement that is on average $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$ than non-minority students at public high schools $`r (tab3 %>% filter(term == "(Intercept)"))$b`$.
 
 ## Part d
 How much Level 2 variance is accounted for by this model compared to the model (Question 3) that does not contain sector?  Note that this will require calculating four values, one for each of the four Level 2 equations.  You will find something unusual when you do this; comment on why you think the odd result is occurring.   
@@ -248,13 +265,14 @@ How much Level 2 variance is accounted for by this model compared to the model (
 tidy2 %>% filter(grepl("sd_", term)) %>% select(term, estimate, group) %>% mutate(Model = "Q3 Model") %>% 
 full_join(tidy3 %>% filter(grepl("sd_", term)) %>% select(term, estimate, group) %>% mutate(Model = "Q4 Model")) %>%
   mutate(estimate = estimate^2) %>%
+  group_by(Model) %>% mutate(estimate = estimate/sum(estimate)) %>%
   spread(key = Model, value = estimate) %>%
   mutate(diff = `Q4 Model`-`Q3 Model`) %>%
   kable(., "latex", booktabs = T, digits = 2,
         col.names = c("Term", "Source", "Q3 Model", "Q4 Model", "Difference in Variance")) 
 ```
 
-Across the models, we see that some sources of variance increase and some decrease when sector is included at Level 2. The variance of the intercepts as well minority and group-centered SES slopes decreased, while the variances of the gender slopes and Level 1 Residuals actually increased. Based on the magnitude of the changes. In other words, we are explaining *less* variance at Level 2 than we were previously. This makes sense when you interpret the $\tau$ matrix as conditional variances (conditional on the new Level 2 predictor sector). What this means is that when we include sector in the model, we reduce differences across schools, at least for mean math achievement, SES, and minority status. 
+Across the models, we see that some sources of variance increase and some decrease when sector is included at Level 2. The proportion of variance of the intercepts as well minority and group-centered SES slopes decreased, while the variances of the gender slopes and Level 1 Residuals actually decreased when sector was added. In other words, we are explaining *less* variance at Level 2 than we were previously. This makes sense when you interpret the $\tau$ matrix as conditional variances (conditional on the new Level 2 predictor sector). What this means is that when we include sector in the model, we reduce differences across schools, at least for mean math achievement, SES, and minority status. 
 
 
 
