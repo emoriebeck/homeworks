@@ -13,7 +13,7 @@ table_fun <- function(model){
   rand <- data.frame(rand) %>% mutate(var1 = rownames(.)) %>%
     gather(key = var2, value = estimate, -var1, na.rm = T) %>%
     mutate(var1 = mapvalues(var1, vars, 0:(length(vars)-1)),
-           var2 = mapvalues(var2, vars, 0:(length(vars)-1))) %>%
+           var2 = mapvalues(var2, unique(var2), 0:(length(vars)-1))) %>%
     filter(var1 == var2) %>%
     unite(var, var1, var2, sep = "") %>%
     mutate(var = sprintf("$\\tau_{%s}$", var))
