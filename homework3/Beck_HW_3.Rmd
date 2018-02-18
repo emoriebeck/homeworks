@@ -79,7 +79,7 @@ $$popular_{ij} = \beta_{0} + \beta_1 * popteach\_c_{ij} + r_{ij}$$
 $$\beta_0 = \gamma_{00} + u_{0j}$$
 $$\beta_1 = \gamma_{10} + u_{1j}$$
 
-```{r}
+```{r, results = 'asis'}
 mod0 <- lmer(popular ~ 1          + (1|class), data = dat)
 mod1 <- lmer(popular ~ popteach_c + (popteach_c|class), data = dat)
 
@@ -87,6 +87,22 @@ source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.
 
 tab0 <- table_fun(mod0) %>% mutate(model = "unconditional") 
 tab1 <- table_fun(mod1) %>% mutate(model = "conditional")
+
+options(knitr.kable.NA = '')
+tab0 %>% full_join(tab1) %>%
+  gather(key = est, value = value, b, CI) %>%
+  unite(tmp, model, est, sep = ".") %>%
+  mutate(type = factor(type, levels = c("Fixed Parts", "Random Parts", "Model Terms"))) %>%
+  spread(key = tmp, value = value) %>%
+  select(term, contains("uncond"), contains("cond")) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Term", "b", "CI", "b", "CI")) %>%
+  kable_styling(full_width = F) %>%
+  column_spec(2:5, width = "2cm") %>%
+  group_rows("Fixed Parts",1,2) %>%
+  group_rows("Random Parts",3,4) %>%
+  group_rows("Model Terms",5,6) %>%
+  add_header_above(c(" " = 1, "Unconditional" = 2, "Conditional" = 2))
 ```
 
 
@@ -97,16 +113,27 @@ Yes, a one unit increase in teacher ratings of popularity is associated with a $
 ## Part B
 How much variance in the Level 1 model is accounted for by teacher popularity ratings?  
 ```{r Q2b}
-vexpL1 <- (sigma(mod0) - sigma(mod1))/sigma(mod0)
+vexpL1 <- (sigma(mod0)^2 - sigma(mod1)^2)/sigma(mod0)^2
 ```
 $`r round(vexpL1, 2)*100`$\% of the variance in the Level 1 model is accounted for by teacher popularity ratings.  
 
 # Question 3
 Now test two hypotheses about the ability of teachers as judges of their students’ popularity.  
 
-```{r Q3}
+```{r Q3, results = 'asis'}
 mod2 <- lmer(popular ~ popteach_c + gmc_texp * popteach_c + gmc_mean_pop_t * popteach_c + (popteach_c | class), data = dat)
 tab2 <- table_fun(mod2)
+
+tab2 %>% select(-type) %>%
+  mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Term", "b", "CI")) %>%
+  kable_styling(full_width = F) %>%
+  column_spec(2:3, width = "2cm") %>%
+  group_rows("Fixed Parts",1,6) %>%
+  group_rows("Random Parts",7,8) %>%
+  group_rows("Model Terms",9,10) %>%
+  add_header_above(c(" " = 1, "Popularity" = 2))
 ```
 
 
@@ -145,14 +172,22 @@ tibble(
   ) %>% full_join(
 tibble(
   class=1, 
+  popteach_c = seq(-sd.pt0,sd.pt0, by = sd.pt0), 
+  gmc_texp = 0, 
+  gmc_mean_pop_t = mean(dat$gmc_mean_pop_t),
+  level = "0 SD"
+)) %>% full_join(
+tibble(
+  class=1, 
   popteach_c = seq(te.inc.1 - sd.pt0,te.inc.1 + sd.pt0, by = sd.pt0), 
   gmc_texp = sd.te, 
   gmc_mean_pop_t = mean(dat$gmc_mean_pop_t),
   level = "+1 SD"
 )) %>%
-  mutate(pred = predict(mod2, .)) %>%
+  mutate(pred = predict(mod2, .),
+         level = factor(level, c("-1 SD", "0 SD", "+1 SD"))) %>%
   ggplot(aes(x = popteach_c, y = pred, color = level)) +
-  geom_line() +
+  geom_line(size = 1.5) +
   theme_classic() +
   theme(legend.position = "bottom",
         axis.text = element_text(face = "bold", size = rel(1.2)),
@@ -170,7 +205,7 @@ mod.pt0 <- lmer(popteach_c ~ 1 + (1 | class), data = dat)
 sd.pt0  <- sigma(mod.pt0)
 sd.mtp  <- sd(dat$gmc_mean_pop_t)  
 
-mod.pt1 <- lmer(popteach ~ 1 + gmc_texp + gmc_mean_pop_t + (1 | class), data = dat) 
+mod.pt1 <- lmer(popteach_c ~ 1 + gmc_texp + gmc_mean_pop_t + (1 | class), data = dat) 
 
 te.inc.1 <- sd.mtp * fixef(mod.pt1)["gmc_mean_pop_t"] 
 
@@ -183,14 +218,22 @@ tibble(
   ) %>% full_join(
 tibble(
   class=1, 
+  popteach_c = seq(-sd.pt0, sd.pt0, by = sd.pt0), 
+  gmc_texp = mean(dat$gmc_texp), 
+  gmc_mean_pop_t = 0,
+  level = "0 SD"
+)) %>% full_join(
+tibble(
+  class=1, 
   popteach_c = seq(-te.inc.1 - sd.pt0,-te.inc.1 + sd.pt0, by = sd.pt0), 
   gmc_texp = mean(dat$gmc_texp), 
   gmc_mean_pop_t = sd.mtp,
   level = "+1 SD"
 )) %>%
-  mutate(pred = predict(mod2, .)) %>%
+  mutate(pred = predict(mod2, .),
+         level = factor(level, c("-1 SD", "0 SD", "+1 SD"))) %>%
   ggplot(aes(x = popteach_c, y = pred, color = level)) +
-  geom_line() +
+  geom_line(size = 1.5) +
   theme_classic() +
   theme(legend.position = "bottom",
         axis.text = element_text(face = "bold", size = rel(1.2)),
@@ -238,32 +281,11 @@ We cannot conclude that it is more difficult for teachers to judge the popularit
 ## Part D 
 Illustrate the interaction in this model. 
 ```{r}
-# get SD from unconditional model
-mod.pt0 <- lmer(popteach_c ~ 1 + (1 | class), data = dat) 
-sd.pt0  <- sigma(mod.pt0)
-sd.mtp  <- sd(dat$gmc_mean_pop_t)  
-
-mod.pt1 <- lmer(popteach ~ 1 + gmc_texp + gmc_mean_pop_t + (1 | class), data = dat) 
-
-te.inc.1 <- sd.mtp * fixef(mod.pt1)["gmc_mean_pop_t"] 
-
-tibble(
-  class=1, 
-  popteach_c = seq(te.inc.1 - sd.pt0,te.inc.1 + sd.pt0, by = sd.pt0), 
-  gmc_texp = mean(dat$gmc_texp), 
-  gmc_mean_pop_t = -sd.mtp,
-  level = "-1 SD"
-  ) %>% full_join(
-tibble(
-  class=1, 
-  popteach_c = seq(-te.inc.1 - sd.pt0,-te.inc.1 + sd.pt0, by = sd.pt0), 
-  gmc_texp = mean(dat$gmc_texp), 
-  gmc_mean_pop_t = sd.mtp,
-  level = "+1 SD"
-)) %>%
-  mutate(pred = predict(mod3, .)) %>%
-  ggplot(aes(x = popteach_c, y = pred, color = level)) +
-  geom_line() +
+crossing(sex = c("Male", "Female"),
+         popteach_c = seq(min(dat$popteach_c,na.rm =T), max(dat$popteach_c, na.rm = T), .1)) %>%
+  mutate(pred = predict(mod3, newdata = ., re.form = NA)) %>%
+  ggplot(aes(x = popteach_c, y = pred, color = sex)) +
+  geom_line(size = 1.5) +
   theme_classic() +
   theme(legend.position = "bottom",
         axis.text = element_text(face = "bold", size = rel(1.2)),
@@ -274,7 +296,9 @@ tibble(
 
 # Question 5
 
-The parameter estimates and residuals can provide some very interesting information for these data.  See if you can figure out how to determine answers to the following questions.    In general, once you have fit a model with lmer( ), the following functions can be used to get various bits of information:  
+The parameter estimates and residuals can provide some very interesting information for these data.  See if you can figure out how to determine answers to the following questions.    
+
+In general, once you have fit a model with lmer( ), the following functions can be used to get various bits of information:  
 
 `resid(fit_object)`: the Level 1 residuals ($r_{ij}$) 
 `fitted(fit_object)`: the predicted outcomes at Level 1 ($Y_{ij}$) 
@@ -292,10 +316,11 @@ $$\beta_0 = \gamma_{00} + u_{0j}$$
 $$\beta_1 = \gamma_{10} + u_{1j}$$
 
 ```{r}
-raneffs <- (fixef(mod1) + ranef(mod1)[[1]]) %>% 
+(raneffs <- (fixef(mod1) + ranef(mod1)[[1]]) %>% 
   data.frame() %>% 
   mutate(class = rownames(.)) %>%
-  arrange(desc(popteach_c))
+  tbl_df %>%
+  arrange(desc(popteach_c)))
 ```
 
 The strongest relationship between between teacher and peer popularity ratings occurred in classroom $`r raneffs$class[1]`$, $\gamma_{10} + u_{1~97} = `r raneffs$popteach_c[1]`$.  
@@ -308,9 +333,16 @@ $$\beta_0 = \gamma_{00} + \gamma_{01}*gmc\_texp_j + \gamma_{02}*gmc\_mean\_pop\_
 $$\beta_1 = \gamma_{10} + \gamma_{11}*gmc\_texp_j + \gamma_{12}*gmc\_mean\_pop\_t_j + u_{1j}$$  
 
 ```{r}
-broom::augment(mod2) %>% mutate(rn = 1:nrow(.)) %>% arrange(.resid) %>% tbl_df %>%
-  group_by(class) %>% summarize(mean = mean(.resid)) %>% arrange(mean)
+(s.teach <- broom::augment(mod2) %>% 
+  mutate(pupil = 1:nrow(.)) %>% 
+  arrange(desc(abs(.resid))) %>% 
+  tbl_df %>% 
+  select(popular:.fixed, pupil)) 
+
+# %>% group_by(class) %>% summarize(mean = mean(.resid)) %>% arrange(mean)
 ```
+
+The weakest relationship between between teacher and peer popularity ratings compared to expectation occurred in classroom $`r s.teach$class[1]`$, $\gamma_{10} + u_{1~97} = `r raneffs$popteach_c[1]`$.  
 
 ## Part C
 Using the Level 2 residuals from the model in Question 3, which class exceeded their expected mean popularity the most?  What was the simple (OLS) mean popularity of this class?  What was the empirical Bayes estimate for the mean popularity of this class?  Why are these two estimates (OLS and EB) for this class’s mean popularity different?  
@@ -321,7 +353,12 @@ $$\beta_1 = \gamma_{10} + \gamma_{11}*gmc\_texp_j + \gamma_{12}*gmc\_mean\_pop\_
 # expected value of \beta_0j for each group, ignoring the random effects
 pred_pop <- as.matrix(unique(data.frame(unclass(dat)) %>% mutate(I = 1) %>% select(I, gmc_texp, gmc_mean_pop_t))) %*% as.vector(fixef(mod2)[c(1,3,4)]) 
 
-pred_pop <- pred_pop %>% data.frame() %>% setNames("B0") %>% mutate(class = as.character(1:100)) %>% full_join(ranef(mod2)[[1]]["popteach_c"] %>% mutate(class = rownames(.))) %>%
+pred_pop <- pred_pop %>% 
+  data.frame() %>% 
+  setNames("B0") %>% 
+  mutate(class = as.character(1:100)) %>% 
+  full_join(ranef(mod2)[[1]]["popteach_c"] %>% 
+              mutate(class = rownames(.))) %>%
   arrange(desc(popteach_c))
 
 ols2 <- lm(popular ~ 1 , data = dat %>% filter(class == pred_pop$class[1]))
@@ -354,13 +391,13 @@ By_School <- dat %>%
 
 # By_School <- ddply(HSB_Data, ~School, lm_fit)
 # add to the Coef matrix and define as a dataframe.
-Coef <- as.data.frame(cbind(Coef,By_School))
-names(Coef) <- c("EB_Intercept","EB_Slope","Intercept_Var","Covariance","Covariance_Too",
-                 "Slope_Variance","Intercept_Res","Slope_Res","School","OLS_Intercept") #,"OLS_Slope")
-Coef$I_lwr <- Coef$EB_Intercept-sqrt(Coef$Intercept_Var)*1.96
-Coef$I_upr <- Coef$EB_Intercept+sqrt(Coef$Intercept_Var)*1.96
-Coef$S_lwr <- Coef$EB_Slope-sqrt(Coef$Slope_Var)*1.96
-Coef$S_upr <- Coef$EB_Slope+sqrt(Coef$Slope_Var)*1.96
+Coef <- bind_cols(Coef, By_School) %>% tbl_df %>%
+  setNames(c("EB_Intercept","EB_Slope","Intercept_Var","Covariance","Covariance_Too",
+                 "Slope_Var","Intercept_Res","Slope_Res","School","OLS_Intercept")) %>%
+  mutate(I_lwr = EB_Intercept-sqrt(Intercept_Var)*1.96, 
+         I_upr = EB_Intercept+sqrt(Intercept_Var)*1.96,
+         S_lwr = EB_Slope-sqrt(Slope_Var)*1.96,
+         S_upr = EB_Slope+sqrt(Slope_Var)*1.96)
 ```
 
 Class $`r pred_pop$class[1]`$ most exceeded their expected popularity of $`r round(pred_pop$B0[1],2)`$ by $`r round(pred_pop$popteach_c[1],2)`$, for total expected value of $`r pred_pop$B0[1] + pred_pop$popteach_c[1]`$. The simple (OLS) mean popularity of this class was $`r round(coef(ols2),2)`$. These two estimate are different because the MLM expected values leverage information about the relationship between mean classroom popularlity and teaching experience.  
