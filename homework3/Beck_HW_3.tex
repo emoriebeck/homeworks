@@ -116,6 +116,7 @@
   \title{Homework 3}
   \pretitle{\vspace{\droptitle}\centering\huge}
   \posttitle{\par}
+\subtitle{Psych 5068}
   \author{Emorie Beck}
   \preauthor{\centering\large\emph}
   \postauthor{\par}
@@ -331,11 +332,11 @@ Term & b & CI & b & CI\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{5}{l}{\textbf{Fixed Parts}}\\
-\hspace{1em}(Intercept) & 5.08 & [5.00, 5.20] & 5.08 & [4.96, 5.18]\\
-\hspace{1em}popteach\_c &  &  & 0.73 & [0.71, 0.75]\\
+\hspace{1em}(Intercept) & 5.08 & [4.92, 5.18] & 5.08 & [4.99, 5.13]\\
+\hspace{1em}popteach\_c &  &  & 0.73 & [0.71, 0.76]\\
 \addlinespace[0.3em]
 \multicolumn{5}{l}{\textbf{Random Parts}}\\
-\hspace{1em}$\tau\_{00}$ & 0.70 & [0.59, 0.93] & 0.74 & [0.60, 0.92]\\
+\hspace{1em}$\tau\_{00}$ & 0.70 & [0.49, 0.95] & 0.74 & [0.61, 0.96]\\
 \hspace{1em}$\tau\_{11}$ &  &  & 0.00 & [0.00, 0.01]\\
 $R^2\_c$ & 0.36 &  & 0.73 & \\
 $R^2\_m$ & 0.00 &  & 0.34 & \\
@@ -347,7 +348,7 @@ $R^2\_m$ & 0.00 &  & 0.34 & \\
 
 Are peer-reports and teacher-reports significantly related? Yes, a one
 unit increase in teacher ratings of popularity is associated with a
-\(0.73\), 95\% CI \([0.71, 0.75]\).
+\(0.73\), 95\% CI \([0.71, 0.76]\).
 
 \subsection{Part B}\label{part-b-1}
 
@@ -402,15 +403,15 @@ Term & b & CI\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Fixed Parts}}\\
-\hspace{1em}(Intercept) & 5.08 & [5.05, 5.10]\\
-\hspace{1em}popteach\_c & 0.72 & [0.70, 0.75]\\
+\hspace{1em}(Intercept) & 5.08 & [5.06, 5.10]\\
+\hspace{1em}popteach\_c & 0.72 & [0.69, 0.76]\\
 \hspace{1em}gmc\_texp & 0.00 & [-0.00, 0.01]\\
-\hspace{1em}gmc\_mean\_pop\_t & 0.98 & [0.94, 1.03]\\
+\hspace{1em}gmc\_mean\_pop\_t & 0.98 & [0.95, 1.01]\\
 \hspace{1em}popteach\_c:gmc\_texp & -0.01 & [-0.01, -0.00]\\
-\hspace{1em}popteach\_c:gmc\_mean\_pop\_t & -0.01 & [-0.04, 0.02]\\
+\hspace{1em}popteach\_c:gmc\_mean\_pop\_t & -0.01 & [-0.02, 0.04]\\
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Random Parts}}\\
-\hspace{1em}$\tau\_{00}$ & 0.00 & [0.00, 0.00]\\
+\hspace{1em}$\tau\_{00}$ & 0.00 & [0.00, 0.01]\\
 \hspace{1em}$\tau\_{11}$ & 0.00 & [0.00, 0.01]\\
 $R^2\_m$ & 0.73 & \\
 $R^2\_c$ & 0.73 & \\
@@ -431,7 +432,7 @@ popularity of the class (as rated by teachers) is high than when it is
 low.\\
 It is not more difficult to judge student popularity when the mean
 popularity is high v. low, \(\gamma_{12} = -0.01\), 95\% CI
-\([-0.04, 0.02]\).
+\([-0.02, 0.04]\).
 
 \subsection{Part C}\label{part-c-1}
 
@@ -601,7 +602,7 @@ predictors.
 
 Is there support for the hypothesis? We cannot conclude that it is more
 difficult for teachers to judge the popularity of boys than to judge the
-popularity of girls, \(\gamma_{30} = 0.03\), 95\% CI \([0.01, 0.12]\).
+popularity of girls, \(\gamma_{30} = 0.03\), 95\% CI \([-0.00, 0.07]\).
 
 \subsection{Part D}\label{part-d-2}
 
@@ -635,12 +636,12 @@ answers to the following questions.
 In general, once you have fit a model with lmer( ), the following
 functions can be used to get various bits of information:
 
-\texttt{resid(fit\_object)}: the Level 1 residuals (\(r_{ij}\))
+\texttt{resid(fit\_object)}: the Level 1 residuals (\(r_{ij}\))\\
 \texttt{fitted(fit\_object)}: the predicted outcomes at Level 1
-(\(Y_{ij}\)) \texttt{ranef(fit\_object)}: the Level 2 residuals
-(\(u_j\)) \texttt{fixef(fit\_object)}: the Level 2 fixed effects
-(\(\gamma\)) \texttt{coef(fit\_object)}: the Level 1 coefficients
-(\(\beta_j\))
+(\(Y_{ij}\))\\
+\texttt{ranef(fit\_object)}: the Level 2 residuals (\(u_j\))\\
+\texttt{fixef(fit\_object)}: the Level 2 fixed effects (\(\gamma\))\\
+\texttt{coef(fit\_object)}: the Level 1 coefficients (\(\beta_j\))
 
 For the following, identify the requested individual by class number
 (and if relevant, by pupil number).
@@ -755,34 +756,8 @@ estimates (OLS and EB) for this class's mean popularity different?
 \StringTok{  }\KeywordTok{nest}\NormalTok{() }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{ols =} \KeywordTok{map}\NormalTok{(data, lm_fit))}
 
-\KeywordTok{coef}\NormalTok{(mod2)[[}\DecValTok{1}\NormalTok{]] }\OperatorTok{%>%}\StringTok{ }\KeywordTok{data.frame}\NormalTok{() }\OperatorTok{%>%}
-\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{class =} \KeywordTok{rownames}\NormalTok{(.)) }\OperatorTok{%>%}\StringTok{ }\NormalTok{tbl_df }\OperatorTok{%>%}
-\StringTok{  }\KeywordTok{arrange}\NormalTok{(}\KeywordTok{desc}\NormalTok{(popteach_c))}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{verbatim}
-## # A tibble: 100 x 7
-##    X.Intercept. popteach_c gmc_texp gmc_mean_pop_t popteach_c.gmc_texp
-##           <dbl>      <dbl>    <dbl>          <dbl>               <dbl>
-##  1         5.07      0.737  0.00271          0.983            -0.00648
-##  2         5.07      0.737  0.00271          0.983            -0.00648
-##  3         5.06      0.735  0.00271          0.983            -0.00648
-##  4         5.04      0.734  0.00271          0.983            -0.00648
-##  5         5.08      0.733  0.00271          0.983            -0.00648
-##  6         5.07      0.733  0.00271          0.983            -0.00648
-##  7         5.06      0.733  0.00271          0.983            -0.00648
-##  8         5.07      0.732  0.00271          0.983            -0.00648
-##  9         5.09      0.732  0.00271          0.983            -0.00648
-## 10         5.08      0.732  0.00271          0.983            -0.00648
-## # ... with 90 more rows, and 2 more variables:
-## #   popteach_c.gmc_mean_pop_t <dbl>, class <chr>
-\end{verbatim}
-
-\begin{Shaded}
-\begin{Highlighting}[]
 \NormalTok{raneffs <-}\StringTok{ }\KeywordTok{ranef}\NormalTok{(mod2, }\DataTypeTok{condVar=}\OtherTok{TRUE}\NormalTok{)}
-\NormalTok{Coef <-}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(}\KeywordTok{coef}\NormalTok{(mod2)}\OperatorTok{$}\NormalTok{class[}\DecValTok{1}\OperatorTok{:}\DecValTok{2}\NormalTok{])}
+\NormalTok{Coef    <-}\StringTok{ }\KeywordTok{as.matrix}\NormalTok{(}\KeywordTok{coef}\NormalTok{(mod2)}\OperatorTok{$}\NormalTok{class[}\DecValTok{1}\OperatorTok{:}\DecValTok{2}\NormalTok{])}
 \CommentTok{# Then we select the posterior variances and covariances}
 \CommentTok{# as an attribute and save it.}
 \NormalTok{PVar <-}\StringTok{ }\KeywordTok{attr}\NormalTok{(raneffs[[}\DecValTok{1}\NormalTok{]], }\DataTypeTok{which =} \StringTok{"postVar"}\NormalTok{)}
@@ -795,37 +770,17 @@ estimates (OLS and EB) for this class's mean popularity different?
 
 \NormalTok{Coef <-}\StringTok{ }\KeywordTok{cbind}\NormalTok{(Coef,Coef_Var_Cov,L2_Resid)}
 
-
 \CommentTok{# By_School <- ddply(HSB_Data, ~School, lm_fit)}
 \CommentTok{# add to the Coef matrix and define as a dataframe.}
-\NormalTok{Coef <-}\StringTok{ }\KeywordTok{bind_cols}\NormalTok{(Coef, ols_mods }\OperatorTok{%>%}\StringTok{ }\KeywordTok{unnest}\NormalTok{(ols, }\DataTypeTok{.drop =}\NormalTok{ T)) }\OperatorTok{%>%}\StringTok{ }\NormalTok{tbl_df }\OperatorTok{%>%}
+\NormalTok{Coef <-}\StringTok{ }\KeywordTok{bind_cols}\NormalTok{(Coef, ols_mods }\OperatorTok{%>%}\StringTok{ }\KeywordTok{unnest}\NormalTok{(ols, }\DataTypeTok{.drop =}\NormalTok{ T)) }\OperatorTok{%>%}\StringTok{ }
 \StringTok{  }\KeywordTok{setNames}\NormalTok{(}\KeywordTok{c}\NormalTok{(}\StringTok{"EB_Intercept"}\NormalTok{,}\StringTok{"EB_Slope"}\NormalTok{,}\StringTok{"Intercept_Var"}\NormalTok{,}\StringTok{"Covariance"}\NormalTok{,}\StringTok{"Covariance_Too"}\NormalTok{,}
-                 \StringTok{"Slope_Var"}\NormalTok{,}\StringTok{"Intercept_Res"}\NormalTok{,}\StringTok{"Slope_Res"}\NormalTok{,}\StringTok{"School"}\NormalTok{,}\StringTok{"OLS_Intercept"}\NormalTok{, }\StringTok{"OLS_Slope"}\NormalTok{)) }\OperatorTok{%>%}
+                 \StringTok{"Slope_Var"}\NormalTok{,}\StringTok{"Intercept_Res"}\NormalTok{,}\StringTok{"Slope_Res"}\NormalTok{,}\StringTok{"class"}\NormalTok{,}\StringTok{"OLS_Intercept"}\NormalTok{, }\StringTok{"OLS_Slope"}\NormalTok{)) }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{I_lwr =}\NormalTok{ EB_Intercept}\OperatorTok{-}\KeywordTok{sqrt}\NormalTok{(Intercept_Var)}\OperatorTok{*}\FloatTok{1.96}\NormalTok{, }
          \DataTypeTok{I_upr =}\NormalTok{ EB_Intercept}\OperatorTok{+}\KeywordTok{sqrt}\NormalTok{(Intercept_Var)}\OperatorTok{*}\FloatTok{1.96}\NormalTok{,}
          \DataTypeTok{S_lwr =}\NormalTok{ EB_Slope}\OperatorTok{-}\KeywordTok{sqrt}\NormalTok{(Slope_Var)}\OperatorTok{*}\FloatTok{1.96}\NormalTok{,}
-         \DataTypeTok{S_upr =}\NormalTok{ EB_Slope}\OperatorTok{+}\KeywordTok{sqrt}\NormalTok{(Slope_Var)}\OperatorTok{*}\FloatTok{1.96}\NormalTok{)}
-
-\NormalTok{Coef }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(EB_Intercept, EB_Slope) }
+         \DataTypeTok{S_upr =}\NormalTok{ EB_Slope}\OperatorTok{+}\KeywordTok{sqrt}\NormalTok{(Slope_Var)}\OperatorTok{*}\FloatTok{1.96}\NormalTok{) }
 \end{Highlighting}
 \end{Shaded}
-
-\begin{verbatim}
-## # A tibble: 100 x 2
-##    EB_Intercept EB_Slope
-##           <dbl>    <dbl>
-##  1         5.09    0.726
-##  2         5.06    0.725
-##  3         5.10    0.728
-##  4         5.05    0.720
-##  5         5.08    0.723
-##  6         5.07    0.724
-##  7         5.07    0.726
-##  8         5.09    0.730
-##  9         5.06    0.733
-## 10         5.09    0.712
-## # ... with 90 more rows
-\end{verbatim}
 
 Class \(62\) most exceeded their expected popularity by \(0.01\). The
 simple (OLS) mean popularity of this class was \(5.71\) and the

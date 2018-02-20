@@ -1,5 +1,6 @@
 ---
 title: "Homework 3"
+subtitle: "Psych 5068"
 author: "Emorie Beck"
 date: \today
 output: 
@@ -110,8 +111,8 @@ tab0 %>% full_join(tab1) %>%
   kable_styling(full_width = F) %>%
   column_spec(2:5, width = "2cm") %>%
   group_rows("Fixed Parts",1,2) %>%
+  group_rows("Model Terms", 5, 6) %>%
   group_rows("Random Parts",3,4) %>%
-  group_rows("Model Terms",5,6) %>%
   add_header_above(c(" " = 1, "Unconditional" = 2, "Conditional" = 2))
 ```
 
@@ -373,12 +374,8 @@ ols_mods <- broom::augment(mod2) %>% tbl_df %>%
   nest() %>%
   mutate(ols = map(data, lm_fit))
 
-coef(mod2)[[1]] %>% data.frame() %>%
-  mutate(class = rownames(.)) %>% tbl_df %>%
-  arrange(desc(popteach_c))
-
 raneffs <- ranef(mod2, condVar=TRUE)
-Coef <- as.matrix(coef(mod2)$class[1:2])
+Coef    <- as.matrix(coef(mod2)$class[1:2])
 # Then we select the posterior variances and covariances
 # as an attribute and save it.
 PVar <- attr(raneffs[[1]], which = "postVar")
@@ -391,22 +388,18 @@ L2_Resid <- ranef(mod2)[[1]]
 
 Coef <- cbind(Coef,Coef_Var_Cov,L2_Resid)
 
-
 # By_School <- ddply(HSB_Data, ~School, lm_fit)
 # add to the Coef matrix and define as a dataframe.
-Coef <- bind_cols(Coef, ols_mods %>% unnest(ols, .drop = T)) %>% tbl_df %>%
+Coef <- bind_cols(Coef, ols_mods %>% unnest(ols, .drop = T)) %>% 
   setNames(c("EB_Intercept","EB_Slope","Intercept_Var","Covariance","Covariance_Too",
-                 "Slope_Var","Intercept_Res","Slope_Res","School","OLS_Intercept", "OLS_Slope")) %>%
+                 "Slope_Var","Intercept_Res","Slope_Res","class","OLS_Intercept", "OLS_Slope")) %>%
   mutate(I_lwr = EB_Intercept-sqrt(Intercept_Var)*1.96, 
          I_upr = EB_Intercept+sqrt(Intercept_Var)*1.96,
          S_lwr = EB_Slope-sqrt(Slope_Var)*1.96,
-         S_upr = EB_Slope+sqrt(Slope_Var)*1.96)
-
-Coef %>% select(EB_Intercept, EB_Slope) 
-
+         S_upr = EB_Slope+sqrt(Slope_Var)*1.96) 
 ```
 
-Class $`r ols_mods$class[1]`$ most exceeded their expected popularity by $`r round((L2_Resid %>% arrange(desc(popteach_c)))[1,2],2)`$. The simple (OLS) mean popularity of this class was $`r round(Coef$OLS_Intercept[1],2)`$ and the empirical Bayes estimate was $`r round(Coef$EB_Intercept[1],2)`$. These two estimate are different because the MLM expected values leverage information about the relationship between mean classroom popularlity and teaching experience.  
+Class $`r ols_mods$class[1]`$ most exceeded their expected popularity by $`r round((L2_Resid %>% arrange(desc(popteach_c)))[1,2],2)`$. The simple (OLS) mean popularity of this class was $`r round((Coef %>% filter(class == ols_mods$class[1]))$OLS_Intercept,2)`$ and the empirical Bayes estimate was $`r round((Coef %>% filter(class == ols_mods$class[1]))$EB_Intercept,2)`$. These two estimate are different because the MLM expected values leverage information about the relationship between mean classroom popularlity and teaching experience.  
 
 
 ## Part D
