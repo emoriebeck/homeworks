@@ -1,0 +1,666 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Homework 2},
+            pdfauthor={Emorie Beck},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+  \title{Homework 2}
+  \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+  \author{Emorie Beck}
+  \preauthor{\centering\large\emph}
+  \postauthor{\par}
+  \predate{\centering\large\emph}
+  \postdate{\par}
+  \date{\today}
+
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage[normalem]{ulem}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\section{Workspace}\label{workspace}
+
+\subsection{Packages}\label{packages}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(psych)}
+\KeywordTok{library}\NormalTok{(lme4)}
+\KeywordTok{library}\NormalTok{(knitr)}
+\KeywordTok{library}\NormalTok{(kableExtra)}
+\KeywordTok{library}\NormalTok{(plyr)}
+\KeywordTok{library}\NormalTok{(tidyverse)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Data}\label{data}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data_url <-}\StringTok{ "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homeowrk2/HSB.csv"}
+\NormalTok{dat      <-}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\KeywordTok{url}\NormalTok{(data_url)) }\OperatorTok{%>%}\StringTok{ }\NormalTok{tbl_df }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{female =} \KeywordTok{factor}\NormalTok{(female, }\DataTypeTok{levels =} \DecValTok{0}\OperatorTok{:}\DecValTok{1}\NormalTok{, }\DataTypeTok{labels =} \KeywordTok{c}\NormalTok{(}\StringTok{"Male"}\NormalTok{, }\StringTok{"Female"}\NormalTok{)),}
+         \DataTypeTok{minority =} \KeywordTok{factor}\NormalTok{(minority, }\DataTypeTok{levels =} \DecValTok{0}\OperatorTok{:}\DecValTok{1}\NormalTok{, }\DataTypeTok{labels =} \KeywordTok{c}\NormalTok{(}\StringTok{"Non-Minority"}\NormalTok{,}\StringTok{"Minority"}\NormalTok{)),}
+         \DataTypeTok{sector =} \KeywordTok{factor}\NormalTok{(sector, }\DataTypeTok{levels =} \DecValTok{0}\OperatorTok{:}\DecValTok{1}\NormalTok{, }\DataTypeTok{labels =} \KeywordTok{c}\NormalTok{(}\StringTok{"Public"}\NormalTok{, }\StringTok{"Catholic"}\NormalTok{)))}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Local Functions}\label{local-functions}
+
+I don't like stargazer or the other packages that are supposed to create
+tables from merMod objects, so I wrote my own. The only feature I
+haven't implemented yet is including the ICC becuase I would need to
+refit the unconditional model.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{table_fun <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model)\{}
+\NormalTok{  fixed <-}\StringTok{ }\NormalTok{broom}\OperatorTok{::}\KeywordTok{tidy}\NormalTok{(model) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(group }\OperatorTok{==}\StringTok{ "fixed"}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{select}\NormalTok{(term, estimate) }
+\NormalTok{  ## add random effects ##}
+\NormalTok{  rand <-}\StringTok{ }\KeywordTok{VarCorr}\NormalTok{(model)[[}\DecValTok{1}\NormalTok{]]}
+\NormalTok{  rand <-}\StringTok{ }\NormalTok{rand[}\DecValTok{1}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(rand), }\DecValTok{1}\OperatorTok{:}\KeywordTok{nrow}\NormalTok{(rand)]}
+  \KeywordTok{colnames}\NormalTok{(rand)[}\KeywordTok{colnames}\NormalTok{(rand) }\OperatorTok{==}\StringTok{ "(Intercept)"}\NormalTok{] <-}\StringTok{ "Intercept"}
+  \KeywordTok{rownames}\NormalTok{(rand)[}\KeywordTok{rownames}\NormalTok{(rand) }\OperatorTok{==}\StringTok{ "(Intercept)"}\NormalTok{] <-}\StringTok{ "Intercept"}
+\NormalTok{  vars <-}\StringTok{ }\KeywordTok{rownames}\NormalTok{(rand)}
+\NormalTok{  rand[}\KeywordTok{upper.tri}\NormalTok{(rand)] <-}\StringTok{ }\OtherTok{NA}
+\NormalTok{  rand <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(rand) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{var1 =} \KeywordTok{rownames}\NormalTok{(.)) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{gather}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ var2, }\DataTypeTok{value =}\NormalTok{ estimate, }\OperatorTok{-}\NormalTok{var1, }\DataTypeTok{na.rm =}\NormalTok{ T) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{var1 =} \KeywordTok{mapvalues}\NormalTok{(var1, vars, }\DecValTok{0}\OperatorTok{:}\NormalTok{(}\KeywordTok{length}\NormalTok{(vars)}\OperatorTok{-}\DecValTok{1}\NormalTok{)),}
+           \DataTypeTok{var2 =} \KeywordTok{mapvalues}\NormalTok{(var2, vars, }\DecValTok{0}\OperatorTok{:}\NormalTok{(}\KeywordTok{length}\NormalTok{(vars)}\OperatorTok{-}\DecValTok{1}\NormalTok{))) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{filter}\NormalTok{(var1 }\OperatorTok{==}\StringTok{ }\NormalTok{var2) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{unite}\NormalTok{(var, var1, var2, }\DataTypeTok{sep =} \StringTok{""}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{var =} \KeywordTok{sprintf}\NormalTok{(}\StringTok{"$}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{tau_\{%s\}$"}\NormalTok{, var))}
+\NormalTok{  ## get confidence intervals ##}
+\NormalTok{  CI <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}\KeywordTok{confint.merMod}\NormalTok{(model, }\DataTypeTok{method =} \StringTok{"boot"}\NormalTok{, }\DataTypeTok{nsim =} \DecValTok{10}\NormalTok{, }\DataTypeTok{oldNames =}\NormalTok{ F)) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{term =} \KeywordTok{rownames}\NormalTok{(.)) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{setNames}\NormalTok{(}\KeywordTok{c}\NormalTok{(}\StringTok{"lower"}\NormalTok{, }\StringTok{"upper"}\NormalTok{, }\StringTok{"term"}\NormalTok{))}
+  
+\NormalTok{  CI }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(term }\OperatorTok{==}\StringTok{ "sigma"}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{estimate =} \KeywordTok{sigma}\NormalTok{(model),}
+           \DataTypeTok{term =} \StringTok{"$}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{sigma^2$"}\NormalTok{,}
+           \DataTypeTok{type =} \StringTok{"Residuals"}\NormalTok{)}
+  
+\NormalTok{  ## Get ICC & R2 values ##}
+\NormalTok{  ICC <-}\StringTok{ }\NormalTok{reghelper}\OperatorTok{::}\KeywordTok{ICC}\NormalTok{(model)}
+\NormalTok{  R2 <-}\StringTok{ }\NormalTok{MuMIn}\OperatorTok{::}\KeywordTok{r.squaredGLMM}\NormalTok{(model)}
+  
+\NormalTok{  ## format the fixed effects}
+\NormalTok{  fixed <-}\StringTok{ }\NormalTok{fixed }\OperatorTok{%>%}\StringTok{ }\KeywordTok{left_join}\NormalTok{(CI }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(}\OperatorTok{!}\KeywordTok{grepl}\NormalTok{(}\StringTok{".sig"}\NormalTok{, term))) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{type =} \StringTok{"Fixed Parts"}\NormalTok{)}
+  
+\NormalTok{  rand <-}\StringTok{ }\NormalTok{rand }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{left_join}\NormalTok{(}
+\NormalTok{      CI }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(}\KeywordTok{grepl}\NormalTok{(}\StringTok{"sd"}\NormalTok{, term)) }\OperatorTok{%>%}
+\StringTok{        }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{lower =}\NormalTok{ lower}\OperatorTok{^}\DecValTok{2}\NormalTok{, }\DataTypeTok{upper =}\NormalTok{ upper}\OperatorTok{^}\DecValTok{2}\NormalTok{,}
+               \DataTypeTok{var =} \KeywordTok{mapvalues}\NormalTok{(term, }\KeywordTok{unique}\NormalTok{(term), }\DecValTok{0}\OperatorTok{:}\NormalTok{(}\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(term))}\OperatorTok{-}\DecValTok{1}\NormalTok{)),}
+               \DataTypeTok{var =} \KeywordTok{sprintf}\NormalTok{(}\StringTok{"$}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{tau_\{%s%s\}$"}\NormalTok{, var, var)) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{term)) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{type =} \StringTok{"Random Parts"}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{rename}\NormalTok{(}\DataTypeTok{term =}\NormalTok{ var)}
+  
+\NormalTok{  mod_terms <-}\StringTok{ }\KeywordTok{tribble}\NormalTok{(}
+    \OperatorTok{~}\NormalTok{term, }\OperatorTok{~}\NormalTok{estimate, }\OperatorTok{~}\NormalTok{type,}
+    \CommentTok{# "ICC", ICC, "Model Terms",}
+    \StringTok{"$R^2_m$"}\NormalTok{, R2[}\DecValTok{1}\NormalTok{], }\StringTok{"Model Terms"}\NormalTok{,}
+    \StringTok{"$R^2_c$"}\NormalTok{, R2[}\DecValTok{2}\NormalTok{], }\StringTok{"Model Terms"}
+\NormalTok{  )}
+  
+\NormalTok{  tab <-}\StringTok{ }\NormalTok{fixed }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{full_join}\NormalTok{(rand) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{CI =} \KeywordTok{sprintf}\NormalTok{(}\StringTok{"[%.2f, %.2f]"}\NormalTok{, lower, upper)) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{lower, }\OperatorTok{-}\NormalTok{upper) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{full_join}\NormalTok{(mod_terms) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{estimate =} \KeywordTok{sprintf}\NormalTok{(}\StringTok{"%.2f"}\NormalTok{, estimate)) }\OperatorTok{%>%}
+\StringTok{    }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{rename}\NormalTok{(}\DataTypeTok{b =}\NormalTok{ estimate) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{select}\NormalTok{(type, }\KeywordTok{everything}\NormalTok{())}
+  \KeywordTok{return}\NormalTok{(tab)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\section{Question 1}\label{question-1}
+
+Begin by testing the fully unconditional model:
+\[mathach_{ij} = \beta_0 + r_{ij}\] \[\beta_0 = \gamma_{00} + u_{0j}\]
+Calculate the intraclass correlation to determine how much of the
+variance in math achievement resides at Level 2 (the school level).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{lmerICC <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(obj) \{}
+\NormalTok{  v <-}\StringTok{ }\KeywordTok{as.data.frame}\NormalTok{(}\KeywordTok{VarCorr}\NormalTok{(obj))}
+\NormalTok{  v}\OperatorTok{$}\NormalTok{vcov[}\DecValTok{1}\NormalTok{]}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(v}\OperatorTok{$}\NormalTok{vcov)}
+\NormalTok{\}}
+
+\NormalTok{mod0 <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(mathach }\OperatorTok{~}\StringTok{ }\DecValTok{1} \OperatorTok{+}\StringTok{ }\NormalTok{(}\DecValTok{1} \OperatorTok{|}\StringTok{ }\NormalTok{School), }\DataTypeTok{data =}\NormalTok{ dat)}
+\NormalTok{tidy0 <-}\StringTok{ }\NormalTok{broom}\OperatorTok{::}\KeywordTok{tidy}\NormalTok{(mod0)}
+\KeywordTok{lmerICC}\NormalTok{(mod0)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.180353
+\end{verbatim}
+
+\section{Question 2}\label{question-2}
+
+Modify the model to include student minority status (minority:
+1=minority, 0=other):
+\[mathach_{ij} = \beta_{0j} + \beta_{1j}minority_{ij} + r_{ij}\]
+\[\beta_{0j} = \gamma_{00} + u_{0j}\]
+\[\beta_{1j} = \gamma_{10} + u_{1j}\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{mod1  <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(mathach }\OperatorTok{~}\StringTok{ }\NormalTok{minority }\OperatorTok{+}\StringTok{ }\NormalTok{(minority }\OperatorTok{|}\StringTok{ }\NormalTok{School), }\DataTypeTok{data =}\NormalTok{ dat)}
+\NormalTok{tidy1 <-}\StringTok{ }\NormalTok{broom}\OperatorTok{::}\KeywordTok{tidy}\NormalTok{(mod1)}
+\NormalTok{tab   <-}\StringTok{ }\KeywordTok{table_fun}\NormalTok{(mod1)}
+
+\KeywordTok{options}\NormalTok{(}\DataTypeTok{knitr.kable.NA =} \StringTok{''}\NormalTok{)}
+\NormalTok{tab }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{type) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(., }\StringTok{"latex"}\NormalTok{, }\DataTypeTok{escape =}\NormalTok{ F, }\DataTypeTok{booktabs =}\NormalTok{ T,}
+        \DataTypeTok{col.names =} \KeywordTok{c}\NormalTok{( }\StringTok{"Term"}\NormalTok{, }\StringTok{"b"}\NormalTok{, }\StringTok{"CI"}\NormalTok{)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Fixed"}\NormalTok{, }\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Random"}\NormalTok{, }\DecValTok{3}\NormalTok{,}\DecValTok{4}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Model Terms"}\NormalTok{, }\DecValTok{5}\NormalTok{,}\DecValTok{6}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{"repeat_header"}\NormalTok{),}\DataTypeTok{full_width =}\NormalTok{ F)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+Term & b & CI\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Fixed}}\\
+\hspace{1em}(Intercept) & 13.68 & [13.26, 13.99]\\
+\hspace{1em}minorityMinority & -3.75 & [-4.42, -3.31]\\
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Random}}\\
+\hspace{1em}$\tau_{00}$ & 5.62 & [4.44, 6.03]\\
+\hspace{1em}$\tau_{11}$ & 3.24 & [0.54, 6.27]\\
+$R^2_m$ & 0.06 & \\
+$R^2_c$ & 0.21 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Part A}\label{part-a}
+
+Is math achievement significantly related to minority status?\\
+Yes, match minority status predicts math achievement,
+\(\gamma_{10} = -3.75\), 95\% CI \(= [-4.42, -3.31]\).
+
+\subsection{Part B}\label{part-b}
+
+What is the expected (mean) level of math achievement for non-minority
+students?\\
+The expected mean level of math achievement for non-minority students is
+\(\gamma_{00} = 13.68\), 95\% CI \(= [13.26, 13.99]\).
+
+\subsection{Part C}\label{part-c}
+
+What is the expected (mean) level of math achievement for minority
+students?\\
+The expected mean level of math achievement for non-minority students is
+\(9.93\)
+
+\subsection{Part D}\label{part-d}
+
+How much Level 1 variance is accounted for by this model compared to the
+fully unconditional model?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{d_var <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(mod0, mod1)\{(}\KeywordTok{sigma}\NormalTok{(mod0)}\OperatorTok{^}\DecValTok{2} \OperatorTok{-}\StringTok{ }\KeywordTok{sigma}\NormalTok{(mod1)}\OperatorTok{^}\DecValTok{2}\NormalTok{)}\OperatorTok{/}\KeywordTok{sigma}\NormalTok{(mod0)}\OperatorTok{^}\DecValTok{2}\NormalTok{\}}
+\NormalTok{sig.d <-}\StringTok{ }\KeywordTok{d_var}\NormalTok{(mod0, mod1)}
+\end{Highlighting}
+\end{Shaded}
+
+This model explains \(4\%`\) of more of the variance in math achievement
+than the fully unconditional model.
+
+\section{Question 3}\label{question-3}
+
+Now add student sex (female: male=0, female=1) and group-centered SES to
+the Level 1 model:\\
+\[mathach_{ij} = \beta_{0j} + \beta_{1j}minority_{ij} + \beta_{2j}female_{ij} + \beta_{3j}(ses_{ij}-meanses_{j}) + r_{ij}\]
+\[\beta_{0j} = \gamma_{00} + u_{0j}\]
+\[\beta_{1j} = \gamma_{10} + u_{1j}\]
+\[\beta_{2j} = \gamma_{20} + u_{2j}\]
+\[\beta_{3j} = \gamma_{30} + u_{3j}\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dat <-}\StringTok{ }\NormalTok{dat }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{GC.ses =}\NormalTok{ ses }\OperatorTok{-}\StringTok{ }\NormalTok{meanses)}
+
+\NormalTok{mod2  <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(mathach }\OperatorTok{~}\StringTok{ }\NormalTok{minority }\OperatorTok{+}\StringTok{ }\NormalTok{female }\OperatorTok{+}\StringTok{ }\NormalTok{GC.ses }\OperatorTok{+}\StringTok{ }\NormalTok{(minority }\OperatorTok{+}\StringTok{ }\NormalTok{female }\OperatorTok{+}\StringTok{ }\NormalTok{GC.ses }\OperatorTok{|}\StringTok{ }\NormalTok{School), }\DataTypeTok{data =}\NormalTok{ dat)}
+\NormalTok{tidy2 <-}\StringTok{ }\NormalTok{broom}\OperatorTok{::}\KeywordTok{tidy}\NormalTok{(mod2)}
+\NormalTok{tab2  <-}\StringTok{ }\KeywordTok{table_fun}\NormalTok{(mod2)}
+
+\NormalTok{tab2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{type) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(., }\StringTok{"latex"}\NormalTok{, }\DataTypeTok{escape =}\NormalTok{ F, }\DataTypeTok{booktabs =}\NormalTok{ T,}
+        \DataTypeTok{col.names =} \KeywordTok{c}\NormalTok{( }\StringTok{"Term"}\NormalTok{, }\StringTok{"b"}\NormalTok{, }\StringTok{"CI"}\NormalTok{)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Fixed"}\NormalTok{, }\DecValTok{1}\NormalTok{,}\DecValTok{4}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Random"}\NormalTok{, }\DecValTok{5}\NormalTok{,}\DecValTok{8}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Model Terms"}\NormalTok{, }\DecValTok{9}\NormalTok{,}\DecValTok{10}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{"repeat_header"}\NormalTok{),}\DataTypeTok{full_width =}\NormalTok{ F)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+Term & b & CI\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Fixed}}\\
+\hspace{1em}(Intercept) & 14.15 & [13.90, 14.55]\\
+\hspace{1em}minorityMinority & -3.20 & [-3.80, -2.83]\\
+\hspace{1em}femaleFemale & -1.26 & [-1.40, -1.06]\\
+\hspace{1em}GC.ses & 1.87 & [1.69, 2.13]\\
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Random}}\\
+\hspace{1em}$\tau_{00}$ & 6.23 & [4.77, 7.90]\\
+\hspace{1em}$\tau_{11}$ & 1.98 & [1.14, 3.46]\\
+\hspace{1em}$\tau_{22}$ & 0.88 & [0.09, 1.84]\\
+\hspace{1em}$\tau_{33}$ & 0.40 & [0.15, 0.67]\\
+$R^2_m$ & 0.10 & \\
+$R^2_c$ & 0.25 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Part a}\label{part-a-1}
+
+Is there a significant sex difference in math achievement, controlling
+for minority status and SES? Yes, females have lower math achievement
+than males, controlling for SES and minority status,
+\(\gamma_{20} = -1.26, 95\% CI [-1.40, -1.06]\).
+
+\subsection{Part b}\label{part-b-1}
+
+Is the effect of student-level SES significant? Explain how the
+coefficient for this effect (\(\beta_{3j}\)) should be interpreted.\\
+Controlling for gender and minority status, a one unit increase in SES
+is associated with a \(1.87\) (95\% CI \([1.69, 2.13]\)) increase in
+math achievement.
+
+\subsection{Part c}\label{part-c-1}
+
+What is the expected (mean) level of math achievement for minority male
+students with SES equal to their school average?\\
+\(Y_{ij} = \gamma_{00} + \gamma_{10}*1 + \gamma_{20}*0 + \gamma_{30}*0\)\\
+\(Y_{ij} = \gamma_{00} + \gamma_{10}\)\\
+\(Y_{ij} = 14.15 + -3.20\)\\
+\(Y_{ij} = 10.95\)
+
+\subsection{Part d}\label{part-d-1}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sig.d <-}\StringTok{ }\KeywordTok{d_var}\NormalTok{(mod0, mod2)}
+\end{Highlighting}
+\end{Shaded}
+
+How much Level 1 variance is accounted for by this model compared to the
+fully unconditional model?\\
+9.81\% of the variance is accounted for by the fully conditional model.
+
+\subsection{Part e}\label{part-e}
+
+\begin{enumerate}
+\def\labelenumi{(\alph{enumi})}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  Does this model provide a significantly better fit than the previous
+  model?
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(c1 <-}\StringTok{ }\KeywordTok{anova}\NormalTok{(mod1, mod2)) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Data: dat
+## Models:
+## mod1: mathach ~ minority + (minority | School)
+## mod2: mathach ~ minority + female + GC.ses + (minority + female + GC.ses | 
+## mod2:     School)
+##      Df   AIC   BIC logLik deviance  Chisq Chi Df Pr(>Chisq)    
+## mod1  6 46811 46852 -23400    46799                             
+## mod2 15 46460 46563 -23215    46430 369.33      9  < 2.2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+Yes, the deviance of the model that includes gender and SES have smaller
+deviance than the model that does not, \(\chi^2(9) = 369.33\),
+\(p<.001\).
+
+\subsection{Part f}\label{part-f}
+
+Explain why there are 9 degrees of freedom for the \(\chi^2\) test in
+the previous question.\\
+The smaller model (that did not include gender and SES) had 6 degrees of
+freedom, while the larger model had 15 degrees of freedom. The deviance
+test we conducted is \(\chi^2\) distributed with degrees of freedom
+equal to the degrees of freedom of the larger minus the smaller model.
+
+\section{Question 4}\label{question-4}
+
+Now add sector (1=Catholic, 0=Public) to the model:\\
+\[mathach_{ij} = \beta_{0j} + \beta_{1j}minority_{ij} + \beta_{2j}female_{ij} + \beta_{3j}(ses_{ij}-meanses_{j}) + r_{ij}\]\\
+\[\beta_{0j} = \gamma_{00} + \gamma{01}sector_j + u_{0j}\]\\
+\[\beta_{1j} = \gamma_{10} + \gamma{11}sector_j + u_{1j}\]\\
+\[\beta_{2j} = \gamma_{20} + \gamma{21}sector_j + u_{2j}\]\\
+\[\beta_{3j} = \gamma_{30} + \gamma{31}sector_j + u_{3j}\]
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{mod3  <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(mathach }\OperatorTok{~}\StringTok{ }\NormalTok{minority}\OperatorTok{*}\NormalTok{sector }\OperatorTok{+}\StringTok{ }\NormalTok{female}\OperatorTok{*}\NormalTok{sector }\OperatorTok{+}\StringTok{ }\NormalTok{GC.ses}\OperatorTok{*}\NormalTok{sector }\OperatorTok{+}\StringTok{ }
+\StringTok{                }\NormalTok{(minority }\OperatorTok{+}\StringTok{ }\NormalTok{female }\OperatorTok{+}\StringTok{ }\NormalTok{GC.ses }\OperatorTok{|}\StringTok{ }\NormalTok{School), }\DataTypeTok{data =}\NormalTok{ dat)}
+\NormalTok{tidy3 <-}\StringTok{ }\NormalTok{broom}\OperatorTok{::}\KeywordTok{tidy}\NormalTok{(mod3)}
+\NormalTok{tab3  <-}\StringTok{ }\KeywordTok{table_fun}\NormalTok{(mod3)}
+
+\NormalTok{tab3 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{type) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(., }\StringTok{"latex"}\NormalTok{, }\DataTypeTok{escape =}\NormalTok{ F, }\DataTypeTok{booktabs =}\NormalTok{ T,}
+        \DataTypeTok{col.names =} \KeywordTok{c}\NormalTok{( }\StringTok{"Term"}\NormalTok{, }\StringTok{"b"}\NormalTok{, }\StringTok{"CI"}\NormalTok{)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Fixed"}\NormalTok{, }\DecValTok{1}\NormalTok{,}\DecValTok{8}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Random"}\NormalTok{, }\DecValTok{9}\NormalTok{,}\DecValTok{12}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Model Terms"}\NormalTok{, }\DecValTok{13}\NormalTok{,}\DecValTok{14}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{"repeat_header"}\NormalTok{),}\DataTypeTok{full_width =}\NormalTok{ F)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+Term & b & CI\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Fixed}}\\
+\hspace{1em}(Intercept) & 13.15 & [12.68, 13.50]\\
+\hspace{1em}minorityMinority & -4.14 & [-4.61, -3.55]\\
+\hspace{1em}sectorCatholic & 2.31 & [1.49, 2.82]\\
+\hspace{1em}femaleFemale & -1.30 & [-1.57, -0.74]\\
+\hspace{1em}GC.ses & 2.30 & [2.23, 2.83]\\
+\hspace{1em}minorityMinority:sectorCatholic & 1.98 & [1.15, 2.78]\\
+\hspace{1em}sectorCatholic:femaleFemale & 0.05 & [-0.45, 0.55]\\
+\hspace{1em}sectorCatholic:GC.ses & -0.98 & [-1.62, -0.92]\\
+\addlinespace[0.3em]
+\multicolumn{3}{l}{\textbf{Random}}\\
+\hspace{1em}$\tau_{00}$ & 4.91 & [3.97, 6.35]\\
+\hspace{1em}$\tau_{11}$ & 0.76 & [0.49, 1.84]\\
+\hspace{1em}$\tau_{22}$ & 1.00 & [0.42, 2.17]\\
+\hspace{1em}$\tau_{33}$ & 0.18 & [0.01, 0.62]\\
+$R^2_m$ & 0.14 & \\
+$R^2_c$ & 0.24 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Part a}\label{part-a-2}
+
+Does sector significantly predict the Level 1 intercepts
+(\(\beta_{0j}\))? If so, provide an interpretation of the relationship.
+
+Sector predicts the level 1 intercepts, \(\gamma01 = 2.31\),
+bootstrapped 95\% CI \$\$. In other words, Catholic schools have higher
+average math achievement than public schools by \(2.31\).
+
+\subsection{Part b}\label{part-b-2}
+
+Does sector significantly predict the Level 1 slope for minority
+(\(\beta_{1j}\))? If so, provide an interpretation of the relationship.
+
+Sector is also a significant predictor of the level 1 slope for minority
+-- that is, students in Catholic schools tend to have math avhievement
+scores that are higher on average than public schools,
+\(\gamma01 = 2.31\), bootstrapped 95\% CI \([1.49, 2.82]\) on average.
+
+\subsection{Part c}\label{part-c-2}
+
+Does sector significantly predict the Level 1 slope for ses
+(\(\beta_{3j}\))? If so, provide an interpretation of the relationship.
+
+Sector significantly predicts the level 1 slope for ses,
+\(\gamma01 = -0.98\), bootstrapped 95\% CI \([-1.62, -0.92]\). In other
+words sector moderates the relationship between SES and math. The
+relationship between math achievement and SES is different in Catholic
+and public schools, such that higher SES has a less positive effect on
+math achievement among students at Catholic schools than among students
+at public schools.
+
+\subsection{Part d}\label{part-d-2}
+
+How much Level 2 variance is accounted for by this model compared to the
+model (Question 3) that does not contain sector? Note that this will
+require calculating four values, one for each of the four Level 2
+equations. You will find something unusual when you do this; comment on
+why you think the odd result is occurring.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tidy2 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(}\KeywordTok{grepl}\NormalTok{(}\StringTok{"sd_"}\NormalTok{, term)) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(term, estimate, group) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{Model =} \StringTok{"Q3 Model"}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\KeywordTok{full_join}\NormalTok{(tidy3 }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(}\KeywordTok{grepl}\NormalTok{(}\StringTok{"sd_"}\NormalTok{, term)) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{select}\NormalTok{(term, estimate, group) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{Model =} \StringTok{"Q4 Model"}\NormalTok{)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{estimate =}\NormalTok{ estimate}\OperatorTok{^}\DecValTok{2}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_by}\NormalTok{(Model) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{estimate =}\NormalTok{ estimate}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(estimate)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{spread}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ Model, }\DataTypeTok{value =}\NormalTok{ estimate) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{diff =}\NormalTok{ (}\StringTok{`}\DataTypeTok{Q3 Model}\StringTok{`}\OperatorTok{-}\StringTok{`}\DataTypeTok{Q4 Model}\StringTok{`}\NormalTok{)}\OperatorTok{/}\StringTok{`}\DataTypeTok{Q3 Model}\StringTok{`}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(., }\StringTok{"latex"}\NormalTok{, }\DataTypeTok{booktabs =}\NormalTok{ T, }\DataTypeTok{digits =} \DecValTok{2}\NormalTok{,}
+        \DataTypeTok{col.names =} \KeywordTok{c}\NormalTok{(}\StringTok{"Term"}\NormalTok{, }\StringTok{"Source"}\NormalTok{, }\StringTok{"Q3 Model"}\NormalTok{, }\StringTok{"Q4 Model"}\NormalTok{, }\StringTok{"Difference in Variance"}\NormalTok{)) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{tabular}{llrrr}
+\toprule
+Term & Source & Q3 Model & Q4 Model & Difference in Variance\\
+\midrule
+sd\_(Intercept).School & School & 0.14 & 0.12 & 0.16\\
+sd\_femaleFemale.School & School & 0.02 & 0.02 & -0.20\\
+sd\_GC.ses.School & School & 0.01 & 0.00 & 0.52\\
+sd\_minorityMinority.School & School & 0.04 & 0.02 & 0.59\\
+sd\_Observation.Residual & Residual & 0.79 & 0.84 & -0.06\\
+\bottomrule
+\end{tabular}
+
+Across the models, we see that some sources of variance increase and
+some decrease when sector is included at Level 2. The smaller model
+accounted for more variance (variance decreased) in random intecepts as
+well as random slopes of group centered SES and minority status, while
+the variance accounted for by random slopes for gender increased. In
+other words, we are explaining \emph{less} variance at Level 2 than we
+were previously. This makes sense when you interpret the \(\tau\) matrix
+as conditional variances (conditional on the new Level 2 predictor
+sector). What this means is that when we include sector in the model, we
+reduce differences across schools, at least for mean math achievement,
+SES, and minority status.
+
+\subsection{Part e}\label{part-e-1}
+
+Does this model provide a significantly better fit than the previous
+model?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(c2 <-}\StringTok{ }\KeywordTok{anova}\NormalTok{(mod2, mod3))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Data: dat
+## Models:
+## mod2: mathach ~ minority + female + GC.ses + (minority + female + GC.ses | 
+## mod2:     School)
+## mod3: mathach ~ minority * sector + female * sector + GC.ses * sector + 
+## mod3:     (minority + female + GC.ses | School)
+##      Df   AIC   BIC logLik deviance  Chisq Chi Df Pr(>Chisq)    
+## mod2 15 46460 46563 -23215    46430                             
+## mod3 19 46375 46506 -23168    46337 92.723      4  < 2.2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+Yes, the deviance of the model that includes sector in Level 2 is
+smaller deviance than the model that does not, \(\chi^2(4) = 92.72\),
+\(p<.001\).
+
+
+\end{document}

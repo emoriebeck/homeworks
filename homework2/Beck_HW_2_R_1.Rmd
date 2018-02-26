@@ -157,7 +157,8 @@ The expected mean level of math achievement for non-minority students is $`r as.
 ## Part D  
  How much Level 1 variance is accounted for by this model compared to the fully unconditional model?   
 ```{r}
-sig.d <- (sigma(mod0) - sigma(mod1))/sigma(mod0)
+d_var <- function(mod0, mod1){(sigma(mod0)^2 - sigma(mod1)^2)/sigma(mod0)^2}
+sig.d <- d_var(mod0, mod1)
 ```
 
 This model explains $`r round(sig.d,2)*100`\%`$ of more of the variance in math achievement than the fully unconditional model.  
@@ -204,8 +205,12 @@ $Y_{ij} = `r (tab2 %>% filter(term == "(Intercept)"))["b"]` + `r (tab2 %>% filte
 $Y_{ij} = `r round((tidy2 %>% filter(term == "(Intercept)"))["estimate"] + (tidy2 %>% filter(term == "minorityMinority"))["estimate"], 2)`$  
 
 ## Part d  
+```{r}
+sig.d <- d_var(mod0, mod2)
+```
+
  How much Level 1 variance is accounted for by this model compared to the fully unconditional model?   
-`r round(sigma(mod2),2)`\% of the variance is accounted for by the fully conditional model.  
+`r round(sig.d*100,2)`\% of the variance is accounted for by the fully conditional model.  
 
 ## Part e  
 (e) Does this model provide a significantly better fit than the previous model?   
@@ -251,12 +256,13 @@ Sector predicts the level 1 intercepts, $\gamma01 = `r (tab3 %>% filter(term == 
 ## Part b
 Does sector significantly predict the Level 1 slope for minority ($\beta_{1j}$)?  If so, provide an interpretation of the relationship. 
 
-Sector is also a significant predictor of the the level 1 slope for minority -- that is, math achievement varies as a function of both minority status and school sector, $\gamma01 = `r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$CI`$. In other words, Minority students at Catholic high schools have math achievement that is on average $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$ than non-minority students at public high schools $`r (tab3 %>% filter(term == "(Intercept)"))$b`$.
+Sector is also a significant predictor of the level 1 slope for minority -- that is, students in Catholic schools tend to have math avhievement scores that are higher on average than public schools, $\gamma01 = `r (tab3 %>% filter(term == "sectorCatholic"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sectorCatholic"))$CI`$ on average.   
+
 
 ## Part c 
 Does sector significantly predict the Level 1 slope for ses ($\beta_{3j}$)?  If so, provide an interpretation of the relationship.  
 
-Sector is also a significant predictor of the the level 1 slope for ses -- that is, math achievement varies as a function of both minority status and school sector, $\gamma01 = `r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$CI`$. In other words, Minority students at Catholic high schools have math achievement that is on average $`r (tab3 %>% filter(term == "minorityMinority:sectorCatholic"))$b`$ than non-minority students at public high schools $`r (tab3 %>% filter(term == "(Intercept)"))$b`$.
+Sector significantly predicts the level 1 slope for ses, $\gamma01 = `r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$b`$, bootstrapped 95\% CI $`r (tab3 %>% filter(term == "sectorCatholic:GC.ses"))$CI`$. In other words sector moderates the relationship between SES and math. The relationship between math achievement and SES is different in Catholic and public schools, such that higher SES has a less positive effect on math achievement among students at Catholic schools than among students at public schools.  
 
 ## Part d
 How much Level 2 variance is accounted for by this model compared to the model (Question 3) that does not contain sector?  Note that this will require calculating four values, one for each of the four Level 2 equations.  You will find something unusual when you do this; comment on why you think the odd result is occurring.   
@@ -267,12 +273,12 @@ full_join(tidy3 %>% filter(grepl("sd_", term)) %>% select(term, estimate, group)
   mutate(estimate = estimate^2) %>%
   group_by(Model) %>% mutate(estimate = estimate/sum(estimate)) %>%
   spread(key = Model, value = estimate) %>%
-  mutate(diff = `Q4 Model`-`Q3 Model`) %>%
+  mutate(diff = (`Q3 Model`-`Q4 Model`)/`Q3 Model`) %>%
   kable(., "latex", booktabs = T, digits = 2,
         col.names = c("Term", "Source", "Q3 Model", "Q4 Model", "Difference in Variance")) 
 ```
 
-Across the models, we see that some sources of variance increase and some decrease when sector is included at Level 2. The proportion of variance of the intercepts as well minority and group-centered SES slopes decreased, while the variances of the gender slopes and Level 1 Residuals actually decreased when sector was added. In other words, we are explaining *less* variance at Level 2 than we were previously. This makes sense when you interpret the $\tau$ matrix as conditional variances (conditional on the new Level 2 predictor sector). What this means is that when we include sector in the model, we reduce differences across schools, at least for mean math achievement, SES, and minority status. 
+Across the models, we see that some sources of variance increase and some decrease when sector is included at Level 2. The smaller model accounted for more variance (variance decreased) in random intecepts as well as random slopes of group centered SES and minority status, while the variance accounted for by random slopes for gender increased. In other words, we are explaining *less* variance at Level 2 than we were previously. This makes sense when you interpret the $\tau$ matrix as conditional variances (conditional on the new Level 2 predictor sector). What this means is that when we include sector in the model, we reduce differences across schools, at least for mean math achievement, SES, and minority status. 
 
 
 
