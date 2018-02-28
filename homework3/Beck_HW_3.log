@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  11 FEB 2018 20:12
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  19 FEB 2018 10:37
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**Beck_HW_2.tex
-(./Beck_HW_2.tex
+**Beck_HW_3.tex
+(./Beck_HW_3.tex
 LaTeX2e <2017-04-15>
 Babel <3.10> and hyphenation patterns for 84 language(s) loaded.
 (/usr/local/texlive/2017/texmf-dist/tex/latex/base/article.cls
@@ -1114,8 +1114,9 @@ Package: varwidth 2009/03/30 ver 0.92;  Variable-width minipages
 \ULC@box=\box49
 Package: ulem 2012/05/18
 \ULdepth=\dimen185
-) (./Beck_HW_2.aux)
-\openout1 = `Beck_HW_2.aux'.
+)
+No file Beck_HW_3.aux.
+\openout1 = `Beck_HW_3.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 164.
 LaTeX Font Info:    ... okay on input line 164.
@@ -1132,7 +1133,7 @@ LaTeX Font Info:    ... okay on input line 164.
 LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 164.
 LaTeX Font Info:    Try loading font information for TS1+cmr on input line 164.
 
- (/usr/local/texlive/2017/texmf-dist/tex/latex/base/ts1cmr.fd
+(/usr/local/texlive/2017/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    ... okay on input line 164.
@@ -1207,10 +1208,8 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 LaTeX Info: Redefining \ref on input line 164.
 LaTeX Info: Redefining \pageref on input line 164.
 LaTeX Info: Redefining \nameref on input line 164.
-
-(./Beck_HW_2.out) (./Beck_HW_2.out)
 \@outlinefile=\write5
-\openout5 = `Beck_HW_2.out'.
+\openout5 = `Beck_HW_3.out'.
 
 
 (/usr/local/texlive/2017/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -1243,11 +1242,9 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-
-Package hyperref Warning: old toc file detected, not used; run LaTeX again.
-
 \tf@toc=\write6
-\openout6 = `Beck_HW_2.toc'.
+\openout6 = `Beck_HW_3.toc'.
+
 
 
 Package xcolor Warning: Incompatible color definition on input line 175.
@@ -1261,183 +1258,53 @@ LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 177.
 
 
-Package xcolor Warning: Incompatible color definition on input line 184.
+Package xcolor Warning: Incompatible color definition on input line 180.
 
 
-Package xcolor Warning: Incompatible color definition on input line 184.
+Package xcolor Warning: Incompatible color definition on input line 180.
 
 
-Package xcolor Warning: Incompatible color definition on input line 188.
+Package xcolor Warning: Incompatible color definition on input line 186.
 
 
-Package xcolor Warning: Incompatible color definition on input line 196.
+Package xcolor Warning: Incompatible color definition on input line 193.
 
 
-Package xcolor Warning: Incompatible color definition on input line 196.
+Package xcolor Warning: Incompatible color definition on input line 193.
 
 
-Package xcolor Warning: Incompatible color definition on input line 205.
-
-
-Package xcolor Warning: Incompatible color definition on input line 267.
-
-
-Package xcolor Warning: Incompatible color definition on input line 267.
-
-
-Package xcolor Warning: Incompatible color definition on input line 267.
-
-[1
-
-{/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-
-Package xcolor Warning: Incompatible color definition on input line 267.
-
-
-Package xcolor Warning: Incompatible color definition on input line 267.
-
-LaTeX Font Info:    Try loading font information for OT1+lmr on input line 272.
-
-(/usr/local/texlive/2017/texmf-dist/tex/latex/lm/ot1lmr.fd
-File: ot1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
-)
-LaTeX Font Info:    Try loading font information for OML+lmm on input line 272.
-
-
-(/usr/local/texlive/2017/texmf-dist/tex/latex/lm/omllmm.fd
-File: omllmm.fd 2009/10/30 v1.6 Font defs for Latin Modern
-)
-LaTeX Font Info:    Try loading font information for OMS+lmsy on input line 272
-.
-
-(/usr/local/texlive/2017/texmf-dist/tex/latex/lm/omslmsy.fd
-File: omslmsy.fd 2009/10/30 v1.6 Font defs for Latin Modern
-)
-LaTeX Font Info:    Try loading font information for OMX+lmex on input line 272
-.
-
-(/usr/local/texlive/2017/texmf-dist/tex/latex/lm/omxlmex.fd
-File: omxlmex.fd 2009/10/30 v1.6 Font defs for Latin Modern
-)
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 272.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 272.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 272.
-LaTeX Font Info:    Try loading font information for U+msa on input line 272.
-
-(/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsa.fd
-File: umsa.fd 2013/01/14 v3.01 AMS symbols A
-)
-(/usr/local/texlive/2017/texmf-dist/tex/latex/microtype/mt-msa.cfg
-File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
-)
-LaTeX Font Info:    Try loading font information for U+msb on input line 272.
-
-(/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsb.fd
-File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-)
-(/usr/local/texlive/2017/texmf-dist/tex/latex/microtype/mt-msb.cfg
-File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
-)
-
-Package xcolor Warning: Incompatible color definition on input line 276.
-
-[2]
-
-Package xcolor Warning: Incompatible color definition on input line 287.
-
-
-Package xcolor Warning: Incompatible color definition on input line 287.
-
-
-Package xcolor Warning: Incompatible color definition on input line 301.
-
-LaTeX Font Info:    Try loading font information for TS1+lmtt on input line 307
-.
-(/usr/local/texlive/2017/texmf-dist/tex/latex/lm/ts1lmtt.fd
-File: ts1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
-)
-
-Package xcolor Warning: Incompatible color definition on input line 315.
-
-
-Package xcolor Warning: Incompatible color definition on input line 315.
-
-[3]
-
-Package xcolor Warning: Incompatible color definition on input line 359.
-
-
-Package xcolor Warning: Incompatible color definition on input line 363.
-
-
-Package xcolor Warning: Incompatible color definition on input line 363.
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 370--372
-
+Overfull \hbox (233.74294pt too wide) in paragraph at lines 197--197
+[]\T1/lmtt/m/n/10 ## -- Attaching packages ------------------------------------
+------------------------------------------------------ tidyverse 1.2.1 --[] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 372--373
+./Beck_HW_3.tex:204: Package inputenc Error: Unicode char √ (U+221A)
+(inputenc)                not set up for use with LaTeX.
 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 373--374
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 374--375
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 375--376
-
- []
-
-
-Package xcolor Warning: Incompatible color definition on input line 378.
-
-
-Package xcolor Warning: Incompatible color definition on input line 392.
-
-
-Package xcolor Warning: Incompatible color definition on input line 392.
-
-[4]
-
-./Beck_HW_2.tex:437: LaTeX Error: Bad math environment delimiter.
-
-See the LaTeX manual or LaTeX Companion for explanation.
+See the inputenc package documentation for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.437 \(
-        Y_{ij} = \gamma_{00} + \gamma_{10}*1 + \gamma_{20}*0 + \gamma_{30}*0...
-
+l.204 \end{verbatim}
+                    
 ? 
-./Beck_HW_2.tex:437: Emergency stop.
+./Beck_HW_3.tex:204: Emergency stop.
  ...                                              
                                                   
-l.437 \(
-        Y_{ij} = \gamma_{00} + \gamma_{10}*1 + \gamma_{20}*0 + \gamma_{30}*0...
-
+l.204 \end{verbatim}
+                    
 Your command was ignored.
 Type  I <command> <return>  to replace it with another command,
 or  <return>  to continue without it.
 
  
 Here is how much of TeX's memory you used:
- 15619 strings out of 492995
- 224161 string characters out of 6132704
- 350666 words of memory out of 5000000
- 18862 multiletter control sequences out of 15000+600000
- 44136 words of font info for 53 fonts, out of 8000000 for 9000
+ 15414 strings out of 492995
+ 220077 string characters out of 6132704
+ 342574 words of memory out of 5000000
+ 18739 multiletter control sequences out of 15000+600000
+ 28013 words of font info for 31 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 35i,9n,56p,485b,377s stack positions out of 5000i,500n,10000p,200000b,80000s
-./Beck_HW_2.tex:437:  ==> Fatal error occurred, no output PDF file produced!
+ 35i,3n,56p,234b,300s stack positions out of 5000i,500n,10000p,200000b,80000s
+./Beck_HW_3.tex:204:  ==> Fatal error occurred, no output PDF file produced!

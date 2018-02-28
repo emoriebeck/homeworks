@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  11 FEB 2018 20:12
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  24 FEB 2018 16:27
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**Beck_HW_2.tex
-(./Beck_HW_2.tex
+**Beck_HW_2_R_1.tex
+(./Beck_HW_2_R_1.tex
 LaTeX2e <2017-04-15>
 Babel <3.10> and hyphenation patterns for 84 language(s) loaded.
 (/usr/local/texlive/2017/texmf-dist/tex/latex/base/article.cls
@@ -1114,8 +1114,9 @@ Package: varwidth 2009/03/30 ver 0.92;  Variable-width minipages
 \ULC@box=\box49
 Package: ulem 2012/05/18
 \ULdepth=\dimen185
-) (./Beck_HW_2.aux)
-\openout1 = `Beck_HW_2.aux'.
+)
+No file Beck_HW_2_R_1.aux.
+\openout1 = `Beck_HW_2_R_1.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 164.
 LaTeX Font Info:    ... okay on input line 164.
@@ -1132,7 +1133,7 @@ LaTeX Font Info:    ... okay on input line 164.
 LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 164.
 LaTeX Font Info:    Try loading font information for TS1+cmr on input line 164.
 
- (/usr/local/texlive/2017/texmf-dist/tex/latex/base/ts1cmr.fd
+(/usr/local/texlive/2017/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    ... okay on input line 164.
@@ -1207,10 +1208,8 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 LaTeX Info: Redefining \ref on input line 164.
 LaTeX Info: Redefining \pageref on input line 164.
 LaTeX Info: Redefining \nameref on input line 164.
-
-(./Beck_HW_2.out) (./Beck_HW_2.out)
 \@outlinefile=\write5
-\openout5 = `Beck_HW_2.out'.
+\openout5 = `Beck_HW_2_R_1.out'.
 
 
 (/usr/local/texlive/2017/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -1243,11 +1242,9 @@ G,.JBIG2,.JB2,.eps]
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-
-Package hyperref Warning: old toc file detected, not used; run LaTeX again.
-
 \tf@toc=\write6
-\openout6 = `Beck_HW_2.toc'.
+\openout6 = `Beck_HW_2_R_1.toc'.
+
 
 
 Package xcolor Warning: Incompatible color definition on input line 175.
@@ -1360,84 +1357,121 @@ LaTeX Font Info:    Try loading font information for TS1+lmtt on input line 307
 File: ts1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 
-Package xcolor Warning: Incompatible color definition on input line 315.
+Package xcolor Warning: Incompatible color definition on input line 316.
 
 
-Package xcolor Warning: Incompatible color definition on input line 315.
+Package xcolor Warning: Incompatible color definition on input line 316.
 
 [3]
 
-Package xcolor Warning: Incompatible color definition on input line 359.
-
-
 Package xcolor Warning: Incompatible color definition on input line 363.
 
 
-Package xcolor Warning: Incompatible color definition on input line 363.
+Package xcolor Warning: Incompatible color definition on input line 368.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 370--372
-
- []
+Package xcolor Warning: Incompatible color definition on input line 368.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 372--373
+Underfull \hbox (badness 10000) in paragraph at lines 375--377
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 373--374
-
- []
+Package xcolor Warning: Incompatible color definition on input line 383.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 374--375
-
- []
+Package xcolor Warning: Incompatible color definition on input line 400.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 375--376
-
- []
-
-
-Package xcolor Warning: Incompatible color definition on input line 378.
-
-
-Package xcolor Warning: Incompatible color definition on input line 392.
-
-
-Package xcolor Warning: Incompatible color definition on input line 392.
+Package xcolor Warning: Incompatible color definition on input line 400.
 
 [4]
 
-./Beck_HW_2.tex:437: LaTeX Error: Bad math environment delimiter.
+Package xcolor Warning: Incompatible color definition on input line 452.
 
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.437 \(
-        Y_{ij} = \gamma_{00} + \gamma_{10}*1 + \gamma_{20}*0 + \gamma_{30}*0...
 
+Package xcolor Warning: Incompatible color definition on input line 456.
+
+
+Package xcolor Warning: Incompatible color definition on input line 456.
+
+
+Package xcolor Warning: Incompatible color definition on input line 473.
+
+[5]
+
+Package xcolor Warning: Incompatible color definition on input line 477.
+
+
+Package xcolor Warning: Incompatible color definition on input line 477.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 507--508
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 508--509
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 509--510
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 510--511
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 511--512
+
+ []
+
+
+Package xcolor Warning: Incompatible color definition on input line 514.
+
+
+Package xcolor Warning: Incompatible color definition on input line 529.
+
+
+Package xcolor Warning: Incompatible color definition on input line 529.
+
+
+Package xcolor Warning: Incompatible color definition on input line 529.
+
+[6]
+
+Package xcolor Warning: Incompatible color definition on input line 529.
+
+
+Package xcolor Warning: Incompatible color definition on input line 529.
+
+./Beck_HW_2_R_1.tex:573: Undefined control sequence.
+l.573 \Sectory
+               is also a significant predictor of the level 1 slope for
 ? 
-./Beck_HW_2.tex:437: Emergency stop.
- ...                                              
-                                                  
-l.437 \(
-        Y_{ij} = \gamma_{00} + \gamma_{10}*1 + \gamma_{20}*0 + \gamma_{30}*0...
-
-Your command was ignored.
-Type  I <command> <return>  to replace it with another command,
-or  <return>  to continue without it.
+./Beck_HW_2_R_1.tex:573: Emergency stop.
+l.573 \Sectory
+               is also a significant predictor of the level 1 slope for
+End of file on the terminal!
 
  
 Here is how much of TeX's memory you used:
- 15619 strings out of 492995
- 224161 string characters out of 6132704
- 350666 words of memory out of 5000000
- 18862 multiletter control sequences out of 15000+600000
- 44136 words of font info for 53 fonts, out of 8000000 for 9000
+ 15633 strings out of 492995
+ 224166 string characters out of 6132704
+ 350578 words of memory out of 5000000
+ 18863 multiletter control sequences out of 15000+600000
+ 44551 words of font info for 58 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 35i,9n,56p,485b,377s stack positions out of 5000i,500n,10000p,200000b,80000s
-./Beck_HW_2.tex:437:  ==> Fatal error occurred, no output PDF file produced!
+ 35i,11n,56p,489b,378s stack positions out of 5000i,500n,10000p,200000b,80000s
+./Beck_HW_2_R_1.tex:573:  ==> Fatal error occurred, no output PDF file produced
+!
+000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 35i,11n,56p,489b,378s stack positions out of 5000i,500n,10000p,200000b,80000s
+./Beck_HW_2_R_1.tex:575:  ==> Fatal error occurred, no output PDF file produced
+!

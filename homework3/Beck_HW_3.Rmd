@@ -1,0 +1,418 @@
+---
+title: "Homework 3"
+subtitle: "Psych 5068"
+author: "Emorie Beck"
+date: \today
+output: 
+  pdf_document:
+    toc: yes
+    includes:
+            in_header:
+                header.tex
+    keep_tex: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+# Workspace
+
+## Packages
+```{r packages, results='hide'}
+library(psych)
+library(lme4)
+library(knitr)
+library(kableExtra)
+library(plyr)
+library(tidyverse)
+```
+
+## Data
+```{r data}
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework3/popularity_2(1).csv"
+dat      <- read.csv(url(data_url)) %>% tbl_df %>%
+  mutate(sex_c = as.numeric(scale(sex, scale = F)),
+         sex = factor(sex, levels = 0:1, labels = c("Male", "Female")))
+```
+
+The popularity data include the teachers’ ratings of the popularity of the students in their classrooms. For this assignment, you will test several hypotheses about the relationship between peer and teacher popularity ratings, using the file: popularity_2.csv.  This file contains the following variables:
+
+sex:  Male=0, Female=1
+texp:  Teacher’s experience in years
+popular: Average of other students’ popularity ratings for the student, ranging from 0 to 10
+popteach:   Teacher’s popularity rating for the student, ranging from 0 to 10  
+
+Conduct the following analyses:  
+
+# Question 1 
+1. First, modify the data in the following ways: 
+
+## Part A 
+Create the class average for teacher popularity ratings (call it mean\_pop\_t). 
+```{r Q1a}
+dat <- dat %>% group_by(class) %>% mutate(mean_pop_t = mean(popteach, na.rm = T)) %>% ungroup()
+```
+
+## Part B
+Create a class-centered teacher popularity rating (call it popteach\_c). 
+```{r Q1b}
+dat <- dat %>% mutate(popteach_c = popteach - mean_pop_t)
+```
+
+## Part C
+Grand mean center the results of the calculation in (a).  Call it gmc\_mean\_pop\_t. 
+```{r Q1c}
+dat <- dat %>% mutate(gmc_mean_pop_t = mean_pop_t - mean(popteach, na.rm = T)) %>% ungroup()
+```
+
+## Part D
+Create a grand-mean-centered version of texp called gmc_texp.  Include the head( ) function to list the first 30 lines of the data frame to show the results of the required calculations.  
+```{r Q1d}
+dat <- dat %>% mutate(gmc_texp = as.numeric(scale(texp, scale = F)))
+
+head(dat, n = 30)
+```
+
+
+# Question 2
+Then begin with the fully unconditional model for peer-rated popularity:  
+
+$$popular_{ij} = \beta_{0} + r_{ij}$$
+$$\beta_0 = \gamma_{00} + u_{0j}$$
+
+Compare it to the following model that includes popteach_c as a Level 1 predictor:  
+
+$$popular_{ij} = \beta_{0} + \beta_1 * popteach\_c_{ij} + r_{ij}$$
+$$\beta_0 = \gamma_{00} + u_{0j}$$
+$$\beta_1 = \gamma_{10} + u_{1j}$$
+
+```{r, results = 'asis'}
+mod0 <- lmer(popular ~ 1          + (1|class), data = dat)
+mod1 <- lmer(popular ~ popteach_c + (popteach_c|class), data = dat)
+
+source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
+
+tab0 <- table_fun(mod0) %>% mutate(model = "unconditional") 
+tab1 <- table_fun(mod1) %>% mutate(model = "conditional")
+
+options(knitr.kable.NA = '')
+tab0 %>% full_join(tab1) %>%
+  mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
+  gather(key = est, value = value, b, CI) %>%
+  unite(tmp, model, est, sep = ".") %>%
+  mutate(type = factor(type, levels = c("Fixed Parts", "Random Parts", "Model Terms"))) %>%
+  spread(key = tmp, value = value) %>%
+  select(term, contains("uncond"), contains("cond")) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Term", "b", "CI", "b", "CI")) %>%
+  kable_styling(full_width = F) %>%
+  column_spec(2:5, width = "2cm") %>%
+  group_rows("Fixed Parts",1,2) %>%
+  group_rows("Model Terms", 5, 6) %>%
+  group_rows("Random Parts",3,4) %>%
+  add_header_above(c(" " = 1, "Unconditional" = 2, "Conditional" = 2))
+```
+
+
+## Part A
+Are peer-reports and teacher-reports significantly related? 
+Yes, a one unit increase in teacher ratings of popularity is associated with a $`r (tab1 %>% filter(term == "popteach_c"))$b`$, 95\% CI $`r (tab1 %>% filter(term == "popteach_c"))$CI`$.  
+
+## Part B
+How much variance in the Level 1 model is accounted for by teacher popularity ratings?  
+```{r Q2b}
+vexpL1 <- (sigma(mod0)^2 - sigma(mod1)^2)/sigma(mod0)^2
+```
+$`r round(vexpL1, 2)*100`$\% of the variance in the Level 1 model is accounted for by teacher popularity ratings.  
+
+# Question 3
+Now test two hypotheses about the ability of teachers as judges of their students’ popularity.  
+
+To test these hypotheses, analyze the following model: 
+
+$$popular_{ij} = \beta_{0} + \beta_1 * popteach\_c_{ij} + r_{ij}$$
+$$\beta_0 = \gamma_{00} + \gamma_{01}*gmc\_texp_j + \gamma_{02}*gmc\_mean\_pop\_t_j + u_{0j}$$  
+$$\beta_1 = \gamma_{10} + \gamma_{11}*gmc\_texp_j + \gamma_{12}*gmc\_mean\_pop\_t_j + u_{1j}$$  
+
+
+```{r Q3, results = 'asis'}
+mod2 <- lmer(popular ~ popteach_c + gmc_texp * popteach_c + gmc_mean_pop_t * popteach_c + (popteach_c | class), data = dat)
+tab2 <- table_fun(mod2)
+
+tab2 %>% select(-type) %>%
+  mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Term", "b", "CI")) %>%
+  kable_styling(full_width = F) %>%
+  column_spec(2:3, width = "2cm") %>%
+  group_rows("Fixed Parts",1,6) %>%
+  group_rows("Random Parts",7,8) %>%
+  group_rows("Model Terms",9,10) %>%
+  add_header_above(c(" " = 1, "Popularity" = 2))
+```
+
+
+## Part A
+Teachers with more experience are better judges of student popularity. 
+Teachers with more experience are worse judges of popularity, $\gamma_{11} = `r (tab2 %>% filter(term == "popteach_c:gmc_texp"))$b`$, 95\% CI $`r (tab2 %>% filter(term == "popteach_c:gmc_texp"))$CI`$.  
+
+## Part B
+It is more difficult to judge student popularity when the mean popularity of the class (as rated by teachers) is high than when it is low.  
+It is not more difficult to judge student popularity when the mean popularity is high v. low, $\gamma_{12} = `r (tab2 %>% filter(term == "popteach_c:gmc_mean_pop_t"))$b`$, 95\% CI $`r (tab2 %>% filter(term == "popteach_c:gmc_mean_pop_t"))$CI`$.  
+
+## Part C
+Illustrate the cross-level interaction, $\gamma_{11}$. 
+```{r Q2c}
+# get SD from unconditional model
+mod.pt0 <- lmer(popteach_c ~ 1 + (1 | class), data = dat) 
+sd.pt0  <- sigma(mod.pt0)
+sd.te   <- sd(dat$texp)
+
+mod.pt1 <- lmer(popteach_c ~ 1 + gmc_texp + gmc_mean_pop_t + (1 | class), data = dat) 
+
+te.inc.1 <- sd.te * fixef(mod.pt1)["gmc_texp"] 
+
+tibble(
+  class=1, 
+  popteach_c = seq(-1*te.inc.1 - sd.pt0,-te.inc.1 + sd.pt0, by = sd.pt0), 
+  gmc_texp = -sd.te, 
+  gmc_mean_pop_t = mean(dat$gmc_mean_pop_t),
+  level = "-1 SD"
+  ) %>% full_join(
+tibble(
+  class=1, 
+  popteach_c = seq(-sd.pt0,sd.pt0, by = sd.pt0), 
+  gmc_texp = 0, 
+  gmc_mean_pop_t = mean(dat$gmc_mean_pop_t),
+  level = "0 SD"
+)) %>% full_join(
+tibble(
+  class=1, 
+  popteach_c = seq(te.inc.1 - sd.pt0,te.inc.1 + sd.pt0, by = sd.pt0), 
+  gmc_texp = sd.te, 
+  gmc_mean_pop_t = mean(dat$gmc_mean_pop_t),
+  level = "+1 SD"
+)) %>%
+  mutate(pred = predict(mod2, .),
+         level = factor(level, c("-1 SD", "0 SD", "+1 SD"))) %>%
+  ggplot(aes(x = popteach_c, y = pred, color = level)) +
+  geom_line(size = 1.5) +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(face = "bold", size = rel(1.2)),
+        axis.title = element_text(face = "bold", size = rel(1.2)),
+        legend.text = element_text(face = "bold", size = rel(1.2)),
+        legend.title = element_text(face = "bold", size = rel(1.2)))
+```
+
+
+## Part D
+Illustrate the cross-level interaction, $\gamma_{12}$.  
+```{r Q2d}
+# get SD from unconditional model
+mod.pt0 <- lmer(popteach_c ~ 1 + (1 | class), data = dat) 
+sd.pt0  <- sigma(mod.pt0)
+sd.mtp  <- sd(dat$gmc_mean_pop_t)  
+
+mod.pt1 <- lmer(popteach_c ~ 1 + gmc_texp + gmc_mean_pop_t + (1 | class), data = dat) 
+
+te.inc.1 <- sd.mtp * fixef(mod.pt1)["gmc_mean_pop_t"] 
+
+tibble(
+  class=1, 
+  popteach_c = seq(te.inc.1 - sd.pt0,te.inc.1 + sd.pt0, by = sd.pt0), 
+  gmc_texp = mean(dat$gmc_texp), 
+  gmc_mean_pop_t = -sd.mtp,
+  level = "-1 SD"
+  ) %>% full_join(
+tibble(
+  class=1, 
+  popteach_c = seq(-sd.pt0, sd.pt0, by = sd.pt0), 
+  gmc_texp = mean(dat$gmc_texp), 
+  gmc_mean_pop_t = 0,
+  level = "0 SD"
+)) %>% full_join(
+tibble(
+  class=1, 
+  popteach_c = seq(-te.inc.1 - sd.pt0,-te.inc.1 + sd.pt0, by = sd.pt0), 
+  gmc_texp = mean(dat$gmc_texp), 
+  gmc_mean_pop_t = sd.mtp,
+  level = "+1 SD"
+)) %>%
+  mutate(pred = predict(mod2, .),
+         level = factor(level, c("-1 SD", "0 SD", "+1 SD"))) %>%
+  ggplot(aes(x = popteach_c, y = pred, color = level)) +
+  geom_line(size = 1.5) +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(face = "bold", size = rel(1.2)),
+        axis.title = element_text(face = "bold", size = rel(1.2)),
+        legend.text = element_text(face = "bold", size = rel(1.2)),
+        legend.title = element_text(face = "bold", size = rel(1.2)))
+```
+
+For (c) and (d) illustrate the interactions using a method of your choosing.  If you treat the continuous predictors as discrete for the purpose of graphing, define "low" and "high" as + 1 standard deviation from the grand mean. Remember that the simple standard deviation taken across the entire data set may not be the best indicator of variability for Level 1 predictors.  Note also that displaying the interactions most accurately involves accounting for the possible relationship between teacher popularity ratings and teacher experience and the possible relationship between teacher popularity ratings and classroom mean teacher-rated popularity. A separate document (Additional advice on figures for Homework 3) describes how to approach this if you want to give it a go.  Simpler figures (without any such adjustments) are acceptable for this homework assignment.  
+
+# Question 4
+Now test the hypothesis that it is more difficult for teachers to judge the popularity of boys than to judge the popularity of girls. If true, this would manifest itself in the form of a Teacher Rating x Sex of Student interaction—the relationship of teacher ratings to peer ratings would be different for male and female students.  Test the following model: 
+
+$$popular_{ij} = \beta_{0} + \beta_1*sex\_c_{ij}+ \beta_2 * popteach\_c_{ij} + \beta_3 * (sex\_c_{ij} : popteach\_c_{ij}) + r_{ij}$$
+$$\beta_0 = \gamma_{00} + u_{0j}$$
+$$\beta_1 = \gamma_{10} + u_{1j}$$
+$$\beta_2 = \gamma_{20} + u_{2j}$$
+$$\beta_3 = \gamma_{30} + u_{3j}$$
+
+```{r Q4}
+mod3 <- lmer(popular ~ sex_c * popteach_c + (sex_c*popteach_c|class), data = dat)
+tab3 <- table_fun(mod3)
+```
+
+
+## Part A
+Compared to the fully unconditional model, how much Level 1 variance is accounted for by all Level 1 predictors? 
+
+```{r Q4a}
+vexpL1.4a <- (sigma(mod0)^2 - sigma(mod3)^2)/sigma(mod0)^2
+```
+$`r round(vexpL1.4a, 2)*100`$\% of the variance in the Level 1 model is accounted for by all predictors.    
+
+## Part B
+How much is attributable to the addition of the sex main effect and the interaction?  
+```{r Q4b}
+vexpL1.4b <- (sigma(mod1)^2 - sigma(mod3)^2)/sigma(mod1)^2
+```
+$`r round(vexpL1.4b, 2)*100`$\% of the variance in the Level 1 model is accounted for by all predictors.    
+
+## Part C
+Is there support for the hypothesis? 
+We cannot conclude that it is more difficult for teachers to judge the popularity of boys than to judge the popularity of girls, $\gamma_{30} = `r (tab3 %>% filter(term == "sex_c:popteach_c"))$b`$, 95\% CI $`r (tab3 %>% filter(term == "sex_c:popteach_c"))$CI`$.  
+
+## Part D 
+Illustrate the interaction in this model. 
+```{r}
+crossing(sex_c = unique(dat$sex_c),
+         popteach_c = seq(min(dat$popteach_c,na.rm =T), max(dat$popteach_c, na.rm = T), .1)) %>%
+  mutate(pred = predict(mod3, newdata = ., re.form = NA)) %>%
+  mutate(sex = mapvalues(sex_c, unique(sex_c), c("Male", "Female"))) %>%
+  ggplot(aes(x = popteach_c, y = pred, color = sex)) +
+  geom_line(size = 1.5) +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(face = "bold", size = rel(1.2)),
+        axis.title = element_text(face = "bold", size = rel(1.2)),
+        legend.text = element_text(face = "bold", size = rel(1.2)),
+        legend.title = element_text(face = "bold", size = rel(1.2)))
+```
+
+# Question 5
+
+The parameter estimates and residuals can provide some very interesting information for these data.  See if you can figure out how to determine answers to the following questions.    
+
+In general, once you have fit a model with lmer( ), the following functions can be used to get various bits of information:  
+
+`resid(fit_object)`: the Level 1 residuals ($r_{ij}$)  
+`fitted(fit_object)`: the predicted outcomes at Level 1 ($Y_{ij}$)  
+`ranef(fit_object)`: the Level 2 residuals ($u_j$)  
+`fixef(fit_object)`: the Level 2 fixed effects ($\gamma$)  
+`coef(fit_object)`: the Level 1 coefficients ($\beta_j$)   
+
+For the following, identify the requested individual by class number (and if relevant, by pupil number).  
+
+## Part A
+Using the second model in Question 2, identify the teacher whose popularity ratings were most highly related to peer-rated popularity ratings. How high was that relationship?  
+
+$$popular_{ij} = \beta_{0} + \beta_1 * popteach\_c_{ij} + r_{ij}$$
+$$\beta_0 = \gamma_{00} + u_{0j}$$
+$$\beta_1 = \gamma_{10} + u_{1j}$$
+
+```{r}
+(raneffs <- coef(mod1)[[1]] %>% 
+  data.frame() %>% 
+  mutate(class = rownames(.)) %>%
+  tbl_df %>%
+  arrange(desc(abs(popteach_c))))
+```
+
+The strongest relationship between between teacher and peer popularity ratings occurred in classroom $`r raneffs$class[1]`$, $\gamma_{10} + u_{1~82} = `r raneffs$popteach_c[1]`$.  
+
+
+## Part B
+Using the model in Question 3, identify the teacher whose popularity ratings were the least related to peer-rated popularity when compared to what was expected for that teacher.  How much poorer than expectation did this teacher perform?  
+$$popular_{ij} = \beta_{0} + \beta_1 * popteach\_c_{ij} + r_{ij}$$
+$$\beta_0 = \gamma_{00} + \gamma_{01}*gmc\_texp_j + \gamma_{02}*gmc\_mean\_pop\_t_j + u_{0j}$$  
+$$\beta_1 = \gamma_{10} + \gamma_{11}*gmc\_texp_j + \gamma_{12}*gmc\_mean\_pop\_t_j + u_{1j}$$  
+
+```{r}
+(s.teach <- broom::augment(mod2) %>% 
+  mutate(pupil = 1:nrow(.)) %>% 
+  arrange(desc(abs(.resid))) %>% 
+  tbl_df %>% 
+  select(popular:.fixed, pupil)) 
+
+# %>% group_by(class) %>% summarize(mean = mean(.resid)) %>% arrange(mean)
+```
+
+The weakest relationship between between teacher and peer popularity ratings compared to expectation occurred in classroom $`r s.teach$class[1]`$, $Y_{ij} - \hat{Y}_{ij} = `r round(s.teach$.resid[1],2)`$.  
+
+## Part C
+Using the Level 2 residuals from the model in Question 3, which class exceeded their expected mean popularity the most?  What was the simple (OLS) mean popularity of this class?  What was the empirical Bayes estimate for the mean popularity of this class?  Why are these two estimates (OLS and EB) for this class’s mean popularity different?  
+
+$$\beta_1 = \gamma_{10} + \gamma_{11}*gmc\_texp_j + \gamma_{12}*gmc\_mean\_pop\_t_j + u_{1j}$$  
+
+```{r}
+lm_fit <- function(data) {
+  fit <- lm(popular ~ popteach_c, data)
+  t(coef(fit)) %>% tbl_df %>% setNames(c("Intercept", "Slope"))
+}
+
+ols_mods <- broom::augment(mod2) %>% tbl_df %>%
+  arrange(desc(.resid)) %>%
+  group_by(class) %>%
+  nest() %>%
+  mutate(ols = map(data, lm_fit))
+
+raneffs <- ranef(mod2, condVar=TRUE)
+Coef    <- as.matrix(coef(mod2)$class[1:2])
+# Then we select the posterior variances and covariances
+# as an attribute and save it.
+PVar <- attr(raneffs[[1]], which = "postVar")
+dim(PVar) <- c(2*2 , 100)
+Coef_Var_Cov <- t(PVar)
+# And take it apart so each of the matrix elements for
+# each school is a separate column.
+
+L2_Resid <- ranef(mod2)[[1]]
+
+Coef <- cbind(Coef,Coef_Var_Cov,L2_Resid)
+
+# By_School <- ddply(HSB_Data, ~School, lm_fit)
+# add to the Coef matrix and define as a dataframe.
+Coef <- bind_cols(Coef, ols_mods %>% unnest(ols, .drop = T)) %>% 
+  setNames(c("EB_Intercept","EB_Slope","Intercept_Var","Covariance","Covariance_Too",
+                 "Slope_Var","Intercept_Res","Slope_Res","class","OLS_Intercept", "OLS_Slope")) %>%
+  mutate(I_lwr = EB_Intercept-sqrt(Intercept_Var)*1.96, 
+         I_upr = EB_Intercept+sqrt(Intercept_Var)*1.96,
+         S_lwr = EB_Slope-sqrt(Slope_Var)*1.96,
+         S_upr = EB_Slope+sqrt(Slope_Var)*1.96) 
+```
+
+Class $`r ols_mods$class[1]`$ most exceeded their expected popularity by $`r round((L2_Resid %>% arrange(desc(popteach_c)))[1,2],2)`$. The simple (OLS) mean popularity of this class was $`r round((Coef %>% filter(class == ols_mods$class[1]))$OLS_Intercept,2)`$ and the empirical Bayes estimate was $`r round((Coef %>% filter(class == ols_mods$class[1]))$EB_Intercept,2)`$. These two estimate are different because the MLM expected values leverage information about the relationship between mean classroom popularlity and teaching experience.  
+
+
+## Part D
+Using the model in Question 4, which kid (identify the class number and kid number) exceeded expected popularity the most? What was that child’s actual peer-rated popularity?  
+
+```{r}
+(q5d <- broom::augment(mod3) %>% 
+  mutate(pupil = as.numeric(rownames(.))) %>% 
+  tbl_df %>% 
+  arrange(desc(.resid)))
+
+dat <- dat %>% mutate(student = 1:dim(dat)[1])
+```
+
+Student $`r (dat %>% filter(student == q5d$pupil[1]))$pupil`$ in class $`r (dat %>% filter(student == q5d$pupil[1]))$class`$ exceeded their expected popularity by $`r round(q5d$.resid[1],2)`$. Their rated popularity was $`r (dat %>% filter(student == q5d$pupil[1]))$popular`$.  
+
