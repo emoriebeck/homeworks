@@ -1,0 +1,454 @@
+---
+title: "Homework 5"
+subtitle: "Psych 5068"
+author: "Emorie Beck"
+date: \today
+output: 
+  pdf_document:
+    toc: yes
+    includes:
+            in_header:
+                header.tex
+    keep_tex: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+data (popularity.csv) to explore methods for examining the adequacy of hierarchical linear models.   Begin with the unconditional model:    
+# Workspace
+
+## Packages
+```{r packages, results='hide'}
+library(psych)
+library(lme4)
+library(knitr)
+library(qqplotr)
+library(influence.ME)
+library(HLMdiag)
+library(kableExtra)
+library(plyr)
+library(tidyverse)
+```
+
+## Data
+```{r data}
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework5/popularity(6).csv"
+dat      <- read.csv(url(data_url)) %>% tbl_df %>%
+  mutate(sex12 = sex,
+         sex = factor(sex, levels = 0:1, labels = c("Male", "Female")))
+```
+
+# Question 1. 
+Test the homogeneity of Level 1 residual variances ($\sigma^2$) assumption by comparing a model that estimates a single Level 1 variance (the default, call it Pop\_Fit\_1) to a model that estimates a separate variance for each classroom (call it Pop\_Fit\_2).  
+
+Reminder: This needs to be done with the nlme package, which allows specifying separate variances for each Level 2 unit. 
+
+Level 1:
+$$popular_{ij} = \beta_{0j} + r_{ij}$$
+Level 2:
+$$\beta_{0j} = \gamma_{00} + u_{0j}$$
+
+```{r}
+source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
+library(nlme)
+Pop_Fit_1 <- lme(popular ~ 1, random = ~1 | class, data = dat)
+Pop_Fit_2 <- lme(popular ~ 1, random = ~1 | class, data = dat, varIdent(form = ~ 1 | class))
+
+Pop_Fit_1 %>% summary
+Pop_Fit_2 %>% summary
+
+anova(Pop_Fit_1,Pop_Fit_2)
+```
+
+Thus, we do not meet the homogeneity of variance assumption. The model that estimates separate variances is slightly better than one that does not.  
+
+
+# Question 2
+Add the Level 1 residuals (and fitted values) from Pop\_Fit\_1 to the popularity data file (name them L1\_residuals and L1\_fitted, respectively) and produce a boxplot figure showing the residual distributions by classroom (class). 
+```{r}
+dat <- broom::augment(Pop_Fit_1) %>% tbl_df %>%
+  mutate(class = as.character(class)) %>%
+  full_join(
+    ranef(Pop_Fit_1) %>% data.frame %>% setNames("L2_residuals") %>%
+      mutate(class = rownames(.)) %>% tbl_df
+  ) %>% rename(L1_residuals = .resid)
+
+orders <- dat %>%
+  group_by(class) %>%
+  summarize(median = median(L1_residuals, na.rm = T)) %>%
+  arrange(median)
+
+dat %>%
+  mutate(class = factor(class, levels = orders$class)) %>%
+  ggplot(aes(x = class, y = L1_residuals, fill = class)) +
+  geom_boxplot(size = .15) +
+  geom_label(data = dat, aes(y = L2_residuals,  label = class), size = 1.5) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
+
+# Question 3
+Examine the Level 1 residuals: 
+
+## Part A
+Construct a Q-Q plot of the Level 1 residuals. 
+```{r}
+dat %>% 
+  ggplot(aes(sample=L1_residuals)) + 
+  stat_qq_band(fill = "blue", alpha = .25) +
+  stat_qq_line() + 
+  stat_qq_point() +
+  labs(x = "Actual", y = "Theoretical", 
+       title = "Q-Q Plot of Studentized Residuals") +
+  theme_classic()
+```
+
+
+## Part B
+Construct a histogram of the Level 1 residuals with a normal distribution overlay. 
+```{r}
+dat %>%
+  ggplot(aes(x = L1_residuals)) +
+  geom_density(fill = "springgreen2", alpha = .6) +
+  stat_function(fun = dnorm, size = 1.25, color = "darkgreen", alpha = .75,
+                args = list(mean = 0, sd =1)) +
+  theme_classic()
+```
+
+
+## Part C
+Are the Level 1 residuals normally distributed? 
+Yes, the level 1 residuals are normally distributed.  
+
+## Part D
+Construct a scatterplot of the Level 1 residuals against the Level 1 fitted values. Comment on the assumption of homoscedasticity and what that means for this unconditional model.  
+```{r}
+dat %>%
+  ggplot(aes(x = .fitted, y = L1_residuals)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  theme_classic()
+```
+
+The plot of Level 1 residuals v. Level 1 fitted values suggests that we meet the assumption of homoscedasticity. There is a very weak positive relationship, but not strong enough to worry.  
+
+
+# Question 4
+Now determine if Level 1 predictors should be added to the model. 
+
+## Part A
+Correlate the Level 1 residuals with extraversion. Is there evidence that this predictor should be included?  
+```{r, results='asis'}
+r <- dat %>% select(extrav, sex12, .fitted, L1_residuals) %>% cor
+
+r[upper.tri(r, diag = T)] <- NA
+r <- r %>% data.frame() %>% mutate(v1 = rownames(.)) %>% select(v1, everything())
+
+options(knitr.kable.NA = '')
+r %>%
+  kable(., "latex", digits = 2, booktabs = T, 
+        col.names = c("", "extrav", "sex", "fitted", "L1 resid"))
+```
+
+Extraversion is moderately correlated with the level 1 residuals (r = $`r round(r[r$v1 == "L1_residuals", "extrav"],2)`$), suggesting that it should be included in the model.  
+
+## Part B
+Create a scatterplot showing the relationship between the Level 1 residuals and extraversion. Does there appear to be any need to model nonlinearity?  
+
+```{r}
+dat %>%
+  ggplot(aes(x = extrav, y = L1_residuals)) +
+  geom_point() +
+  geom_smooth() +
+  theme_classic()
+```
+
+No, there is possibly a very small, non-linear effect, but the degree of nonlinearity is very small.  
+
+## Part C 
+Correlate the Level 1 residuals with student sex. Is there evidence that this predictor should be included? 
+Sex is moderately to strongly correlated with the level 1 residuals ($r = `r round(r[r$v1 == "L1_residuals", "sex12"],2)`$), suggesting that it should be included in the model.  
+
+## Part D
+Should both predictors be included in the model? That is, do they appear to be unique predictors?  
+
+Extraversion and sex are nearly uncorrelated (r = $`r round(r[r$v1 == "sex12", "extrav"],2)`$), suggesting that they do appear to be unique predictors.  
+
+# Question 5
+Examine the Level 2 residuals: 
+
+## Part A 
+Create a classroom level data frame (call it Class_Data) that contains the Level 2 residuals (only intercept residuals are available so far; name it R_Intercept) and the grand-mean centered classroom means for extraversion (name it Mean\_E\_GMC).  
+```{r}
+Class_Data <- dat %>%
+  mutate(gmc = mean(extrav, na.r = T)) %>% 
+  group_by(class) %>% 
+  summarise(Mean_E_GMC = mean(extrav, na.rm = T)/unique(gmc)) %>%
+  full_join(unique(dat %>% select(class, L2_residuals)))
+```
+
+
+## Part B
+Construct a Q-Q plot of the Level 2 residuals 
+```{r}
+Class_Data %>% 
+  ggplot(aes(sample=L2_residuals)) + 
+  stat_qq_band(fill = "blue", alpha = .25) +
+  stat_qq_line() + 
+  stat_qq_point() +
+  labs(x = "Actual", y = "Theoretical", 
+       title = "Q-Q Plot of Studentized Residuals") +
+  theme_classic()
+```
+
+## Part C
+Construct a histogram of the Level 2 residuals with a normal distribution overlay. 
+```{r}
+Class_Data %>%
+  ggplot(aes(x = L2_residuals)) +
+  geom_density(fill = "springgreen2", alpha = .6) +
+  stat_function(fun = dnorm, size = 1.25, color = "darkgreen", alpha = .75,
+                args = list(mean = 0, sd =1)) +
+  theme_classic()
+```
+
+## Part D
+Are the Level 2 residuals normally distributed? 
+The Level 2 residuals do not appear to be normally distributed.  
+
+## Part E
+Correlate the Level 2 residuals with classroom mean extraversion. Is there evidence that this predictor should be included in the Level 2 model? 
+```{r}
+r2 <- Class_Data %>% summarize(r = cor(Mean_E_GMC, L2_residuals))
+```
+
+Classroom mean extraversion is almost entirely uncorrellated ($r = `r round(r2$r,2)`$) with the Level 2 resiudals. 
+
+
+## Part F
+Create a scatterplot showing the relationship between the Level 2 residuals and classroom mean extraversion. Does there appear to be any need to model nonlinearity at Level 2? 
+```{r}
+Class_Data %>%
+  ggplot(aes(x = L2_residuals, y = Mean_E_GMC)) +
+  geom_point() +
+  geom_smooth() +
+  theme_classic()
+```
+
+The relationship between classroom mean extraversion and the Level 2 residuals does appear to be slightly nonlinear. 
+
+
+# Question 6
+6. Fit a new model based on what you have discovered so far:  
+To fit this model, you will need to create a new variable, Mean_E_GMC_SQ, that is the square of Mean_E_GMC.  Merge both variables into the original data frame, and fit the new model (call it Pop_Fit_3).  Use the lme4 package so that you don’t encounter convergence problems.  Is there any evidence of curvilinearity at Level 2?  
+```{r, results = 'asis'}
+dat <- Class_Data %>% mutate(Mean_E_GMC_SQ = Mean_E_GMC^2) %>%
+  full_join(dat)
+
+Pop_Fit_3 <- lmer(popular ~  extrav*Mean_E_GMC + extrav*Mean_E_GMC_SQ + sex*Mean_E_GMC + 
+                    sex*Mean_E_GMC_SQ + (extrav + sex|class), data = dat)
+
+table_fun(Pop_Fit_3)  %>%
+  mutate(term = str_replace_all(term, "_", " ")) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("Term", c("b", "CI"))) %>%
+  add_header_above(c(" " = 1, "Fit 3")) %>%
+  group_rows("Fixed", 1,9) %>%
+  group_rows("Random", 10,12) %>%
+  group_rows("Fixed", 13,14)
+```
+
+There is no evidence of linearity at Level 2 (all t's < 1.6).  
+
+# Question 7
+Fit a model that eliminates the squared terms in Level 2 (call it Pop_Fit_4) and compare it to the full model. Are you justified in eliminating the squared terms?   
+
+```{r, results = 'asis'}
+Pop_Fit_4 <- lmer(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC + (extrav + sex | class), data = dat)
+
+table_fun(Pop_Fit_4)  %>%
+  mutate(term = str_replace_all(term, "_", " ")) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("Term", c("b", "CI"))) %>%
+  add_header_above(c(" " = 1, "Fit 4")) %>%
+  group_rows("Fixed", 1,6) %>%
+  group_rows("Random", 7,9) %>%
+  group_rows("Fixed", 10,11)
+
+anova(Pop_Fit_4, Pop_Fit_3)
+```
+
+Debatably, the model that includes the squared term not better than the one that doesn't. I would  drop it.  
+
+# Question 8 
+Using the simpler Pop_Fit_4 model, determine if either or both of the slope variances at Level 2 can be set to 0.  
+```{r, results='asis'}
+Pop_Fit_4a <- lmer(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC + (extrav | class), data = dat)
+Pop_Fit_4b <- lmer(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC + (sex | class), data = dat)
+Pop_Fit_4c <- lmer(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC + (1 | class), data = dat)
+
+f4a.tab <- table_fun(Pop_Fit_4a)
+f4b.tab <- table_fun(Pop_Fit_4b)
+f4c.tab <- table_fun(Pop_Fit_4c)
+
+f4a.tab %>% mutate(model = "Fit 4a") %>%
+  full_join(f4b.tab %>% mutate(model = "Fit 4b")) %>%
+  full_join(f4c.tab %>% mutate(model = "Fit 4c"))  %>%
+  mutate(term = str_replace_all(term, "_", " ")) %>%
+  gather(key = est, value = value, b, CI) %>%
+  unite(tmp, model, est, sep = ".") %>%
+  mutate(type = factor(type, levels = c("Fixed Parts", "Random Parts", "Model Terms"))) %>%
+  spread(key = tmp, value = value) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("Term", rep(c("b", "CI"), times = 3))) %>%
+  add_header_above(c(" " = 1, "extrav RE" = 2, "sex RE" = 2, "No RE Slopes" = 2)) %>%
+  group_rows("Fixed", 1,6) %>%
+  group_rows("Random", 7,8) %>%
+  group_rows("Fixed", 9,10)
+
+anova(Pop_Fit_4, Pop_Fit_4a, Pop_Fit_4b, Pop_Fit_4c)
+```
+
+
+## Part A
+Eliminate the random effect for extrav (call this model Pop_Fit_5). Is this model indistinguishable from Pop_Fit_4? 
+```{r, results = 'asis'}
+Pop_Fit_5 <- lmer(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC + (sex | class), data = dat)
+
+table_fun(Pop_Fit_5)  %>%
+  mutate(term = str_replace_all(term, "_", " ")) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("Term", c("b", "CI"))) %>%
+  add_header_above(c(" " = 1, "Fit 5")) %>%
+  group_rows("Fixed", 1,6) %>%
+  group_rows("Random", 7,8) %>%
+  group_rows("Fixed", 9,10)
+
+anova(Pop_Fit_4, Pop_Fit_5)
+```
+
+This model is distinguishable from the model from question 4 -- eliminating the extraversion random slope improves model fit.  
+
+
+## Part B
+Eliminate the random effect for sex (call this model Pop_Fit_6). Is this model indistinguishable from Pop_Fit_4? 
+```{r, results = 'asis'}
+Pop_Fit_6 <- lmer(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC + (extrav | class), data = dat)
+
+table_fun(Pop_Fit_6)  %>%
+  mutate(term = str_replace_all(term, "_", " ")) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("Term", c("b", "CI"))) %>%
+  add_header_above(c(" " = 1, "Fit 6")) %>%
+  group_rows("Fixed", 1,6) %>%
+  group_rows("Random", 7,8) %>%
+  group_rows("Fixed", 9,10)
+
+anova(Pop_Fit_4, Pop_Fit_6)
+```
+
+Yes, the model that does not include the random slope for sex is indistinguishable from one that does.  
+
+## Part C
+Finally, eliminate them both (call this Pop_Fit_7) and compare it to Pop_Fit_4. Which simpler model is justified? 
+```{r}
+Pop_Fit_7 <- lmer(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC + (1 | class), data = dat)
+
+table_fun(Pop_Fit_7) %>%
+  mutate(term = str_replace_all(term, "_", " ")) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("Term", c("b", "CI"))) %>%
+  add_header_above(c(" " = 1, "Fit 7")) %>%
+  group_rows("Fixed", 1,6) %>%
+  group_rows("Random", 7,7) %>%
+  group_rows("Fixed", 8,9)
+
+anova(Pop_Fit_4, Pop_Fit_7)
+
+anova(Pop_Fit_5, Pop_Fit_7)
+```
+
+The simplest model with no random slopes is best because it is better than a model that includes both but not better than one that includes only sex.  
+
+
+# Question 9 
+Use the simplest model justified from the previous question. 
+
+## Part A
+Retest the Level 1 homogeneity assumption. Is there any improvement compared to what was found for Question 1? 
+
+```{r}
+Pop_Fit_7.lme <- lme(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC, random = ~ 1|class, data = dat)
+Pop_Fit_7.a <- lme(popular ~ extrav*Mean_E_GMC + sex*Mean_E_GMC, random = ~ 1|class, 
+                   data = dat, varIdent(form = ~ 1 | class))
+
+anova(Pop_Fit_7.lme, Pop_Fit_7.a)
+```
+
+In this case, we meet the homogeneity of variance assumption. The model that fits unique variances is not better than one that does not.  
+
+## Part B
+Check the multivariate normality assumption for the residuals at Level 2 using Mahalanobis distance. Are the residuals multivariate normal?  
+```{r}
+L2_residuals <- ranef(Pop_Fit_7)[[1]]
+MD.v <- mahalanobis(L2_residuals, colMeans(L2_residuals), cov(L2_residuals))
+
+MD.df <- MD.v %>% data.frame %>% setNames("MD") %>% mutate(class = names(MD.v)) 
+
+MD.df %>% 
+  ggplot(aes(sample = MD)) +
+  stat_qq_band(distribution = "chisq", dparams = list(df = 4)) + 
+  stat_qq_line(distribution = "chisq", dparams = list(df = 4)) + 
+  stat_qq_point(distribution = "chisq", dparams = list(df = 4)) +
+  theme_classic()
+
+```
+
+The residuals do not appear to be multivariate normal.  
+
+# Question 10
+Use Cook’s distance to examine how influential the classrooms are in the model fit for Question 9. 
+```{r}
+Pop_Fit_7.i <- influence(Pop_Fit_7, group = "class")
+
+Cooks_Class <- cooks.distance(Pop_Fit_7.i, group = "class") 
+Cooks_Class <- Cooks_Class %>% data.frame %>% setNames("cooks.distance") %>% 
+  mutate(class = rownames(Cooks_Class))
+
+dotplot_diag(x = cooks.distance, index = class, data = Cooks_Class, 
+             cutoff = "internal", name = "cooks.distance", 
+             ylab = "Cook's Distance: Class", xlab = "Class")
+```
+
+## Part A
+How many classrooms stand out as distinctly more influential than the others? 
+3 classrooms: 33, 87, and 90.
+
+
+## Part B
+If those classrooms are excluded from the analysis and the model is refit, do any conclusions change?  
+```{r, results = 'asis'}
+Pop_Fit_7.cd <- update(Pop_Fit_7, data = dat %>% filter(!(class %in% c(87, 33, 90))))
+
+table_fun(Pop_Fit_7.cd) %>%
+  mutate(term = str_replace_all(term, "_", " ")) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("Term", c("b", "CI"))) %>%
+  add_header_above(c(" " = 1, "Fit 7 Outliers Removed")) %>%
+  group_rows("Fixed", 1,6) %>%
+  group_rows("Random", 7,7) %>%
+  group_rows("Fixed", 8,9)
+```
+
+No, in terms of significance levels, no conclusions change.  
