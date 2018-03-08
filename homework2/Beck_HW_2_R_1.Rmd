@@ -1,7 +1,7 @@
 ---
 title: "Homework 2"
 author: "Emorie Beck"
-date: \today
+date: "February 19"
 output: 
   pdf_document:
     toc: yes

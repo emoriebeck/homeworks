@@ -121,7 +121,7 @@
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{\today}
+  \date{February 19}
 
 \usepackage{fancyhdr}
 \usepackage{array}
@@ -323,12 +323,12 @@ Term & b & CI\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Fixed}}\\
-\hspace{1em}(Intercept) & 13.68 & [13.26, 13.99]\\
-\hspace{1em}minorityMinority & -3.75 & [-4.42, -3.31]\\
+\hspace{1em}(Intercept) & 13.68 & [13.36, 14.10]\\
+\hspace{1em}minorityMinority & -3.75 & [-4.14, -3.64]\\
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 5.62 & [4.44, 6.03]\\
-\hspace{1em}$\tau_{11}$ & 3.24 & [0.54, 6.27]\\
+\hspace{1em}$\tau_{00}$ & 5.62 & [4.48, 6.83]\\
+\hspace{1em}$\tau_{11}$ & 3.24 & [1.45, 6.11]\\
 $R^2_m$ & 0.06 & \\
 $R^2_c$ & 0.21 & \\
 \bottomrule
@@ -339,14 +339,14 @@ $R^2_c$ & 0.21 & \\
 
 Is math achievement significantly related to minority status?\\
 Yes, match minority status predicts math achievement,
-\(\gamma_{10} = -3.75\), 95\% CI \(= [-4.42, -3.31]\).
+\(\gamma_{10} = -3.75\), 95\% CI \(= [-4.14, -3.64]\).
 
 \subsection{Part B}\label{part-b}
 
 What is the expected (mean) level of math achievement for non-minority
 students?\\
 The expected mean level of math achievement for non-minority students is
-\(\gamma_{00} = 13.68\), 95\% CI \(= [13.26, 13.99]\).
+\(\gamma_{00} = 13.68\), 95\% CI \(= [13.36, 14.10]\).
 
 \subsection{Part C}\label{part-c}
 
@@ -407,16 +407,16 @@ Term & b & CI\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Fixed}}\\
-\hspace{1em}(Intercept) & 14.15 & [13.90, 14.55]\\
-\hspace{1em}minorityMinority & -3.20 & [-3.80, -2.83]\\
-\hspace{1em}femaleFemale & -1.26 & [-1.40, -1.06]\\
-\hspace{1em}GC.ses & 1.87 & [1.69, 2.13]\\
+\hspace{1em}(Intercept) & 14.15 & [13.56, 14.43]\\
+\hspace{1em}minorityMinority & -3.20 & [-3.60, -2.70]\\
+\hspace{1em}femaleFemale & -1.26 & [-1.53, -0.94]\\
+\hspace{1em}GC.ses & 1.87 & [1.69, 2.12]\\
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 6.23 & [4.77, 7.90]\\
-\hspace{1em}$\tau_{11}$ & 1.98 & [1.14, 3.46]\\
-\hspace{1em}$\tau_{22}$ & 0.88 & [0.09, 1.84]\\
-\hspace{1em}$\tau_{33}$ & 0.40 & [0.15, 0.67]\\
+\hspace{1em}$\tau_{00}$ & 6.23 & [4.28, 6.89]\\
+\hspace{1em}$\tau_{11}$ & 1.98 & [0.60, 2.96]\\
+\hspace{1em}$\tau_{22}$ & 0.88 & [0.35, 1.06]\\
+\hspace{1em}$\tau_{33}$ & 0.40 & [0.10, 0.62]\\
 $R^2_m$ & 0.10 & \\
 $R^2_c$ & 0.25 & \\
 \bottomrule
@@ -428,14 +428,14 @@ $R^2_c$ & 0.25 & \\
 Is there a significant sex difference in math achievement, controlling
 for minority status and SES? Yes, females have lower math achievement
 than males, controlling for SES and minority status,
-\(\gamma_{20} = -1.26, 95\% CI [-1.40, -1.06]\).
+\(\gamma_{20} = -1.26, 95\% CI [-1.53, -0.94]\).
 
 \subsection{Part b}\label{part-b-1}
 
 Is the effect of student-level SES significant? Explain how the
 coefficient for this effect (\(\beta_{3j}\)) should be interpreted.\\
 Controlling for gender and minority status, a one unit increase in SES
-is associated with a \(1.87\) (95\% CI \([1.69, 2.13]\)) increase in
+is associated with a \(1.87\) (95\% CI \([1.69, 2.12]\)) increase in
 math achievement.
 
 \subsection{Part c}\label{part-c-1}
@@ -536,20 +536,20 @@ Term & b & CI\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Fixed}}\\
-\hspace{1em}(Intercept) & 13.15 & [12.68, 13.50]\\
-\hspace{1em}minorityMinority & -4.14 & [-4.61, -3.55]\\
-\hspace{1em}sectorCatholic & 2.31 & [1.49, 2.82]\\
-\hspace{1em}femaleFemale & -1.30 & [-1.57, -0.74]\\
-\hspace{1em}GC.ses & 2.30 & [2.23, 2.83]\\
-\hspace{1em}minorityMinority:sectorCatholic & 1.98 & [1.15, 2.78]\\
-\hspace{1em}sectorCatholic:femaleFemale & 0.05 & [-0.45, 0.55]\\
-\hspace{1em}sectorCatholic:GC.ses & -0.98 & [-1.62, -0.92]\\
+\hspace{1em}(Intercept) & 13.15 & [12.30, 13.26]\\
+\hspace{1em}minorityMinority & -4.14 & [-4.36, -3.34]\\
+\hspace{1em}sectorCatholic & 2.31 & [2.06, 3.31]\\
+\hspace{1em}femaleFemale & -1.30 & [-1.91, -0.66]\\
+\hspace{1em}GC.ses & 2.30 & [2.05, 2.45]\\
+\hspace{1em}minorityMinority:sectorCatholic & 1.98 & [1.42, 2.70]\\
+\hspace{1em}sectorCatholic:femaleFemale & 0.05 & [-1.04, 0.52]\\
+\hspace{1em}sectorCatholic:GC.ses & -0.98 & [-1.33, -0.57]\\
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 4.91 & [3.97, 6.35]\\
-\hspace{1em}$\tau_{11}$ & 0.76 & [0.49, 1.84]\\
-\hspace{1em}$\tau_{22}$ & 1.00 & [0.42, 2.17]\\
-\hspace{1em}$\tau_{33}$ & 0.18 & [0.01, 0.62]\\
+\hspace{1em}$\tau_{00}$ & 4.91 & [3.28, 6.52]\\
+\hspace{1em}$\tau_{11}$ & 0.76 & [0.16, 2.41]\\
+\hspace{1em}$\tau_{22}$ & 1.00 & [0.15, 2.24]\\
+\hspace{1em}$\tau_{33}$ & 0.18 & [0.09, 0.83]\\
 $R^2_m$ & 0.14 & \\
 $R^2_c$ & 0.24 & \\
 \bottomrule
@@ -573,7 +573,7 @@ Does sector significantly predict the Level 1 slope for minority
 Sector is also a significant predictor of the level 1 slope for minority
 -- that is, students in Catholic schools tend to have math avhievement
 scores that are higher on average than public schools,
-\(\gamma01 = 2.31\), bootstrapped 95\% CI \([1.49, 2.82]\) on average.
+\(\gamma01 = 2.31\), bootstrapped 95\% CI \([2.06, 3.31]\) on average.
 
 \subsection{Part c}\label{part-c-2}
 
@@ -581,7 +581,7 @@ Does sector significantly predict the Level 1 slope for ses
 (\(\beta_{3j}\))? If so, provide an interpretation of the relationship.
 
 Sector significantly predicts the level 1 slope for ses,
-\(\gamma01 = -0.98\), bootstrapped 95\% CI \([-1.62, -0.92]\). In other
+\(\gamma01 = -0.98\), bootstrapped 95\% CI \([-1.33, -0.57]\). In other
 words sector moderates the relationship between SES and math. The
 relationship between math achievement and SES is different in Catholic
 and public schools, such that higher SES has a less positive effect on

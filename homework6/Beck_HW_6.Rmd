@@ -17,7 +17,9 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 ```
-data (popularity.csv) to explore methods for examining the adequacy of hierarchical linear models.   Begin with the unconditional model:    
+
+For this assignment, you will extend our analyses of the Curran reading data (Curran\_New\_Trimmed.csv).   
+
 # Workspace
 
 ## Packages
@@ -35,9 +37,155 @@ library(tidyverse)
 
 ## Data
 ```{r data}
-data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework5/popularity(6).csv"
-dat      <- read.csv(url(data_url)) %>% tbl_df %>%
-  mutate(sex12 = sex,
-         sex = factor(sex, levels = 0:1, labels = c("Male", "Female")))
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework6/Curran_New_Trimmed(3).csv"
+dat      <- data_url %>% read.csv %>% tbl_df 
 ```
 
+# Question 1 
+Create dummy codes for each of the four time periods. Call these new variables TD1, TD2, TD3, and TD4. 
+```{r}
+dat <- dat %>%
+  mutate(
+    TD1 = ifelse(time == 1, 1, 0),
+    TD2 = ifelse(time == 2, 1, 0),
+    TD3 = ifelse(time == 3, 1, 0),
+    TD4 = ifelse(time == 4, 1, 0)
+  )
+```
+
+
+# Question 2
+Fit a no-intercept model:   
+
+Level 1: 
+$$ read_{ti} = \pi_{0i}TD1_{ti} + \pi_{1i}TD2_{ti} + \pi_{2i}TD3_{ti} + \pi_{3i}TD4_{ti} + e_{ij}$$
+Level 2: 
+$$ \pi_{0i} = \beta_{00} + r_{0i}$$
+$$ \pi_{1i} = \beta_{10}$$
+$$ \pi_{2i} = \beta_{20}$$
+$$ \pi_{3i} = \beta_{30}$$
+```{r}
+fit2 <- lmer(read ~ -1 + TD1 + TD2 + TD3 + TD4 + (-1 + TD1 | id), dat = dat)
+```
+
+
+# Question 3 
+Perform follow-up tests on the model. 
+
+## Part A
+Create a matrix of contrasts that will test the linear, quadratic, and cubic trends in the data.   
+
+## Part B
+Test this matrix using `glht( )` in the multcomp package.  Which trends are significant?  
+
+# Question 4
+Test each of the following models (use ML not REML):  
+
+## Part A
+Model 1:  
+Level 1: 
+$$ read_{ti} = \pi_{0i} + e_{ti}$$
+Level 2: 
+$$ \pi_{0i} = \beta_{00} + r_{0i}$$   
+
+```{r Q4a}
+fit4a <- lmer(read ~ 1 + (1 | id), data = dat)
+```
+
+
+## Part B 
+Model 2:  
+Level 1: 
+$$ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + e_{ti}$$
+Level 2: 
+$$ \pi_{0i} = \beta_{00} + r_{0i}$$  
+$$ \pi_{1i} = \beta_{10} + r_{1i}$$  
+```{r Q4b}
+dat <- dat %>% mutate(age_10 = kidagetv - 10)
+fit4b <- lmer(read ~  age_10 + (age_10 | id), data = dat)
+```
+
+## Part C
+Model 3:
+Level 1: 
+$$ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}$$
+Level 2: 
+$$ \pi_{0i} = \beta_{00} + r_{0i}$$  
+$$ \pi_{1i} = \beta_{10} + r_{1i}$$  
+$$ \pi_{2i} = \beta_{20} + r_{2i}$$  
+
+```{r Q4c}
+dat <- dat %>% mutate(age_10_2 = age_10^2)
+fit4c <- lmer(read ~  age_10 + age_10_2 + (age_10 + age_10_2 | id), data = dat)
+```
+
+## Part D
+Model 4:  
+Level 1: 
+$$ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + \pi_{3i}(age-10)^3_{ti} + e_{ti}$$
+Level 2: 
+$$ \pi_{0i} = \beta_{00} + r_{0i}$$  
+$$ \pi_{1i} = \beta_{10} + r_{1i}$$  
+$$ \pi_{2i} = \beta_{20} + r_{2i}$$  
+$$ \pi_{3i} = \beta_{30} + r_{3i}$$  
+```{r Q4d}
+dat <- dat %>% mutate(age_10_3 = age_10^3)
+fit4d <- lmer(read ~  age_10 + age_10_2 + age_10_3 + (age_10 + age_10_2 + age_10_2 | id), data = dat)
+```
+
+## Part E
+Using likelihood ratio tests, compare the fit of these models. Which fits the data the best?  
+```{r}
+anova(fit4a, fit4b, fit4c, fit4d)
+```
+
+
+# Question 5
+Compare what you found in the two approaches (discrete time and continuous age).    
+
+## Part A
+Are there any important differences in the inferences you would draw?  
+
+## Part B
+What might account for the different findings? 
+
+## Part C
+Plot the results of Model 4. Use Age on the abscissa, ranging from 6 to 14.  On the same figure, add the mean reading scores for TD1, TD2, TD3, and TD4 (the intercepts from Question 2).  Locate these means along the abscissa according to the average age of the kids at each time period.  Does this plot offer any further insights relevant to (b)?  
+
+```{r}
+pred_dat <- tibble(
+  age = seq(6,14, .01),
+  age_10 = age - 10,
+  age_10_2 = age_10^2,
+  age_10_3 = age_10^3
+  ) %>%
+  mutate(pred = predict(fit4d, newdata = ., re.form = NA))
+
+mean_dat <- dat %>%
+  group_by(time) %>%
+  summarize_at(vars(read, kidagetv), funs(mean(., na.rm = T)))
+
+pred_dat %>%
+  ggplot(aes(x = age, y = pred)) +
+    geom_line() +
+    geom_label(data = mean_dat, color = "white",
+               aes(x = kidagetv, y = read, label = paste0('T',time), fill = time)) +
+    theme_classic() +
+    theme(legend.position = "none")
+```
+
+
+# Question 6 
+Using Model 3, add the age of the mother (momage) as a moderator:  
+Level 1: 
+$$ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}$$
+Level 2: 
+$$ \pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}$$  
+$$ \pi_{1i} = \beta_{10} + \beta_{11}momage_i + r_{1i}$$  
+$$ \pi_{2i} = \beta_{20} + \beta_{21}momage_i + r_{2i}$$  
+
+## Part A
+Are any of the interactions involving momage significant? If so, explain what they mean. 
+
+## Part B
+Illustrate this new model by plotting the age-reading relationship separately for mothers 1 standard deviation below the mean for momage and 1 standard deviation above the mean for momage. 
