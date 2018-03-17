@@ -65,10 +65,20 @@ $$ \pi_{0i} = \beta_{00} + r_{0i}$$
 $$ \pi_{1i} = \beta_{10}$$
 $$ \pi_{2i} = \beta_{20}$$
 $$ \pi_{3i} = \beta_{30}$$
-```{r}
+```{r, results = 'asis'}
 source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
 fit2 <- lmer(read ~ -1 + TD1 + TD2 + TD3 + TD4 + (-1 + TD1 | id), dat = dat)
 tab2 <- table_fun(fit2)
+
+options(knitr.kable.NA = '')
+tab2 %>% select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", c("b", "CI"))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,4) %>%
+  group_rows("Fit", 6, 7) %>%
+  group_rows("Random", 5, 5) %>%
+  add_header_above(c(" " = 1, "Model 2" = 2))
 ```
 
 
@@ -150,6 +160,29 @@ fit4d <- lmer(read ~  age_10 + age_10_2 + age_10_3 + (age_10 + age_10_2 + age_10
 tab4d <- table_fun(fit4d)
 ```
 
+```{r, results = 'asis'}
+tab4a %>% mutate(model = "4a") %>%
+  full_join(tab4b %>% mutate(model = "4b")) %>%
+  full_join(tab4c %>% mutate(model = "4c")) %>%
+  full_join(tab4d %>% mutate(model = "4d")) %>%
+  # mutate(est = ifelse(type != "Fit", 
+  #   sprintf("\\makecell{%s \\\\ {%s}}", b, CI), b)) %>%
+  # select(-b, -CI) %>%
+  gather(key = est, value = value, b, CI) %>%
+  unite(tmp, model, est, sep = ".") %>%
+  spread(key = tmp, value = value) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", rep(c("b", "CI"), times = 4))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,4) %>%
+  group_rows("Fit", 5, 6) %>%
+  group_rows("Random", 7, 9) %>%
+  add_header_above(c(" " = 1, "Model 4a" = 2, "Model 4b" = 2, 
+                     "Model 4c" = 2, "Model 4b" = 2))
+```
+
+
 ## Part E
 Using likelihood ratio tests, compare the fit of these models. Which fits the data the best?  
 ```{r}
@@ -201,9 +234,18 @@ $$ \pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}$$
 $$ \pi_{1i} = \beta_{10} + \beta_{11}momage_i + r_{1i}$$  
 $$ \pi_{2i} = \beta_{20} + \beta_{21}momage_i + r_{2i}$$  
 
-```{r}
-fit4c  <- lmer(read ~  age_10*momage + age_10_2*momage + (age_10 + age_10_2 | id), data = dat)
-tab_4c <- table_fun(fit4c)
+```{r, results = 'asis'}
+fit6  <- lmer(read ~  age_10*momage + age_10_2*momage + (age_10 + age_10_2 | id), data = dat)
+tab_6 <- table_fun(fit6)
+
+tab_6 %>% select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", c("b", "CI"))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fit", 10, 11) %>%
+  group_rows("Fixed", 1,6) %>%
+  group_rows("Random", 7, 9) %>%
+  add_header_above(c(" " = 1, "Model 6" = 2))
 ```
 
 ## Part A
