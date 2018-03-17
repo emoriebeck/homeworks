@@ -32,7 +32,8 @@ table_fun <- function(model){
   
   ## format the fixed effects
   fixed <- fixed %>% left_join(CI %>% filter(!grepl(".sig", term))) %>%
-    mutate(type = "Fixed Parts")
+    mutate(type = "Fixed Parts",
+           term = str_replace_all(term, "_", " "))
   
   rand <- rand %>%
     left_join(
