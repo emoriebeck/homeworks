@@ -1,5 +1,5 @@
 ---
-title: "Homework 5"
+title: "Homework 6"
 subtitle: "Psych 5068"
 author: "Emorie Beck"
 date: \today
@@ -88,7 +88,7 @@ Perform follow-up tests on the model.
 ## Part A
 Create a matrix of contrasts that will test the linear, quadratic, and cubic trends in the data.   
 ```{r}
-contr <- t(contr.poly(4))
+contr <- t(contr.poly(4))/2
 ```
 
 
@@ -189,15 +189,41 @@ Using likelihood ratio tests, compare the fit of these models. Which fits the da
 anova(fit4a, fit4b, fit4c, fit4d)
 ```
 
+Baased on the likelihood ratio tests, model 4 (with the linear, quadratic, and cubic terms) fit the data best. 
 
 # Question 5
 Compare what you found in the two approaches (discrete time and continuous age).    
+```{r, results = 'asis'}
+res_fit2_df %>% mutate(term = rownames(.)) %>%
+  rename(b = Estimate) %>%
+  mutate_at(vars(-term), funs(sprintf("%.2f", .))) %>%
+  mutate(term = mapvalues(term, c(".L", ".Q", ".C"), 
+      c("age\\_10", "age\\_10\\_2", "age\\_10\\_3")),
+      CI = sprintf("[%s, %s]", lwr, upr),
+      type = "Fixed Parts", Model = "Q2") %>%
+  select(type, term, b, CI, Model) %>%
+  full_join(tab4d %>% filter(type == "Fixed Parts") %>%
+              mutate(Model = "Q4")) %>%
+  gather(key = est, value = value, b, CI) %>%
+  unite(tmp, Model, est, sep = ".") %>%
+  spread(key = tmp, value = value) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,4) %>%
+  add_header_above(c(" " = 1, "Discrete" = 2, "Continous" = 2)) 
+  
+```
+
+  
 
 ## Part A
-Are there any important differences in the inferences you would draw?  
+Are there any important differences in the inferences you would draw?
+The magnitude of the differences of the slopes are quite different. In the discrete time model, there appears to be a quadratic but not a cubic trend in the data, while the continuous age model has cubic trends. The magnitude of the change is also quite different. The linear age term of the discrete time model is nearly 5 times that of the continuous age model.
 
 ## Part B
 What might account for the different findings? 
+The scale of timing as well as the individuals included at each time point are different across models. Ages range from 6 to 14 (8 years), while time ranges across 4 waves. Moreover, age was centered at 10, while time was not centered, so the intercepts of the moel will change.  
 
 ## Part C
 Plot the results of Model 4. Use Age on the abscissa, ranging from 6 to 14.  On the same figure, add the mean reading scores for TD1, TD2, TD3, and TD4 (the intercepts from Question 2).  Locate these means along the abscissa according to the average age of the kids at each time period.  Does this plot offer any further insights relevant to (b)?  

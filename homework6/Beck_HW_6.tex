@@ -24,7 +24,7 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{hyperref}
 \hypersetup{unicode=true,
-            pdftitle={Homework 5},
+            pdftitle={Homework 6},
             pdfauthor={Emorie Beck},
             pdfborder={0 0 0},
             breaklinks=true}
@@ -113,7 +113,7 @@
 }
 
 \setlength{\droptitle}{-2em}
-  \title{Homework 5}
+  \title{Homework 6}
   \pretitle{\vspace{\droptitle}\centering\huge}
   \posttitle{\par}
 \subtitle{Psych 5068}
@@ -254,13 +254,13 @@ Level 2: \[ \pi_{0i} = \beta_{00} + r_{0i}\] \[ \pi_{1i} = \beta_{10}\]
 \midrule
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Fixed}}\\
-\hspace{1em}TD1 & 2.55 & [2.42, 2.62]\\
-\hspace{1em}TD2 & 4.09 & [4.01, 4.21]\\
-\hspace{1em}TD3 & 5.09 & [5.02, 5.17]\\
-\hspace{1em}TD4 & 5.80 & [5.64, 5.92]\\
+\hspace{1em}TD1 & 2.55 & [2.47, 2.75]\\
+\hspace{1em}TD2 & 4.09 & [3.96, 4.15]\\
+\hspace{1em}TD3 & 5.09 & [5.02, 5.21]\\
+\hspace{1em}TD4 & 5.80 & [5.72, 5.87]\\
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 0.00 & [0.00, 0.15]\\
+\hspace{1em}$\tau_{00}$ & 0.00 & [0.00, 0.22]\\
 $R^2_m$ & 0.55 & \\
 $R^2_c$ & 0.55 & \\
 \bottomrule
@@ -278,7 +278,7 @@ cubic trends in the data.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{contr <-}\StringTok{ }\KeywordTok{t}\NormalTok{(}\KeywordTok{contr.poly}\NormalTok{(}\DecValTok{4}\NormalTok{))}
+\NormalTok{contr <-}\StringTok{ }\KeywordTok{t}\NormalTok{(}\KeywordTok{contr.poly}\NormalTok{(}\DecValTok{4}\NormalTok{))}\OperatorTok{/}\DecValTok{2}
 \end{Highlighting}
 \end{Shaded}
 
@@ -395,16 +395,16 @@ Level 2: \[ \pi_{0i} = \beta_{00} + r_{0i}\]\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{9}{l}{\textbf{Fixed}}\\
-\hspace{1em}age\_10 &  &  & 0.56 & [0.55, 0.58] & 0.53 & [0.50, 0.55] & 0.50 & [0.48, 0.53]\\
-\hspace{1em}age\_10\_2 &  &  &  &  & -0.05 & [-0.05, -0.04] & -0.05 & [-0.05, -0.04]\\
+\hspace{1em}age\_10 &  &  & 0.56 & [0.54, 0.57] & 0.53 & [0.52, 0.56] & 0.50 & [0.49, 0.51]\\
+\hspace{1em}age\_10\_2 &  &  &  &  & -0.05 & [-0.06, -0.04] & -0.05 & [-0.05, -0.04]\\
 \hspace{1em}age\_10\_3 &  &  &  &  &  &  & 0.00 & [0.00, 0.01]\\
-\hspace{1em}Intercept & 4.15 & [4.02, 4.30] & 4.43 & [4.35, 4.57] & 4.67 & [4.52, 4.77] & 4.66 & [4.63, 4.71]\\
+\hspace{1em}Intercept & 4.15 & [4.07, 4.22] & 4.43 & [4.38, 4.51] & 4.67 & [4.59, 4.80] & 4.66 & [4.57, 4.81]\\
 $R^2_c$ & 0.11 &  & 0.87 &  & 0.91 &  & 0.91 & \\
 $R^2_m$ & 0.00 &  & 0.58 &  & 0.60 &  & 0.60 & \\
 \addlinespace[0.3em]
 \multicolumn{9}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 0.29 & [0.15, 0.37] & 0.85 & [0.77, 1.00] & 1.12 & [0.99, 1.30] & 1.12 & [1.07, 1.28]\\
-\hspace{1em}$\tau_{11}$ &  &  & 0.02 & [0.01, 0.02] & 0.02 & [0.01, 0.02] & 0.02 & [0.01, 0.02]\\
+\hspace{1em}$\tau_{00}$ & 0.29 & [0.17, 0.47] & 0.85 & [0.79, 1.01] & 1.12 & [0.92, 1.38] & 1.12 & [0.91, 1.20]\\
+\hspace{1em}$\tau_{11}$ &  &  & 0.02 & [0.02, 0.02] & 0.02 & [0.01, 0.02] & 0.02 & [0.01, 0.02]\\
 \hspace{1em}$\tau_{22}$ &  &  &  &  & 0.00 & [0.00, 0.00] & 0.00 & [0.00, 0.00]\\
 \bottomrule
 \end{tabular}
@@ -438,18 +438,72 @@ fits the data the best?
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 \end{verbatim}
 
+Baased on the likelihood ratio tests, model 4 (with the linear,
+quadratic, and cubic terms) fit the data best.
+
 \section{Question 5}\label{question-5}
 
 Compare what you found in the two approaches (discrete time and
 continuous age).
 
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{res_fit2_df }\OperatorTok{%>%}\StringTok{ }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{term =} \KeywordTok{rownames}\NormalTok{(.)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{rename}\NormalTok{(}\DataTypeTok{b =}\NormalTok{ Estimate) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate_at}\NormalTok{(}\KeywordTok{vars}\NormalTok{(}\OperatorTok{-}\NormalTok{term), }\KeywordTok{funs}\NormalTok{(}\KeywordTok{sprintf}\NormalTok{(}\StringTok{"%.2f"}\NormalTok{, .))) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{term =} \KeywordTok{mapvalues}\NormalTok{(term, }\KeywordTok{c}\NormalTok{(}\StringTok{".L"}\NormalTok{, }\StringTok{".Q"}\NormalTok{, }\StringTok{".C"}\NormalTok{), }
+      \KeywordTok{c}\NormalTok{(}\StringTok{"age}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{_10"}\NormalTok{, }\StringTok{"age}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{_10}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{_2"}\NormalTok{, }\StringTok{"age}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{_10}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{_3"}\NormalTok{)),}
+      \DataTypeTok{CI =} \KeywordTok{sprintf}\NormalTok{(}\StringTok{"[%s, %s]"}\NormalTok{, lwr, upr),}
+      \DataTypeTok{type =} \StringTok{"Fixed Parts"}\NormalTok{, }\DataTypeTok{Model =} \StringTok{"Q2"}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{select}\NormalTok{(type, term, b, CI, Model) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{full_join}\NormalTok{(tab4d }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(type }\OperatorTok{==}\StringTok{ "Fixed Parts"}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{              }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{Model =} \StringTok{"Q4"}\NormalTok{)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{gather}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ est, }\DataTypeTok{value =}\NormalTok{ value, b, CI) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{unite}\NormalTok{(tmp, Model, est, }\DataTypeTok{sep =} \StringTok{"."}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{spread}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ tmp, }\DataTypeTok{value =}\NormalTok{ value) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{type) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(., }\StringTok{"latex"}\NormalTok{, }\DataTypeTok{escape =}\NormalTok{ F, }\DataTypeTok{booktabs =}\NormalTok{ T) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{full_width =}\NormalTok{ F) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Fixed"}\NormalTok{, }\DecValTok{1}\NormalTok{,}\DecValTok{4}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{add_header_above}\NormalTok{(}\KeywordTok{c}\NormalTok{(}\StringTok{" "}\NormalTok{ =}\StringTok{ }\DecValTok{1}\NormalTok{, }\StringTok{"Discrete"}\NormalTok{ =}\StringTok{ }\DecValTok{2}\NormalTok{, }\StringTok{"Continous"}\NormalTok{ =}\StringTok{ }\DecValTok{2}\NormalTok{)) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lllll}
+\toprule
+\multicolumn{1}{c}{ } & \multicolumn{2}{c}{Discrete} & \multicolumn{2}{c}{Continous} \\
+\cmidrule(l{2pt}r{2pt}){2-3} \cmidrule(l{2pt}r{2pt}){4-5}
+term & Q2.b & Q2.CI & Q4.b & Q4.CI\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Fixed}}\\
+\hspace{1em}age\_10 & 1.20 & [1.14, 1.27] & 0.50 & [0.49, 0.51]\\
+\hspace{1em}age\_10\_2 & -0.21 & [-0.27, -0.14] & -0.05 & [-0.05, -0.04]\\
+\hspace{1em}age\_10\_3 & 0.03 & [-0.03, 0.09] & 0.00 & [0.00, 0.01]\\
+\hspace{1em}Intercept &  &  & 4.66 & [4.57, 4.81]\\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Part A}\label{part-a-2}
 
 Are there any important differences in the inferences you would draw?
+The magnitude of the differences of the slopes are quite different. In
+the discrete time model, there appears to be a quadratic but not a cubic
+trend in the data, while the continuous age model has cubic trends. The
+magnitude of the change is also quite different. The linear age term of
+the discrete time model is nearly 5 times that of the continuous age
+model.
 
 \subsection{Part B}\label{part-b-2}
 
-What might account for the different findings?
+What might account for the different findings? The scale of timing as
+well as the individuals included at each time point are different across
+models. Ages range from 6 to 14 (8 years), while time ranges across 4
+waves. Moreover, age was centered at 10, while time was not centered, so
+the intercepts of the moel will change.
 
 \subsection{Part C}\label{part-c-1}
 
@@ -483,7 +537,7 @@ Does this plot offer any further insights relevant to (b)?
 \end{Highlighting}
 \end{Shaded}
 
-\includegraphics{Beck_HW_6_files/figure-latex/unnamed-chunk-7-1.pdf}
+\includegraphics{Beck_HW_6_files/figure-latex/unnamed-chunk-8-1.pdf}
 
 \section{Question 6}\label{question-6}
 
@@ -503,8 +557,8 @@ Level 2: \[ \pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}\]\\
 \StringTok{  }\KeywordTok{kable}\NormalTok{(., }\StringTok{"latex"}\NormalTok{, }\DataTypeTok{escape =}\NormalTok{ F, }\DataTypeTok{digits =} \DecValTok{2}\NormalTok{, }\DataTypeTok{booktabs =}\NormalTok{ T,}
         \DataTypeTok{col.names =} \KeywordTok{c}\NormalTok{(}\StringTok{""}\NormalTok{, }\KeywordTok{c}\NormalTok{(}\StringTok{"b"}\NormalTok{, }\StringTok{"CI"}\NormalTok{))) }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{full_width =}\NormalTok{ F) }\OperatorTok{%>%}
-\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Fixed"}\NormalTok{, }\DecValTok{1}\NormalTok{,}\DecValTok{6}\NormalTok{) }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Fit"}\NormalTok{, }\DecValTok{10}\NormalTok{, }\DecValTok{11}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Fixed"}\NormalTok{, }\DecValTok{1}\NormalTok{,}\DecValTok{6}\NormalTok{) }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{group_rows}\NormalTok{(}\StringTok{"Random"}\NormalTok{, }\DecValTok{7}\NormalTok{, }\DecValTok{9}\NormalTok{) }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{add_header_above}\NormalTok{(}\KeywordTok{c}\NormalTok{(}\StringTok{" "}\NormalTok{ =}\StringTok{ }\DecValTok{1}\NormalTok{, }\StringTok{"Model 6"}\NormalTok{ =}\StringTok{ }\DecValTok{2}\NormalTok{))}
 \end{Highlighting}
@@ -520,15 +574,15 @@ Level 2: \[ \pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}\]\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Fixed}}\\
-\hspace{1em}Intercept & 1.41 & [-0.01, 2.78]\\
-\hspace{1em}age\_10 & 0.03 & [-0.25, 0.17]\\
-\hspace{1em}momage & 0.13 & [0.07, 0.18]\\
-\hspace{1em}age\_10\_2 & 0.01 & [-0.05, 0.07]\\
+\hspace{1em}Intercept & 1.41 & [-0.60, 2.98]\\
+\hspace{1em}age\_10 & 0.03 & [-0.18, 0.17]\\
+\hspace{1em}momage & 0.13 & [0.06, 0.21]\\
+\hspace{1em}age\_10\_2 & 0.01 & [-0.11, 0.12]\\
 \hspace{1em}age\_10:momage & 0.02 & [0.01, 0.03]\\
-\hspace{1em}momage:age\_10\_2 & -0.00 & [-0.00, 0.00]\\
+\hspace{1em}momage:age\_10\_2 & -0.00 & [-0.01, 0.00]\\
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 1.07 & [0.94, 1.31]\\
+\hspace{1em}$\tau_{00}$ & 1.07 & [0.97, 1.33]\\
 \hspace{1em}$\tau_{11}$ & 0.02 & [0.01, 0.02]\\
 \hspace{1em}$\tau_{22}$ & 0.00 & [0.00, 0.00]\\
 $R^2_m$ & 0.61 & \\
@@ -575,7 +629,7 @@ and 1 standard deviation above the mean for momage.
 \end{Highlighting}
 \end{Shaded}
 
-\includegraphics{Beck_HW_6_files/figure-latex/unnamed-chunk-9-1.pdf}
+\includegraphics{Beck_HW_6_files/figure-latex/unnamed-chunk-10-1.pdf}
 
 
 \end{document}
