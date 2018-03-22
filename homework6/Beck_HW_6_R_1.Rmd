@@ -59,12 +59,13 @@ dat <- dat %>%
 Fit a no-intercept model:   
 
 Level 1: 
-$$ read_{ti} = \pi_{0i}TD1_{ti} + \pi_{1i}TD2_{ti} + \pi_{2i}TD3_{ti} + \pi_{3i}TD4_{ti} + e_{ij}$$
-Level 2: 
-$$ \pi_{0i} = \beta_{00} + r_{0i}$$
-$$ \pi_{1i} = \beta_{10}$$
-$$ \pi_{2i} = \beta_{20}$$
-$$ \pi_{3i} = \beta_{30}$$
+$read_{ti} = \pi_{0i}TD1_{ti} + \pi_{1i}TD2_{ti} + \pi_{2i}TD3_{ti} + \pi_{3i}TD4_{ti} + e_{ij}$  
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$  
+$\pi_{1i} = \beta_{10}$  
+$\pi_{2i} = \beta_{20}$  
+$\pi_{3i} = \beta_{30}$  
+
 ```{r, results = 'asis'}
 source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
 fit2 <- lmer(read ~ -1 + TD1 + TD2 + TD3 + TD4 + (-1 + TD1 | id), dat = dat)
@@ -118,9 +119,9 @@ Test each of the following models (use ML not REML):
 ## Part A
 Model 1:  
 Level 1: 
-$ read_{ti} = \pi_{0i} + e_{ti}$
+$read_{ti} = \pi_{0i} + e_{ti}$
 Level 2: 
-$ \pi_{0i} = \beta_{00} + r_{0i}$   
+$\pi_{0i} = \beta_{00} + r_{0i}$   
 
 ```{r Q4a}
 fit4a <- lmer(read ~ 1 + (1 | id), data = dat)
@@ -130,11 +131,12 @@ tab4a <- table_fun(fit4a)
 
 ## Part B 
 Model 2:  
-Level 1: 
-$ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + e_{ti}$
-Level 2: 
-$ \pi_{0i} = \beta_{00} + r_{0i}$  
-$ \pi_{1i} = \beta_{10} + r_{1i}$  
+Level 1:  
+$read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + e_{ti}$  
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$  
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+
 ```{r Q4b}
 dat   <- dat %>% mutate(age_10 = kidagetv - 10)
 fit4b <- lmer(read ~  age_10 + (age_10 | id), data = dat)
@@ -142,13 +144,14 @@ tab4b <- table_fun(fit4b)
 ```
 
 ## Part C
-Model 3:
-Level 1: 
-$ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}$
-Level 2: 
-$ \pi_{0i} = \beta_{00} + r_{0i}$  
-$ \pi_{1i} = \beta_{10} + r_{1i}$  
-$ \pi_{2i} = \beta_{20} + r_{2i}$  
+Model 3:  
+Level 1:  
+$read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}$  
+
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$   
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+$\pi_{2i} = \beta_{20} + r_{2i}$  
 
 ```{r Q4c}
 dat   <- dat %>% mutate(age_10_2 = age_10^2)
@@ -158,13 +161,15 @@ tab4c <- table_fun(fit4c)
 
 ## Part D
 Model 4:  
-Level 1: 
-$ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + \pi_{3i}(age-10)^3_{ti} + e_{ti}$
-Level 2: 
-$ \pi_{0i} = \beta_{00} + r_{0i}$  
-$ \pi_{1i} = \beta_{10} + r_{1i}$  
-$ \pi_{2i} = \beta_{20} + r_{2i}$  
-$ \pi_{3i} = \beta_{30} + r_{3i}$  
+Level 1:  
+$read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + \pi_{3i}(age-10)^3_{ti} + e_{ti}$  
+
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$  
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+$\pi_{2i} = \beta_{20} + r_{2i}$  
+$\pi_{3i} = \beta_{30} + r_{3i}$  
+
 ```{r Q4d}
 dat <- dat %>% mutate(age_10_3 = age_10^3)
 fit4d <- lmer(read ~  age_10 + age_10_2 + age_10_3 + (age_10 + age_10_2 + age_10_2 | id), data = dat)
@@ -265,11 +270,11 @@ pred_dat %>%
 # Question 6 
 Using Model 3, add the age of the mother (momage) as a moderator:  
 Level 1: 
-$$ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}$$
+$read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}$  
 Level 2: 
-$$ \pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}$$  
-$$ \pi_{1i} = \beta_{10} + \beta_{11}momage_i + r_{1i}$$  
-$$ \pi_{2i} = \beta_{20} + \beta_{21}momage_i + r_{2i}$$  
+$\pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}$  
+$\pi_{1i} = \beta_{10} + \beta_{11}momage_i + r_{1i}$  
+$\pi_{2i} = \beta_{20} + \beta_{21}momage_i + r_{2i}$  
 
 ```{r, results = 'asis'}
 fit6  <- lmer(read ~  age_10*momage + age_10_2*momage + (age_10 + age_10_2 | id), data = dat)

@@ -222,9 +222,12 @@ variables TD1, TD2, TD3, and TD4.
 Fit a no-intercept model:
 
 Level 1:
-\[ read_{ti} = \pi_{0i}TD1_{ti} + \pi_{1i}TD2_{ti} + \pi_{2i}TD3_{ti} + \pi_{3i}TD4_{ti} + e_{ij}\]
-Level 2: \[ \pi_{0i} = \beta_{00} + r_{0i}\] \[ \pi_{1i} = \beta_{10}\]
-\[ \pi_{2i} = \beta_{20}\] \[ \pi_{3i} = \beta_{30}\]
+\(read_{ti} = \pi_{0i}TD1_{ti} + \pi_{1i}TD2_{ti} + \pi_{2i}TD3_{ti} + \pi_{3i}TD4_{ti} + e_{ij}\)\\
+Level 2:\\
+\(\pi_{0i} = \beta_{00} + r_{0i}\)\\
+\(\pi_{1i} = \beta_{10}\)\\
+\(\pi_{2i} = \beta_{20}\)\\
+\(\pi_{3i} = \beta_{30}\)
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -254,13 +257,13 @@ Level 2: \[ \pi_{0i} = \beta_{00} + r_{0i}\] \[ \pi_{1i} = \beta_{10}\]
 \midrule
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Fixed}}\\
-\hspace{1em}TD1 & 2.55 & [2.48, 2.66]\\
-\hspace{1em}TD2 & 4.09 & [4.01, 4.12]\\
-\hspace{1em}TD3 & 5.09 & [4.94, 5.20]\\
-\hspace{1em}TD4 & 5.80 & [5.70, 5.95]\\
+\hspace{1em}TD1 & 2.55 & [2.46, 2.62]\\
+\hspace{1em}TD2 & 4.09 & [3.99, 4.18]\\
+\hspace{1em}TD3 & 5.09 & [4.94, 5.18]\\
+\hspace{1em}TD4 & 5.80 & [5.66, 5.94]\\
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 0.00 & [0.00, 0.17]\\
+\hspace{1em}$\tau_{00}$ & 0.00 & [0.00, 0.13]\\
 $R^2_m$ & 0.55 & \\
 $R^2_c$ & 0.55 & \\
 \bottomrule
@@ -335,8 +338,8 @@ Test each of the following models (use ML not REML):
 \subsection{Part A}\label{part-a-1}
 
 Model 1:\\
-Level 1: \$ read\_\{ti\} = \pi\emph{\{0i\} + e}\{ti\}\$ Level 2: \$
-\pi\emph{\{0i\} = \beta}\{00\} + r\_\{0i\}\$
+Level 1: \(read_{ti} = \pi_{0i} + e_{ti}\) Level 2:
+\(\pi_{0i} = \beta_{00} + r_{0i}\)
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -348,10 +351,11 @@ Level 1: \$ read\_\{ti\} = \pi\emph{\{0i\} + e}\{ti\}\$ Level 2: \$
 \subsection{Part B}\label{part-b-1}
 
 Model 2:\\
-Level 1: \$ read\_\{ti\} = \pi\emph{\{0i\} +
-\pi}\{1i\}(age-10)\emph{\{ti\} + e}\{ti\}\$ Level 2: \$ \pi\emph{\{0i\}
-= \beta}\{00\} + r\_\{0i\}\$\\
-\$ \pi\emph{\{1i\} = \beta}\{10\} + r\_\{1i\}\$
+Level 1:\\
+\(read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + e_{ti}\)\\
+Level 2:\\
+\(\pi_{0i} = \beta_{00} + r_{0i}\)\\
+\(\pi_{1i} = \beta_{10} + r_{1i}\)
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -363,11 +367,14 @@ Level 1: \$ read\_\{ti\} = \pi\emph{\{0i\} +
 
 \subsection{Part C}\label{part-c}
 
-Model 3: Level 1: \$ read\_\{ti\} = \pi\emph{\{0i\} +
-\pi}\{1i\}(age-10)\emph{\{ti\} + \pi}\{2i\}(age-10)\^{}2\_\{ti\} +
-e\_\{ti\}\$ Level 2: \$ \pi\emph{\{0i\} = \beta}\{00\} + r\_\{0i\}\$\\
-\$ \pi\emph{\{1i\} = \beta}\{10\} + r\_\{1i\}\$\\
-\$ \pi\emph{\{2i\} = \beta}\{20\} + r\_\{2i\}\$
+Model 3:\\
+Level 1:\\
+\(read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}\)
+
+Level 2:\\
+\(\pi_{0i} = \beta_{00} + r_{0i}\)\\
+\(\pi_{1i} = \beta_{10} + r_{1i}\)\\
+\(\pi_{2i} = \beta_{20} + r_{2i}\)
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -380,13 +387,14 @@ e\_\{ti\}\$ Level 2: \$ \pi\emph{\{0i\} = \beta}\{00\} + r\_\{0i\}\$\\
 \subsection{Part D}\label{part-d}
 
 Model 4:\\
-Level 1: \$ read\_\{ti\} = \pi\emph{\{0i\} +
-\pi}\{1i\}(age-10)\emph{\{ti\} + \pi}\{2i\}(age-10)\^{}2\_\{ti\} +
-\pi\emph{\{3i\}(age-10)\^{}3}\{ti\} + e\_\{ti\}\$ Level 2: \$
-\pi\emph{\{0i\} = \beta}\{00\} + r\_\{0i\}\$\\
-\$ \pi\emph{\{1i\} = \beta}\{10\} + r\_\{1i\}\$\\
-\$ \pi\emph{\{2i\} = \beta}\{20\} + r\_\{2i\}\$\\
-\$ \pi\emph{\{3i\} = \beta}\{30\} + r\_\{3i\}\$
+Level 1:\\
+\(read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + \pi_{3i}(age-10)^3_{ti} + e_{ti}\)
+
+Level 2:\\
+\(\pi_{0i} = \beta_{00} + r_{0i}\)\\
+\(\pi_{1i} = \beta_{10} + r_{1i}\)\\
+\(\pi_{2i} = \beta_{20} + r_{2i}\)\\
+\(\pi_{3i} = \beta_{30} + r_{3i}\)
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -430,16 +438,16 @@ Level 1: \$ read\_\{ti\} = \pi\emph{\{0i\} +
 \midrule
 \addlinespace[0.3em]
 \multicolumn{9}{l}{\textbf{Fixed}}\\
-\hspace{1em}age\_10 &  &  & 0.56 & [0.54, 0.58] & 0.53 & [0.52, 0.55] & 0.50 & [0.47, 0.53]\\
-\hspace{1em}age\_10\_2 &  &  &  &  & -0.05 & [-0.05, -0.04] & -0.05 & [-0.05, -0.04]\\
+\hspace{1em}age\_10 &  &  & 0.56 & [0.53, 0.58] & 0.53 & [0.52, 0.56] & 0.50 & [0.46, 0.53]\\
+\hspace{1em}age\_10\_2 &  &  &  &  & -0.05 & [-0.05, -0.05] & -0.05 & [-0.05, -0.04]\\
 \hspace{1em}age\_10\_3 &  &  &  &  &  &  & 0.00 & [0.00, 0.01]\\
-\hspace{1em}Intercept & 4.15 & [4.06, 4.15] & 4.43 & [4.34, 4.51] & 4.67 & [4.60, 4.78] & 4.66 & [4.59, 4.78]\\
+\hspace{1em}Intercept & 4.15 & [4.10, 4.23] & 4.43 & [4.35, 4.52] & 4.67 & [4.63, 4.78] & 4.66 & [4.62, 4.72]\\
 $R^2_c$ & 0.11 &  & 0.87 &  & 0.91 &  & 0.91 & \\
 $R^2_m$ & 0.00 &  & 0.58 &  & 0.60 &  & 0.60 & \\
 \addlinespace[0.3em]
 \multicolumn{9}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 0.29 & [0.19, 0.39] & 0.85 & [0.79, 0.99] & 1.12 & [0.86, 1.24] & 1.12 & [1.01, 1.24]\\
-\hspace{1em}$\tau_{11}$ &  &  & 0.02 & [0.01, 0.02] & 0.02 & [0.01, 0.02] & 0.02 & [0.01, 0.02]\\
+\hspace{1em}$\tau_{00}$ & 0.29 & [0.17, 0.37] & 0.85 & [0.71, 0.92] & 1.12 & [1.00, 1.28] & 1.12 & [0.99, 1.25]\\
+\hspace{1em}$\tau_{11}$ &  &  & 0.02 & [0.02, 0.02] & 0.02 & [0.01, 0.02] & 0.02 & [0.01, 0.02]\\
 \hspace{1em}$\tau_{22}$ &  &  &  &  & 0.00 & [0.00, 0.00] & 0.00 & [0.00, 0.00]\\
 \bottomrule
 \end{tabular}
@@ -514,10 +522,10 @@ term & Q2.b & Q2.CI & Q4.b & Q4.CI\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{5}{l}{\textbf{Fixed}}\\
-\hspace{1em}age\_10 & 2.40 & [2.27, 2.53] & 0.50 & [0.47, 0.53]\\
+\hspace{1em}age\_10 & 2.40 & [2.27, 2.53] & 0.50 & [0.46, 0.53]\\
 \hspace{1em}age\_10\_2 & -0.41 & [-0.54, -0.28] & -0.05 & [-0.05, -0.04]\\
 \hspace{1em}age\_10\_3 & 0.06 & [-0.07, 0.18] & 0.00 & [0.00, 0.01]\\
-\hspace{1em}Intercept &  &  & 4.66 & [4.59, 4.78]\\
+\hspace{1em}Intercept &  &  & 4.66 & [4.62, 4.72]\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -572,16 +580,16 @@ Does this plot offer any further insights relevant to (b)?
 \end{Highlighting}
 \end{Shaded}
 
-\includegraphics{Beck_HW_6_files/figure-latex/unnamed-chunk-8-1.pdf}
+\includegraphics{Beck_HW_6_R_1_files/figure-latex/unnamed-chunk-8-1.pdf}
 
 \section{Question 6}\label{question-6}
 
 Using Model 3, add the age of the mother (momage) as a moderator:\\
 Level 1:
-\[ read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}\]
-Level 2: \[ \pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}\]\\
-\[ \pi_{1i} = \beta_{10} + \beta_{11}momage_i + r_{1i}\]\\
-\[ \pi_{2i} = \beta_{20} + \beta_{21}momage_i + r_{2i}\]
+\(read_{ti} = \pi_{0i} + \pi_{1i}(age-10)_{ti} + \pi_{2i}(age-10)^2_{ti} + e_{ti}\)\\
+Level 2: \(\pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}\)\\
+\(\pi_{1i} = \beta_{10} + \beta_{11}momage_i + r_{1i}\)\\
+\(\pi_{2i} = \beta_{20} + \beta_{21}momage_i + r_{2i}\)
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -609,15 +617,15 @@ Level 2: \[ \pi_{0i} = \beta_{00} + \beta_{01}momage_i + r_{0i}\]\\
 \midrule
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Fixed}}\\
-\hspace{1em}Intercept & 1.41 & [0.78, 2.38]\\
-\hspace{1em}age\_10 & 0.03 & [-0.20, 0.36]\\
-\hspace{1em}momage & 0.13 & [0.09, 0.15]\\
-\hspace{1em}age\_10\_2 & 0.01 & [-0.08, 0.06]\\
+\hspace{1em}Intercept & 1.41 & [-0.77, 2.39]\\
+\hspace{1em}age\_10 & 0.03 & [-0.23, 0.30]\\
+\hspace{1em}momage & 0.13 & [0.08, 0.21]\\
+\hspace{1em}age\_10\_2 & 0.01 & [-0.06, 0.12]\\
 \hspace{1em}age\_10:momage & 0.02 & [0.01, 0.03]\\
-\hspace{1em}momage:age\_10\_2 & -0.00 & [-0.00, 0.00]\\
+\hspace{1em}momage:age\_10\_2 & -0.00 & [-0.01, 0.00]\\
 \addlinespace[0.3em]
 \multicolumn{3}{l}{\textbf{Random}}\\
-\hspace{1em}$\tau_{00}$ & 1.07 & [0.98, 1.23]\\
+\hspace{1em}$\tau_{00}$ & 1.07 & [0.89, 1.23]\\
 \hspace{1em}$\tau_{11}$ & 0.02 & [0.01, 0.02]\\
 \hspace{1em}$\tau_{22}$ & 0.00 & [0.00, 0.00]\\
 $R^2_m$ & 0.61 & \\
@@ -666,7 +674,7 @@ and 1 standard deviation above the mean for momage.
 \end{Highlighting}
 \end{Shaded}
 
-\includegraphics{Beck_HW_6_files/figure-latex/unnamed-chunk-10-1.pdf}
+\includegraphics{Beck_HW_6_R_1_files/figure-latex/unnamed-chunk-10-1.pdf}
 
 
 \end{document}
