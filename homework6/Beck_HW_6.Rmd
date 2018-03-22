@@ -88,7 +88,7 @@ Perform follow-up tests on the model.
 ## Part A
 Create a matrix of contrasts that will test the linear, quadratic, and cubic trends in the data.   
 ```{r}
-contr <- t(contr.poly(4))/2
+contr <- t(contr.poly(4))
 ```
 
 
