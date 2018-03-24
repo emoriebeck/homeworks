@@ -1,0 +1,369 @@
+---
+title: "Homework 7"
+subtitle: "Psych 5068"
+author: "Emorie Beck"
+date: \today
+output: 
+  pdf_document:
+    toc: yes
+    includes:
+            in_header:
+                header.tex
+    keep_tex: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+# Workspace
+
+## Packages
+```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+library(psych)
+library(lme4)
+library(knitr)
+library(qqplotr)
+library(influence.ME)
+library(HLMdiag)
+library(multcomp)
+library(kableExtra)
+library(plyr)
+library(tidyverse)
+```
+
+## Data
+```{r data}
+source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework7/daily_diary(4).csv"
+dat      <- data_url %>% read.csv %>% tbl_df %>% select(-X)
+```
+
+# Question 1
+1. Begin by creating lagged variables for self-esteem (rse lag 1), the reported average positive events (posmn lag 1), and the reported average negative events (negmn lag 1). You may find functions that can help you do this or you may decide to do this with your own code. Either way, you will need to do this carefully because the reports by participants do not always reflect consecutive days. That is, a person might provide data on the following days: 1, 2, 3, 6, 8, 9, 10, 12, 13, and 14. Lagged variables would only be available for days 2, 3, 9, 10, 13, and 14. Those are the only days when there was also a measure available on the immediately preceding day. So, we will lose some data in the process of creating lagged variables but that will insure that the meaning of the lagged variable is consistent.
+```{r}
+dat <- dat %>% 
+  mutate(cesd_z = as.numeric(scale(cesd))) %>%
+  full_join(crossing(id = unique(dat$id), day = seq(1, max(dat$id)))) %>%
+  arrange(id, day) %>%
+  group_by(id) %>%
+  mutate_at(vars(rse, posmn, negmn), funs(lag_1 = lag(., n = 1)))
+```
+
+
+# Question 2  
+First, let’s see how persistent self-esteem is for all of the participants.  
+
+Level 1:  
+$rse_{ti} = \pi_{0i} + \pi_{1i}rse\_lag\_1_{ti} + \epsilon_{ti}$  
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$  
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+
+```{r, results = 'asis'}
+fit2     <- lmer(rse ~ 1 + rse_lag_1 + (rse_lag_1 | id), data = dat)
+tab2 <- table_fun(fit2)
+
+options(knitr.kable.NA = '')
+tab2 %>% select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", c("b", "CI"))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,2) %>%
+  group_rows("Fit", 5, 6) %>%
+  group_rows("Random", 3, 4) %>%
+  add_header_above(c(" " = 1, "Model Q2" = 2))
+```
+
+
+## Part A
+What is the value of the fixed effect for rse lag 1? Is it significant?  
+The fixed effect for rse\_lag\_1 is significant, `r (tab2 %>% filter(term == "rse\\_lag\\_1"))$b`, 95\% CI `r (tab2 %>% filter(term == "rse\\_lag\\_1"))$CI`.  
+
+## Part B
+Provide a caterpillar plot showing the individual estimated coefficients for rse lag 1. The individual coefficients can be obtained using the coef( ) function for the fit object. Each individual coefficient has a standard error that can be obtained with the se.coef( ) function, a helper function from the arm package. Is persistence in self-esteem a common occurrence? What makes you say so?  
+```{r}
+coefs2 <- cbind(coef(fit2)[["id"]], arm::se.coef(fit2)[["id"]]) %>% data.frame %>%
+  setNames(c("Intercept.b", "rse_lag_1.b", "Intercept.se", "rse_lag_1.se")) %>%
+  mutate(id = rownames(.)) %>%
+  tbl_df %>%
+  gather(key = term, value = value, -id) %>%
+  separate(term, c("term", "tmp"), sep = "[.]") %>%
+  spread(key = tmp, value = value) %>%
+  filter(term == "rse_lag_1")
+
+orders <- coefs2 %>% arrange(b)
+
+coefs2 %>% mutate(id = factor(id, levels = orders$id)) %>%
+  ggplot(aes(x = id, y = b)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = b - se, ymax = b + se), width = 0) +
+    # geom_hline(aes(yintercept = fixef(fit3)["posmn_lag_1"]), color = "red", size = 1) +
+    theme_classic()
+
+perc_above <- coefs2 %>% mutate(lower = b - 1.96*se, sign = sign(lower)) %>%
+  group_by(sign) %>% summarize(n = n()) %>% ungroup() %>% mutate(n = n/sum(n)) 
+```
+
+Yes, across, the entire, sample, the lagged effect is positive. In other words, self-esteem at time t (the lagged variable) is associated with higher self-esteem at time t + 1.  
+
+# Question 3
+Now let’s see how persistent positive events are for all of the participants.
+
+Level 1:  
+$posmn_{ti} = \pi_{0i} + \pi_{1i}posmn\_lag\_1_{ti} + \epsilon_{ti}$  
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$  
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+
+```{r, results = 'asis'}
+fit3     <- lmer(posmn ~ 1 + posmn_lag_1 + (posmn_lag_1 | id), data = dat)
+tab3 <- table_fun(fit3)
+
+options(knitr.kable.NA = '')
+tab3 %>% select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", c("b", "CI"))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,2) %>%
+  group_rows("Fit", 5, 6) %>%
+  group_rows("Random", 3, 4) %>%
+  add_header_above(c(" " = 1, "Model Q2" = 2))
+```
+
+## Part A
+Is there significant persistence for positive events? How would you interpret this effect? Speculate about why it might occur.  
+
+The fixed effect for posmn\_lag\_1 is significant, `r (tab3 %>% filter(term == "posmn\\_lag\\_1"))$b`, 95\% CI `r (tab3 %>% filter(term == "posmn\\_lag\\_1"))$CI`.  In other words, positive events at time t + 1 (the lagged variable) predicts positive events at the previous time point. This may occur becuase of environmental or psychological carryover effects, which we often term selection effects. Someone who experiences positive events may live in an environment where positive events are more likely. Moreover, someone who experiences positive events may select into future positive events in order to maintain positive affect.  
+
+## Part B
+Provide a caterpillar plot of the individual estimated coefficients for posmn lag 1. Is this form of persistence common?  
+```{r}
+coefs3 <- cbind(coef(fit3)[["id"]], arm::se.coef(fit3)[["id"]]) %>% data.frame %>%
+  setNames(c("Intercept.b", "posmn_lag_1.b", "Intercept.se", "posmn_lag_1.se")) %>%
+  mutate(id = rownames(.)) %>%
+  tbl_df %>%
+  gather(key = term, value = value, -id) %>%
+  separate(term, c("term", "tmp"), sep = "[.]") %>%
+  spread(key = tmp, value = value) %>%
+  filter(term == "posmn_lag_1")
+
+orders <- coefs3 %>% arrange(b)
+
+coefs3 %>% mutate(id = factor(id, levels = orders$id)) %>%
+  ggplot(aes(x = id, y = b)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = b - se, ymax = b + se), width = 0) +
+    geom_hline(aes(yintercept = fixef(fit3)["posmn_lag_1"]), color = "red") +
+    theme_classic()
+
+perc_above <- coefs3 %>% mutate(lower = b - 1.96*se, sign = sign(lower)) %>%
+  group_by(sign) %>% summarize(n = n()) %>% ungroup() %>% mutate(n = n/sum(n)) 
+```
+
+Yes, this persistence is somewhat common but not greatly reliable. The lower bound of the confidence intervals on individual level slopes exceeds zero for `r round(perc_above$n[2],2)*100`\% of people.  
+
+# Question 4
+Finally, let’s see how persistent negative events are for all of the participants.  
+
+Level 1:  
+$rse_{ti} = \pi_{0i} + \pi_{1i}rse\_lag\_1_{ti} + \epsilon_{ti}$  
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$  
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+
+```{r, results = 'asis'}
+fit4     <- lmer(negmn ~ 1 + negmn_lag_1 + (negmn_lag_1 | id), data = dat)
+tab4 <- table_fun(fit4)
+
+options(knitr.kable.NA = '')
+tab4 %>% select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", c("b", "CI"))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,2) %>%
+  group_rows("Fit", 5, 6) %>%
+  group_rows("Random", 3, 4) %>%
+  add_header_above(c(" " = 1, "Model Q4" = 2))
+```
+
+## Part A
+Is there significant persistence for negative events?  
+The fixed effect for negmn\_lag\_1 is significant, `r (tab2 %>% filter(term == "negmn\\_lag\\_1"))$b`, 95\% CI `r (tab2 %>% filter(term == "negmn\\_lag\\_1"))$CI`.  
+
+## Part B
+Provide a caterpillar plot of the individual estimated coefficients for negmn lag 1 and comment on how common this form of persistence is among participants.  
+
+```{r}
+coefs4 <- cbind(coef(fit4)[["id"]], arm::se.coef(fit4)[["id"]]) %>% data.frame %>%
+  setNames(c("Intercept.b", "negmn_lag_1.b", "Intercept.se", "negmn_lag_1.se")) %>%
+  mutate(id = rownames(.)) %>%
+  tbl_df %>%
+  gather(key = term, value = value, -id) %>%
+  separate(term, c("term", "tmp"), sep = "[.]") %>%
+  spread(key = tmp, value = value) %>%
+  filter(term == "negmn_lag_1")
+
+orders <- coefs4 %>% arrange(b)
+
+coefs4 %>% mutate(id = factor(id, levels = orders$id)) %>%
+  ggplot(aes(x = id, y = b)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = b - se, ymax = b + se), width = 0) +
+    geom_hline(aes(yintercept = fixef(fit4)["negmn_lag_1"]), color = "red") +
+    theme_classic()
+
+perc_above <- coefs4 %>% mutate(lower = b - 1.96*se, sign = sign(lower)) %>%
+  group_by(sign) %>% summarize(n = n()) %>% ungroup() %>% mutate(n = n/sum(n)) 
+```
+
+Yes, this persistence is common. The lower bound of the confidence intervals on individual level slopes exceeds zero for `r round(perc_above$n[2],2)*100`\% of people.  
+
+# Question 5
+Now fit a model with self-esteem as the outcome and with lagged self-esteem, current positive events, and current negative events as predictors:  
+
+Level 1:  
+$rse_{ti} = \pi_{0i} + \pi_{1i}rse\_lag\_1_{ti} + \pi_{2i}posmn\_lag\_1_{ti} + \pi_{3i}negmn\_lag\_1_{ti} +  \epsilon_{ti}$  
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$  
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+$\pi_{2i} = \beta_{20} + r_{2i}$  
+$\pi_{3i} = \beta_{30} + r_{3i}$  
+
+```{r}
+fit5 <- lmer(rse ~ rse_lag_1 + posmn_lag_1 + negmn_lag_1 + 
+    (rse_lag_1 + posmn_lag_1 + negmn_lag_1 | id), data = dat)
+
+tab5 <- table_fun(fit5)
+
+options(knitr.kable.NA = '')
+tab5 %>% select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", c("b", "CI"))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,4) %>%
+  group_rows("Fit", 9, 10) %>%
+  group_rows("Random", 5, 8) %>%
+  add_header_above(c(" " = 1, "Model Q5" = 2))
+```
+
+
+## Part A 
+This model provides a different way of examining the impact of current events on self- esteem. By partialling the previous day’s self-esteem, how would the influence of current events be interpreted in this model?  
+
+## Part B
+Fit the model and comment on the magnitude and interpretation of the coefficients for positive and negative events.
+
+# Question 6
+Fit a full lagged model.  
+
+Level 1:  
+$rse_{ti} = \pi_{0i} + \pi_{1i}rse\_lag\_1_{ti} + \pi_{2i}posmn_{ti} + \pi_{3i}negmn_{ti} + \pi_{4i}posmn\_lag\_1_{ti} + \pi_{5i}negmn\_lag\_1_{ti} + \epsilon_{ti}$  
+Level 2:  
+$\pi_{0i} = \beta_{00} + r_{0i}$  
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+$\pi_{2i} = \beta_{20} + r_{2i}$  
+$\pi_{3i} = \beta_{30} + r_{3i}$  
+$\pi_{4i} = \beta_{40} + r_{4i}$  
+$\pi_{5i} = \beta_{50} + r_{5i}$  
+
+```{r}
+fit6 <- lmer(rse ~ rse_lag_1 + posmn + negmn + posmn_lag_1 + negmn_lag_1 + 
+    (posmn + negmn + rse_lag_1 + posmn_lag_1 + negmn_lag_1 | id), data = dat)
+
+tab6 <- table_fun(fit6)
+
+options(knitr.kable.NA = '')
+tab6 %>% select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", c("b", "CI"))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,4) %>%
+  group_rows("Fit", 9, 10) %>%
+  group_rows("Random", 5, 8) %>%
+  add_header_above(c(" " = 1, "Model Q5" = 2))
+```
+
+## Part A
+With current positive events controlled, is there any residual effect of the previous day’s positive events on self-esteem?
+There is a positive effect of residual positive events on self-esteem (b = `r (tab6 %>% filter(term == "posmn"))$b`; 95\% CI `r (tab6 %>% filter(term == "posmn"))$b`). The previous day's positive events predict higher self esteem.    
+
+## Part B
+With current negative events controlled, is there any residual effect of the previous day’s negative events on self-esteem?  
+There is a negative effect of residual negative events on self-esteem (b = `r (tab6 %>% filter(term == "negmn"))$b`; 95\% CI `r (tab6 %>% filter(term == "negmn"))$b`). The previous day's negative events predict lower self esteem.   
+
+# Question 7
+Lastly, take the model from the previous problem and add the standardized CES-D depression measure (you will need to create this) as a predictor in each Level 2 equation:
+
+Level 1:  
+$rse_{ti} = \pi_{0i} + \pi_{1i}rse\_lag\_1_{ti} + \pi_{2i}posmn_{ti} + \pi_{3i}negmn_{ti} + \pi_{4i}posmn\_lag\_1_{ti} + \pi_{5i}negmn\_lag\_1_{ti} + \epsilon_{ti}$  
+Level 2:  
+$\pi_{0i} = \beta_{00} + \beta_{01}cesd\_z_i + r_{0i}$  
+$\pi_{1i} = \beta_{10} + r_{1i}$  
+$\pi_{2i} = \beta_{20} + r_{2i}$  
+$\pi_{3i} = \beta_{30} + r_{3i}$  
+$\pi_{4i} = \beta_{40} + r_{4i}$  
+$\pi_{5i} = \beta_{50} + r_{5i}$  
+
+```{r}
+dat <- dat %>% group_by(id) %>%
+  mutate(cesd_z = ifelse(is.na(cesd_z) == T, max(cesd_z, na.rm = T), cesd_z))
+fit7 <- lmer(rse ~ rse_lag_1* + posmn*cesd_z + negmn*cesd_z + posmn_lag_1*cesd_z + negmn_lag_1*cesd_z + 
+    (posmn + negmn + rse_lag_1 + posmn_lag_1 + negmn_lag_1 | id), data = dat)
+tab7 <- table_fun(fit7)
+```
+
+## Part A
+Increase the number of iterations used by the estimation algorithm. 
+```{r}
+cl1 <- lmerControl(optimizer = "bobyqa",
+                   optCtrl=list(maxiter=1e9))
+
+fit7a <- update(fit7, control = cl1)
+tab7a <- table_fun(fit7a)
+```
+
+
+## Part B
+Try a different algorithm.  
+```{r}
+cl2 <- lmerControl(optimizer = "optimx",
+                  optCtrl=list(method="nlminb",maxiter=1e9))
+
+fit7b <- update(fit7, control = cl2)
+tab7b <- table_fun(fit7b)
+```
+
+
+## Part C
+Simply the model by removing random effects (i.e., setting Level 2 variances to 0).  
+```{r}
+fit7c <- lmer(rse ~ rse_lag_1* + posmn*cesd_z + negmn*cesd_z + posmn_lag_1*cesd_z +
+                negmn_lag_1*cesd_z + (1 | id), data = dat)
+tab7c <- table_fun(fit7c)
+```
+
+```{r}
+tab7 %>% mutate(model = "Full") %>%
+  full_join(tab7a %>% mutate(model = "Increased Iter")) %>%
+  full_join(tab7b %>% mutate(model = "Optimx")) %>%
+  full_join(tab7c %>% mutate(model = "No RE")) %>%
+  # mutate(est = ifelse(type != "Fit", 
+  #   sprintf("\\makecell{%s \\\\ {%s}}", b, CI), b)) %>%
+  # select(-b, -CI) %>%
+  gather(key = est, value = value, b, CI) %>%
+  unite(tmp, model, est, sep = ".") %>%
+  spread(key = tmp, value = value) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, digits = 2, booktabs = T,
+        col.names = c("", rep(c("b", "CI"), times = 4))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,4) %>%
+  group_rows("Fit", 5, 6) %>%
+  group_rows("Random", 7, 9) %>%
+  add_header_above(c(" " = 1, "Model 4a" = 2, "Model 4b" = 2, 
+                     "Model 4c" = 2, "Model 4b" = 2))
+```
+
