@@ -30,6 +30,7 @@ library(influence.ME)
 library(HLMdiag)
 library(multcomp)
 library(kableExtra)
+library(optimx)
 library(plyr)
 library(tidyverse)
 ```
@@ -232,7 +233,7 @@ $\pi_{1i} = \beta_{10} + r_{1i}$
 $\pi_{2i} = \beta_{20} + r_{2i}$  
 $\pi_{3i} = \beta_{30} + r_{3i}$  
 
-```{r}
+```{r, results='asis'}
 fit5 <- lmer(rse ~ rse_lag_1 + posmn_lag_1 + negmn_lag_1 + 
     (rse_lag_1 + posmn_lag_1 + negmn_lag_1 | id), data = dat)
 
@@ -253,8 +254,14 @@ tab5 %>% select(-type) %>%
 ## Part A 
 This model provides a different way of examining the impact of current events on self- esteem. By partialling the previous day’s self-esteem, how would the influence of current events be interpreted in this model?  
 
+By partialling out the previous day's self esteem, we are able to look at the unique lagged effect of negative and positive emotion on the self-esteem.  
+
 ## Part B
-Fit the model and comment on the magnitude and interpretation of the coefficients for positive and negative events.
+Fit the model and comment on the magnitude and interpretation of the coefficients for positive and negative events.  
+
+There is a negative effect of residual negative events on self-esteem (b = `r (tab5 %>% filter(term == "negmn"))$b`; 95\% CI `r (tab5 %>% filter(term == "negmn"))$CI`). The previous day's negative events predict lower self esteem.   
+
+There is no effect of residual positive events on self-esteem (b = `r (tab5 %>% filter(term == "posmn"))$b`; 95\% CI `r (tab5 %>% filter(term == "posmn"))$CI`). The previous day's positive events do not predict lower self esteem.   
 
 # Question 6
 Fit a full lagged model.  
@@ -269,7 +276,7 @@ $\pi_{3i} = \beta_{30} + r_{3i}$
 $\pi_{4i} = \beta_{40} + r_{4i}$  
 $\pi_{5i} = \beta_{50} + r_{5i}$  
 
-```{r}
+```{r, results='asis'}
 fit6 <- lmer(rse ~ rse_lag_1 + posmn + negmn + posmn_lag_1 + negmn_lag_1 + 
     (posmn + negmn + rse_lag_1 + posmn_lag_1 + negmn_lag_1 | id), data = dat)
 
@@ -288,7 +295,7 @@ tab6 %>% select(-type) %>%
 
 ## Part A
 With current positive events controlled, is there any residual effect of the previous day’s positive events on self-esteem?
-There is a positive effect of residual positive events on self-esteem (b = `r (tab6 %>% filter(term == "posmn"))$b`; 95\% CI `r (tab6 %>% filter(term == "posmn"))$b`). The previous day's positive events predict higher self esteem.    
+There is a positive effect of residual positive events on self-esteem (b = `r (tab6 %>% filter(term == "posmn"))$b`; 95\% CI `r (tab6 %>% filter(term == "posmn"))$CI`). The previous day's positive events predict higher self esteem.    
 
 ## Part B
 With current negative events controlled, is there any residual effect of the previous day’s negative events on self-esteem?  
@@ -345,25 +352,42 @@ fit7c <- lmer(rse ~ rse_lag_1* + posmn*cesd_z + negmn*cesd_z + posmn_lag_1*cesd_
 tab7c <- table_fun(fit7c)
 ```
 
-```{r}
+```{r, results='asis'}
 tab7 %>% mutate(model = "Full") %>%
   full_join(tab7a %>% mutate(model = "Increased Iter")) %>%
   full_join(tab7b %>% mutate(model = "Optimx")) %>%
   full_join(tab7c %>% mutate(model = "No RE")) %>%
-  # mutate(est = ifelse(type != "Fit", 
-  #   sprintf("\\makecell{%s \\\\ {%s}}", b, CI), b)) %>%
-  # select(-b, -CI) %>%
   gather(key = est, value = value, b, CI) %>%
   unite(tmp, model, est, sep = ".") %>%
   spread(key = tmp, value = value) %>%
+  mutate(type = factor(type, levels = c("Fixed Parts", "Random Parts", "Model Terms"))) %>%
+  arrange(type) %>%
   select(-type) %>%
   kable(., "latex", escape = F, digits = 2, booktabs = T,
         col.names = c("", rep(c("b", "CI"), times = 4))) %>%
   kable_styling(full_width = F) %>%
-  group_rows("Fixed", 1,4) %>%
-  group_rows("Fit", 5, 6) %>%
-  group_rows("Random", 7, 9) %>%
-  add_header_above(c(" " = 1, "Model 4a" = 2, "Model 4b" = 2, 
-                     "Model 4c" = 2, "Model 4b" = 2))
+  group_rows("Fixed", 1,14) %>%
+  group_rows("Fit", 21, 22) %>%
+  group_rows("Random", 15, 20) %>%
+  add_header_above(c(" " = 1, "Full" = 2, "Increased Iter" = 2, 
+                     "Optimx" = 2, "No RE" = 2))  
+```
+
+There is only one moderating effect of depression score: 1 SD change in depression is associated with a `r (tab7 %>% filter(term == "cesd\\_z:posmn\\_lag\\_1"))$b` * posmn decrease (95 \% CI `r (tab7 %>% filter(term == "cesd\\_z:posmn\\_lag\\_1"))$CI`) in self-esteem. In other words, positive events only benefit the self-esteem of those who are less depressed than average.  
+
+```{r}
+crossing(
+  cesd_z = c(-1,0,1),
+  posmn = 0,
+  negmn = 0,
+  posmn_lag_1 = seq(min(dat$posmn_lag_1, na.rm = T), max(dat$posmn_lag_1, na.rm = T),1),
+  negmn_lag_1 = 0,
+  rse_lag_1 = 0
+) %>%
+  mutate(pred = predict(fit7, newdata = ., re.form = NA),
+         cesd = mapvalues(cesd_z, c(-1, 0, 1), c("-1 SD", "0 SD", "+1 SD"))) %>%
+  ggplot(aes(x = posmn_lag_1, y = pred, color = cesd)) +
+    geom_line() +
+    theme_classic()
 ```
 
