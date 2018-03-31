@@ -1,0 +1,115 @@
+---
+title: "HLM (Psych 5068) Homework Assignment 8"
+author: "Jessica Nicosia"
+date: "Spring 2018"
+output:
+  pdf_document:  
+    toc: yes
+    toc_depth: 6
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r}
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+library(knitr)
+```
+
+```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+library(lme4)
+library(arm)
+library(psych)
+library(lmtest)
+library(car)
+library(lsmeans)
+library(nlme)
+library(multcomp)
+library(ggplot2)
+library(dplyr)
+library(pander)
+library(ggplot2)
+library(ggthemes)
+library(lme4)
+library(HH)
+library(plot3D)
+library(optimx)
+library(nlme)
+library(reghelper)
+library(knitr)
+library(lmerTest)
+library(stargazer)
+library(sjPlot)
+library(broom)
+library(plyr)
+```
+
+```{r}
+# Get the data from the working directory.
+setwd("/Volumes/j.nicosiaSD 1/HLM/HW8/")
+```
+
+Question 1
+----------
+\textbf{1. First, create a grand mean centered version of the family size variable. Name it fam size GMC.}
+
+```{r, tidy = T}
+# read in HSB data
+data <- read.csv("/Volumes/j.nicosiaSD 1/HLM/HW8/iq.csv", header = TRUE)
+
+# save in dataframe 
+data <- as.data.frame(data)
+```
+
+
+Question 2
+----------
+\textbf{2. Begin wiht the following model (Model 1), which treats all coefficients as random. Is ther any evidence for birth order or family size effects in this analysis?}
+
+```{r, tidy = T}
+
+```
+
+Question 3
+----------
+\textbf{3. Modify the first model (call the modification Model 2) in a way that will provide an omnibus test for family size effect when the two models are compared. (Hint: The models should differ by 4 degrees of freedom). What does this model comparison tell you about the presence of family size effects in this sample?}
+
+```{r, tidy = T}
+
+```
+
+Question 4
+----------
+\textbf{4. Now modify Model 2 to remove all birth order effects (call the new model Model 3) and conduct a model comparison to Model 2.}
+
+```{r, tidy = T}
+
+```
+
+Question 4a
+----------
+\textbf{(a) What can you conclude from this comparison?}
+```{r, tidy = T}
+
+```
+
+Question 4b
+----------
+\textbf{(b) Compare Model 3 to Model 1. What is being tested and what does it offer beyond the previous two model comparisons?}
+```{r, tidy = T}
+
+```
+
+Question 5
+----------
+\textbf{5. Using the most parsimonious of the three previous models, modify it (call it Model 4) to provide a model comparison that tests the significance of the true score correlation between verbal and spatial abilities at the level of the child.}
+```{r, tidy = T}
+
+```
+
+
+
