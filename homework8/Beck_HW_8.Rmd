@@ -7,108 +7,122 @@ output:
     toc: yes
     toc_depth: 6
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
-```{r}
-options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
-# Clear the workspace and console.
-rm(list = ls(all = TRUE)) 
-cat("\014")
-# Set the contrast option; important for ANOVAs.
-options(contrasts = c('contr.sum','contr.poly'))
-library(knitr)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 ```
 
+# Workspace
+
+## Packages
 ```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
-library(lme4)
-library(arm)
 library(psych)
-library(lmtest)
-library(car)
-library(lsmeans)
-library(nlme)
-library(multcomp)
-library(ggplot2)
-library(dplyr)
-library(pander)
-library(ggplot2)
-library(ggthemes)
 library(lme4)
-library(HH)
-library(plot3D)
-library(optimx)
-library(nlme)
-library(reghelper)
 library(knitr)
-library(lmerTest)
-library(stargazer)
-library(sjPlot)
-library(broom)
+library(qqplotr)
+library(influence.ME)
+library(HLMdiag)
+library(multcomp)
+library(kableExtra)
+library(optimx)
 library(plyr)
+library(tidyverse)
 ```
+
+## Data
+```{r data}
+source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework8/iq(2).csv"
+dat      <- data_url %>% read.csv %>% tbl_df 
+```
+
+# Question 1
+First, create a grand mean centered version of the family size variable. Name it fam\_size\_GMC.
 
 ```{r}
-# Get the data from the working directory.
-setwd("/Volumes/j.nicosiaSD 1/HLM/HW8/")
-```
-
-Question 1
-----------
-\textbf{1. First, create a grand mean centered version of the family size variable. Name it fam size GMC.}
-
-```{r, tidy = T}
-# read in HSB data
-data <- read.csv("/Volumes/j.nicosiaSD 1/HLM/HW8/iq.csv", header = TRUE)
-
-# save in dataframe 
-data <- as.data.frame(data)
+dat <- dat %>%
+  mutate(fam_size_GMC = fam_size - mean(fam_size, na.rm = T))
 ```
 
 
-Question 2
-----------
-\textbf{2. Begin wiht the following model (Model 1), which treats all coefficients as random. Is ther any evidence for birth order or family size effects in this analysis?}
+# Question 2
 
-```{r, tidy = T}
+2. Begin wiht the following model (Model 1), which treats all coefficients as random. Is there any evidence for birth order or family size effects in this analysis?
 
+$score = \pi_{0jk}*verbal + \pi_{1jk}*spatial$  
+
+$pi_{0jk} = \beta_{00k} + \beta_{01k}*order + r_{00k}$
+$pi_{1jk} = \beta_{10k} + \beta_{11k}*order + r_{10k}$
+
+$\beta_{00k} = \gamma_{000} + \gamma_{001}*famsize + u_{00k}$
+$\beta_{01k} = \gamma_{010} + \gamma_{011}*famsize + u_{01k}$
+$\beta_{10k} = \gamma_{100} + \gamma_{101}*famsize + u_{10k}$
+$\beta_{11k} = \gamma_{110} + \gamma_{111}*famsize + u_{11k}$
+
+```{r}
+Model_1 <- lmer(score ~ 
+                -1 + verbal + spatial + # level 1
+                order:verbal + order:spatial +  # level 2
+                fam_size_GMC:verbal + fam_size_GMC:spatial + # level 3
+                fam_size_GMC:order:verbal + fam_size_GMC:order:spatial + # level 3
+                (-1 + verbal + spatial|child_unique) +
+                (-1 + verbal + spatial + order:verbal + order:spatial|family),
+                data=dat) 
+tab1    <- table_fun(Model_1)
 ```
 
-Question 3
-----------
-\textbf{3. Modify the first model (call the modification Model 2) in a way that will provide an omnibus test for family size effect when the two models are compared. (Hint: The models should differ by 4 degrees of freedom). What does this model comparison tell you about the presence of family size effects in this sample?}
+Based on the model, there is no evidence for an effect of family size. 
 
-```{r, tidy = T}
 
+# Question 3 
+Modify the first model (call the modification Model 2) in a way that will provide an omnibus test for family size effect when the two models are compared. (Hint: The models should differ by 4 degrees of freedom). What does this model comparison tell you about the presence of family size effects in this sample?
+
+```{r}
+Model_2 <- lmer(score ~ 
+                -1 + verbal + spatial +         # level 1
+                order:verbal + order:spatial +  # level 2
+                (-1 + verbal + spatial|child_unique) +
+                (-1 + verbal + spatial + order:verbal + order:spatial|family),
+                data=dat) 
+tab2    <- table_fun(Model_2)
+anova(Model_1, Model_2)
 ```
 
-Question 4
-----------
-\textbf{4. Now modify Model 2 to remove all birth order effects (call the new model Model 3) and conduct a model comparison to Model 2.}
+There appear to be no family effects in this sample.  
 
-```{r, tidy = T}
+## Question 4
+Now modify Model 2 to remove all birth order effects (call the new model Model 3) and conduct a model comparison to Model 2.
 
+```{r}
+Model_3 <- lmer(score ~ 
+                -1 + verbal + spatial + # level 1
+                (-1 + verbal + spatial | child_unique) +
+                (-1 + verbal + spatial | family),
+                data=dat) 
+tab3    <- table_fun(Model_3)
+anova(Model_3, Model_2)
 ```
 
-Question 4a
-----------
-\textbf{(a) What can you conclude from this comparison?}
-```{r, tidy = T}
+## Part A
+What can you conclude from this comparison?
+There do not appear to be any birth order effects. 
 
+## Part B
+Compare Model 3 to Model 1. What is being tested and what does it offer beyond the previous two model comparisons?
+```{r}
+anova(Model_3, Model_1)
 ```
 
-Question 4b
-----------
-\textbf{(b) Compare Model 3 to Model 1. What is being tested and what does it offer beyond the previous two model comparisons?}
-```{r, tidy = T}
+This is testing whether a model that only estimates mean verbal and spatial scores, as well as unique means for each family and child within a family is a better model than one that adjusts the estimated means based on birth order and the number of children in the family. Neither of these seem to impact mean verbal or spatial ability. 
 
-```
+# Question 5
+Using the most parsimonious of the three previous models, modify it (call it Model 4) to provide a model comparison that tests the significance of the true score correlation between verbal and spatial abilities at the level of the child.
+```{r}
+Model_4 <- lmer(score ~ -1 + verbal + spatial + (1|child_unique) + (1|family), data = dat)
 
-Question 5
-----------
-\textbf{5. Using the most parsimonious of the three previous models, modify it (call it Model 4) to provide a model comparison that tests the significance of the true score correlation between verbal and spatial abilities at the level of the child.}
-```{r, tidy = T}
-
+(sigma(Model_4)^2 - sigma(Model_3)^2)/sigma(Model_4)^2
 ```
 
 
