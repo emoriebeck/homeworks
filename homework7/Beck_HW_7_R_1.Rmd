@@ -325,36 +325,6 @@ fit7 <- lmer(rse ~ rse_lag_1*cesd_z + posmn*cesd_z + negmn*cesd_z +
 tab7 <- table_fun(fit7)
 ```
 
-## Part A
-Increase the number of iterations used by the estimation algorithm. 
-```{r}
-cl1 <- lmerControl(optimizer = "bobyqa",
-                   optCtrl=list(maxiter=1e9))
-
-fit7a <- update(fit7, control = cl1)
-tab7a <- table_fun(fit7a)
-```
-
-
-## Part B
-Try a different algorithm.  
-```{r}
-cl2 <- lmerControl(optimizer = "optimx",
-                  optCtrl=list(method="nlminb",maxiter=1e9))
-
-fit7b <- update(fit7, control = cl2)
-tab7b <- table_fun(fit7b)
-```
-
-
-## Part C
-Simply the model by removing random effects (i.e., setting Level 2 variances to 0).  
-```{r}
-fit7c <- lmer(rse ~ rse_lag_1* + posmn*cesd_z + negmn*cesd_z + posmn_lag_1*cesd_z +
-                negmn_lag_1*cesd_z + (1 | id), data = dat)
-tab7c <- table_fun(fit7c)
-```
-
 ```{r, results='asis'}
 tab7 %>%
   select(-type) %>%
