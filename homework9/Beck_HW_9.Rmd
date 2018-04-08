@@ -1,0 +1,209 @@
+---
+title: "Homework 9"
+subtitle: "Psych 5068"
+author: "Emorie Beck"
+date: \today
+output: 
+  pdf_document:
+    toc: yes
+    includes:
+            in_header:
+                header.tex
+    keep_tex: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+# Workspace
+
+## Packages
+```{r packages, results='hide'}
+library(psych)
+library(lme4)
+library(knitr)
+library(kableExtra)
+library(multcomp)
+library(metafor)
+library(plyr)
+library(tidyverse)
+```
+
+## Data
+```{r data}
+source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework9/phobia(1).csv"
+dat      <- data_url %>% read.csv %>% tbl_df 
+```
+
+# Question 1  
+Carry out the following steps to create the additional variables needed for a meta analysis:  
+
+## Part A  
+Calculate the variance for each effect size. Name the new variances v\_beh and v\_spouse.  
+
+```{r}
+dat <- dat %>%
+  mutate_at(vars(d_beh, d_spouse), 
+    funs(V = (n_tx + n_con)/(n_tx*n_con) + .^2/(2*(n_tx + n_con)))) %>%
+  rename(v_beh = d_beh_V, v_spouse = d_spouse_V)
+  
+```
+
+
+
+## Part B  
+Calculate the covariance between the two effect sizes. Name this variable cov.
+
+```{r}
+dat <- dat %>%
+  mutate( 
+    r = cor(d_beh, d_spouse),
+    cov = (1/n_tx + 1/n_con) * r + (d_beh * d_spouse * r)/(1*(n_tx + n_con)))
+```
+
+
+## Part C
+Rearrange the data file (call the new data file New Phobia Data) so that it has two lines per study. The behavioral effect size should be on the first line; the spouse effect on the second line. The effect sizes will now be in a single column; name it d. Two columns will be needed to hold the variance covariance matrix for each study; name the two columns, vc1 and vc2. These two columns will hold the variance and then the covariance for the behavior line and the covariance and the variance for the spouse line. Create two dummy variables, called d b and d s. These should indicate whether the effect size on a line is for behavior or spouse report.  
+
+```{r}
+New_Phobia_Data <- dat %>%
+  gather(key = DV, value = d, d_beh, d_spouse) %>%
+  arrange(study) %>%
+  mutate(vc1 = ifelse(DV == "d_beh", v_beh, cov),
+         vc2 = ifelse(DV == "d_beh", cov, v_spouse),
+         # vc2 = ifelse(source == "d_beh", cov),
+         d_b = ifelse(DV == "d_beh", 1, 0),
+         d_s = ifelse(DV == "d_spouse", 1, 0)) %>%
+  select(study, weeks, n_tx, n_con, DV:d_s) %>% arrange(study, d_s)
+
+head(New_Phobia_Data)
+```
+
+## Part D
+Create a block diagonal variance covariance matrix for the collection of studies. Name this matrix, BD. Use head(New Phobia Data) to show the first few lines of the new data file. Use head(BD) to show the first few lines of the block diagonal matrix.  
+```{r}
+BD <- lapply(split(New_Phobia_Data[,c("vc1", "vc2")], New_Phobia_Data$study), as.matrix)
+BD <- bldiag(BD)
+
+head(BD)
+```
+
+
+# Question 2  
+Begin by fitting an unconditional model (no dummy codes to indicate the type of outcome measure, but specify a random effects model that indicates DV is nested within study).  
+
+```{r}
+fit2 <- rma.mv(d, BD, mods = ~ 1, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
+summary(fit2)
+```
+
+
+## Part A
+Provide a forest plot. How many of the individual effect sizes are significantly different from 0?  
+
+```{r}
+forest(fit2,order="obs",addfit=TRUE,showweights = TRUE,
+        xlab="Effect Size",efac=2,slab=New_Phobia_Data$DV)
+```
+
+## Part B
+Provide a funnel plot. Effect sizes outside the confidence region suggest more heterogeneity than expected by sampling error. More effect sizes on one side than the other suggest publication bias. Is there evidence of either?  
+```{r}
+funnel(fit2,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey")
+```
+
+
+# Question 3
+
+Now include the dummy codes for outcome type in a no intercept model.  
+```{r}
+fit3 <- rma.mv(d, BD, mods = ~ -1 + d_b + d_s, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
+```
+
+
+## Part A  
+Was treatment effective in reducing the fear of spiders as measured by the behvaioral measure? 
+
+According to the behavior reports, the treatment was effective in reducing the fear of spiders, d = `r round(coef(fit3)["d_b"],2)`, 95\% CI [`r round(summary(fit3)$ci.lb[1], 2)`, `r round(summary(fit3)$ci.ub[1], 2)`].  
+
+## Part B  
+On average, how much better off was a treatment participant compared to a control participant?  
+
+On average, an individual in the treatment group was able to move `r round(coef(fit3)["d_b"],2)` SD closer to a tarantula than someone in a control group. 
+
+## Part C  
+Was treatment effective in reducing the fear of spiders as measured by the spouce reports?  
+
+According to the spousal reports, the treatment was effective in reducing the fear of spiders, d = `r round(coef(fit3)["d_s"],2)`, 95\% CI [`r round(summary(fit3)$ci.lb[2], 2)`, `r round(summary(fit3)$ci.ub[2], 2)`].  
+
+## Part D  
+On average, how much better off was a treatment participant compared to a control participant?
+
+On average, spouses reported individual in the treatment group were `r round(coef(fit3)["d_s"],2)` SD less afraid than someone in the control group.  
+
+## Part E  
+Was the effect size for spouse reports significantly different from the effect size for the behavioral measure?  
+
+```{r}
+V0=matrix(c(1,-1),nc=2)
+rownames(V0) <- c("Behavioral v Spousal")
+glht_V0 <- glht(fit3,linfct=V0,alternative="two.sided",rhs=0)
+summary(glht_V0)
+```
+
+## Part F
+How highly related are the true effect sizes for behavior and spouse reports?  
+
+```{r}
+yi <- fit3$yi.f
+vi <- fit3$vi.f
+X  <- fit3$X.f
+slab <- fit3$slab  
+temp <- predict(fit3)
+pred <- temp$pred
+pred.ci.lb <- temp$ci.lb
+pred.ci.ub <- temp$ci.ub
+
+cor(pred[seq(1,40,2)], dat$d_beh)
+cor(yi[seq(2,40,2)], dat$d_spouse)
+
+```
+
+## Part G  
+Examine the funnel plot for this model and comment on what has changed compared to the unconditional model.  
+
+```{r}
+funnel(fit3,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey")
+```
+
+# Question 4  
+Now add the weeks of therapy variable as a moderator.  
+
+```{r}
+fit4 <- rma.mv(d, BD, mods = ~ -1 + d_b + d_s + weeks + d_b:weeks + d_s:weeks, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
+```
+
+## Part A  
+Was treatment more effective the longer that patients were in treatment?  
+
+```{r}
+
+```
+
+## Part B  
+Did length of therapy have different effects on the behavioral and spouse report effect sizes?  
+
+```{r}
+
+```
+
+## Part C  
+Examine the funnel plot again. Any evidence of lingering heterogeneity that might be modeled with the inclusion of additional predictors?  
+
+```{r}
+funnel(fit4,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey")
+```
