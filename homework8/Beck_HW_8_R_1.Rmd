@@ -170,10 +170,10 @@ Using the most parsimonious of the three previous models, modify it (call it Mod
 Model_4 <- lmer(score ~ 
                 -1 + verbal + spatial + # level 1
                 (-1 + verbal + spatial || child_unique) +
-                (-1 + verbal + spatial || family),
+                (-1 + verbal + spatial | family),
                 data=dat) 
 tab4    <- table_fun(Model_4)
-
+lmer(score ~ verbal + spatial + (1|family/child_unique), data = dat)
 tab %>% select(-type) %>%
   # mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
   kable(., "latex", booktabs = T, escape = F,
@@ -186,7 +186,7 @@ tab %>% select(-type) %>%
   group_rows("Model Terms",5,6) %>%
   add_header_above(c(" " = 1, "Score" = 2))
 
-t_cor <- (sigma(Model_4)^2 - sigma(Model_3)^2)/sigma(Model_4)^2
+t_cor <- (sigma(Model_3)^2 - sigma(Model_4)^2)/sigma(Model_3)^2
 ```
 
 ```{r}
