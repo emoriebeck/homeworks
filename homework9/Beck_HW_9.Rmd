@@ -15,7 +15,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, fig.align='center')
 ```
 
 # Workspace
@@ -105,10 +105,20 @@ summary(fit2)
 ## Part A
 Provide a forest plot. How many of the individual effect sizes are significantly different from 0?  
 
-```{r}
+```{r, fig.height=6, fig.width=5, fig.align='center'}
 forest(fit2,order="obs",addfit=TRUE,showweights = TRUE,
         xlab="Effect Size",efac=2,slab=New_Phobia_Data$DV)
+
+dist <- metafor::ranef.rma.mv(fit2)[[1]] %>% data.frame %>%
+  mutate(pi.lb = coef(fit2) + pi.lb, 
+         term = rownames(.),
+         sign = sign(pi.lb)) %>%
+  separate(term, c("term", "scrap"), sep = " [|] ") %>%
+  group_by(term, sign) %>%
+  summarize(n = n())
 ```
+
+`r (dist %>% filter(term == "d_spouse" & sign == 1))$n` of 20 of the spousal rating effect sizes differ from 0, while `r (dist %>% filter(term != "d_spouse" & sign == 1))$n` of 20 of the behavior effect sizes differ from 0.  
 
 ## Part B
 Provide a funnel plot. Effect sizes outside the confidence region suggest more heterogeneity than expected by sampling error. More effect sizes on one side than the other suggest publication bias. Is there evidence of either?  
@@ -116,6 +126,7 @@ Provide a funnel plot. Effect sizes outside the confidence region suggest more h
 funnel(fit2,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey")
 ```
 
+The effect sizes in the funnel plot suggest that there is more heterogeneity in the effect sizes than would be expected by sampling error, which suggests we should look for moderators. 
 
 # Question 3
 
@@ -152,58 +163,62 @@ Was the effect size for spouse reports significantly different from the effect s
 V0=matrix(c(1,-1),nc=2)
 rownames(V0) <- c("Behavioral v Spousal")
 glht_V0 <- glht(fit3,linfct=V0,alternative="two.sided",rhs=0)
-summary(glht_V0)
+res_V0    <- confint(glht_V0, calpha = univariate_calpha()) 
+res_V0_df <- res_V0$confint %>% data.frame()
 ```
+
+There was no difference in effect size for spouse reports v. behavioral measures, b = `r round(res_V0_df$Estimate,2)`, 95\% CI [`r round(res_V0_df$lwr,2)`, `r round(res_V0_df$upr,2)`].  
 
 ## Part F
 How highly related are the true effect sizes for behavior and spouse reports?  
 
-```{r}
-yi <- fit3$yi.f
-vi <- fit3$vi.f
-X  <- fit3$X.f
-slab <- fit3$slab  
-temp <- predict(fit3)
-pred <- temp$pred
-pred.ci.lb <- temp$ci.lb
-pred.ci.ub <- temp$ci.ub
-
-cor(pred[seq(1,40,2)], dat$d_beh)
-cor(yi[seq(2,40,2)], dat$d_spouse)
-
-```
+The true effect sizes are strongly correlated, r = `r round(fit3$rho, 2)`.
 
 ## Part G  
 Examine the funnel plot for this model and comment on what has changed compared to the unconditional model.  
 
 ```{r}
-funnel(fit3,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey")
+par(mfrow = c(1,2))
+funnel(fit2,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey", xlim = c(-2,2), ylim = c(0,.6))
+title("Model Q2")
+funnel(fit3,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey", xlim = c(-2,2), ylim = c(0,.6))
+title("Model Q3")
 ```
 
+The standard errors of the estimates are larger in the model that estimates fixed effect effect sizes for both the behavioral and spousal measures, but there is less heterogeneity, which suggests that adding in the separate estimates improves model fit.  
+
+The funnel plot suggests 
 # Question 4  
 Now add the weeks of therapy variable as a moderator.  
 
 ```{r}
-fit4 <- rma.mv(d, BD, mods = ~ -1 + d_b + d_s + weeks + d_b:weeks + d_s:weeks, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
+fit4 <- rma.mv(d, BD, mods = ~ -1 + d_b + d_s + d_b:weeks + d_s:weeks, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
 ```
 
 ## Part A  
 Was treatment more effective the longer that patients were in treatment?  
 
 ```{r}
-
+k <- matrix(c(0,0,.5,.5), nrow = 1)
+rownames(k) <- "weeks"
+glht_4a <- glht(fit4,linfct=k,alternative="two.sided",rhs=0)
+res_4a    <- confint(glht_4a, calpha = univariate_calpha()) 
+res_4a_df <- res_4a$confint %>% data.frame()
 ```
+
+Treatments were more effective the longer patients were in treatment, b = `r round(res_4a_df$Estimate,2)`, 95\% CI [`r round(res_4a_df$lwr,2)`, `r round(res_4a_df$upr,2)`]. 
 
 ## Part B  
 Did length of therapy have different effects on the behavioral and spouse report effect sizes?  
 
-```{r}
-
-```
+Yes, the length of treatment moderated effect sizes for both measures. For both behavioral (b = `r round(fit4$b["d_b:weeks",],2)`, 95\% CI [`r round(fit4$ci.lb[3], 2)`, `r round(fit4$ci.ub[3], 2)`]) and spousal (b = `r round(fit4$b["d_s:weeks",],2)`, 95\% CI [`r round(fit4$ci.lb[4], 2)`, `r round(fit4$ci.ub[4], 2)`]) reports, effect sizes of treatment increased with longer study durations.  
 
 ## Part C  
 Examine the funnel plot again. Any evidence of lingering heterogeneity that might be modeled with the inclusion of additional predictors?  
 
 ```{r}
 funnel(fit4,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey")
+title("Model Q4")
 ```
+
+There is only one study whose effect size falls outside of the bounds we would expect
