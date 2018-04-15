@@ -1,0 +1,76 @@
+---
+title: "Homework 8"
+subtitle: "Psych 5068"
+author: "Emorie Beck"
+date: \today
+output: 
+  pdf_document:
+    toc: yes
+    includes:
+            in_header:
+                header.tex
+    keep_tex: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+options(knitr.kable.NA = '')
+```
+
+# Workspace
+
+## Packages
+```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+library(psych)
+library(lme4)
+library(knitr)
+library(qqplotr)
+library(influence.ME)
+library(HLMdiag)
+library(multcomp)
+library(kableExtra)
+library(optimx)
+library(plyr)
+library(tidyverse)
+```
+
+## Data
+```{r data}
+source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework10/homework_10_long.csv"
+dat      <- data_url %>% read.csv %>% tbl_df 
+```
+
+The file, homework_\10_\long.csv, contains data from a survey study in which 245 undergraduates (sex is coded men = 1, women = 2) completed the 10-item Rosenberg Self-Esteem Scale, the 20-item Desire for Control Scale, and the 40-item Narcissistic Personality Inventory. The items have been appropriately reverse-coded to all be in a consistent direction and they have been standardized.  Higher item Z scores indicate higher self-esteem, higher desire for control, and higher narcissism.  Using methods described in class, answer the following questions about this sample.  All of these questions should be answered using the results from HLM analyses.  
+
+# Question 1
+How reliable are these three scales?  Using the results from the HLM analysis, find the internal consistency reliabilities. 
+
+# Question 2  
+What are the correlations among the scale means?  
+
+# Question 3  
+Now find the latent variable correlations for these measures. 
+
+## Part A  
+What are the values of these correlations? 
+
+## Part B  
+Is each latent variable correlation significantly different from 0? 
+
+## Part C  
+Are the correlations collectively different from 0? 
+
+# Question 4  
+Are there sex differences for these scales? 
+
+## Part A  
+Are men and women different in their means on each of these scales? 
+
+## Part B  
+Collectively, does participant sex add significantly to the original model? 
+
+# Question 5  
+Generally, research finds that narcissists think highly of themselves and like to control their environments. That said, a narcissist with high control needs but low self-esteem might be a problem.  They might be particularly likely to manipulate others in an attempt to restore a grandiose sense of self.  Using the latent variable scores from the initial analysis (Question 3), identify by ID number the person in the sample who you think is the best candidate for this low self-esteem, high desire for control, high narcissism label. 
