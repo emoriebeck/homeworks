@@ -100,6 +100,7 @@ CI1 %>% data.frame %>%
   filter(grepl("cor", var))
 ```
 
+Yes, none of the confidence intervals overlap with 0, so the correlations are significant.  
 
 ## Part C  
 Are the correlations collectively different from 0? 
@@ -110,6 +111,7 @@ fit3c <- lmer(Score ~ -1 + DC + R + N +
 anova(fit1, fit3c)
 ```
 
+The model with the correlations is better than one without them, so the correlations are different than 0.  
 
 # Question 4  
 Are there sex differences for these scales? 
