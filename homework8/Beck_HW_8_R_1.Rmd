@@ -172,9 +172,14 @@ Model_4 <- lmer(score ~
                 (-1 + verbal + spatial || child_unique) +
                 (-1 + verbal + spatial | family),
                 data=dat) 
+
+Model_5 <- lmer(score ~ 
+                -1 + verbal + spatial + # level 1
+                (1 | child_unique) +
+                (1 | family),
+                data=dat) 
 tab4    <- table_fun(Model_4)
-lmer(score ~ verbal + spatial + (1|family/child_unique), data = dat)
-tab %>% select(-type) %>%
+tab4 %>% select(-type) %>%
   # mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
   kable(., "latex", booktabs = T, escape = F,
         col.names = c("Term", "b", "CI"),
@@ -182,15 +187,15 @@ tab %>% select(-type) %>%
   kable_styling(full_width = F) %>%
   column_spec(2:3, width = "2cm") %>%
   group_rows("Fixed Parts",1,2) %>%
-  group_rows("Random Parts",3,4) %>%
-  group_rows("Model Terms",5,6) %>%
+  group_rows("Random Parts",3,3) %>%
+  group_rows("Model Terms",4,5) %>%
   add_header_above(c(" " = 1, "Score" = 2))
 
-t_cor <- (sigma(Model_3)^2 - sigma(Model_4)^2)/sigma(Model_3)^2
+t_cor <- (sigma(Model_5)^2 - sigma(Model_4)^2)/sigma(Model_5)^2
 ```
 
 ```{r}
-anova(Model_4, Model_3)
+anova(Model_4, Model_5)
 ```
 
 The true score correlation is `r round(t_cor, 2)`.  
