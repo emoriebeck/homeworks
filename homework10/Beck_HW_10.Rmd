@@ -114,7 +114,8 @@ anova(fit1, fit3c)
 # Question 4  
 Are there sex differences for these scales? 
 ```{r}
-fit4 <- lmer(Score ~ -1 + DC:Sex + R:Sex + N:Sex + 
+dat <- dat %>% mutate(Sex = mapvalues(Sex, c(1,2), c(0,1)))
+fit4 <- lmer(Score ~ -1 + DC + R + N + DC:Sex + R:Sex + N:Sex + 
                  (-1 + DC + R + N |ID), data=dat,
                  REML=F)
 summary(fit4)
@@ -123,17 +124,19 @@ summary(fit4)
 ## Part A  
 Are men and women different in their means on each of these scales? 
 ```{r}
-broom::tidy(fit4) %>% 
-  filter(group == "fixed")
+(res <- table_fun(fit4) %>% 
+  filter(type == "Fixed Parts"))
 ```
 
-Men and women do not differ. 
+Men and women differ in desire for control and narcissism. Women have less desire for control (b = `r (res %>% filter(term == "DC:Sex"))$b`, 95\% CI = `r (res %>% filter(term == "DC:Sex"))$CI`) and are less narcissitic (b = `r (res %>% filter(term == "N:Sex"))$b`, 95\% CI = `r (res %>% filter(term == "N:Sex"))$CI`) than men, on average.  
 
 ## Part B  
 Collectively, does participant sex add significantly to the original model? 
 ```{r}
 anova(fit1, fit4)
 ```
+
+Although there are sex differences, the model that inlcudes sex is only marginally better. 
 
 # Question 5  
 Generally, research finds that narcissists think highly of themselves and like to control their environments. That said, a narcissist with high control needs but low self-esteem might be a problem.  They might be particularly likely to manipulate others in an attempt to restore a grandiose sense of self.  Using the latent variable scores fdrom the initial analysis (Question 3), identify by ID number the person in the sample who you think is the best candidate for this low self-esteem, high desire for control, high narcissism label. 
