@@ -80,9 +80,7 @@ Now find the latent variable correlations for these measures.
 ## Part A  
 What are the values of these correlations? 
 ```{r}
-Latent_Scores_EB <- coef(fit1)$ID
-LSVCM <- cov(Latent_Scores_EB)
-lc1 <- cov2cor(LSVCM)
+lc1 <- cov2cor(VarCorr(fit1)$ID)
 lc1[upper.tri(lc1, diag = T)] <- NA
 lc1 %>% data.frame %>%
   mutate(v1 = rownames(.)) %>%
@@ -143,6 +141,7 @@ Although there are sex differences, the model that inlcudes sex is only marginal
 # Question 5  
 Generally, research finds that narcissists think highly of themselves and like to control their environments. That said, a narcissist with high control needs but low self-esteem might be a problem.  They might be particularly likely to manipulate others in an attempt to restore a grandiose sense of self.  Using the latent variable scores fdrom the initial analysis (Question 3), identify by ID number the person in the sample who you think is the best candidate for this low self-esteem, high desire for control, high narcissism label. 
 ```{r}
+Latent_Scores_EB <- coef(fit1)$ID
 (dark_triad <- Latent_Scores_EB %>% tbl_df %>%
   mutate(ID = rownames(.)) %>%
   filter(sign(R) == -1 & sign(DC) == 1 & sign(N) == 1) %>%

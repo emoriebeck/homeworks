@@ -1,0 +1,197 @@
+---
+title: "Homework 8"
+subtitle: "Psych 5068"
+author: "Emorie Beck"
+date: \today
+output: 
+  pdf_document:
+    toc: yes
+    includes:
+            in_header:
+                header.tex
+    keep_tex: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+options(knitr.kable.NA = '')
+```
+
+# Workspace
+
+## Packages
+```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+library(psych)
+library(lme4)
+library(knitr)
+library(qqplotr)
+library(influence.ME)
+library(HLMdiag)
+library(multcomp)
+library(kableExtra)
+library(optimx)
+library(plyr)
+library(tidyverse)
+```
+
+## Data
+```{r data}
+source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework8/iq(2).csv"
+dat      <- data_url %>% read.csv %>% tbl_df 
+```
+
+# Question 1
+First, create a grand mean centered version of the family size variable. Name it fam\_size\_GMC.
+
+```{r}
+dat <- dat %>%
+  mutate(fam_size_GMC = fam_size - mean(fam_size, na.rm = T))
+```
+
+
+# Question 2
+
+2. Begin wiht the following model (Model 1), which treats all coefficients as random. Is there any evidence for birth order or family size effects in this analysis?
+
+$score = \pi_{0jk}*verbal + \pi_{1jk}*spatial$  
+
+$pi_{0jk} = \beta_{00k} + \beta_{01k}*order + r_{00k}$  
+$pi_{1jk} = \beta_{10k} + \beta_{11k}*order + r_{10k}$  
+
+$\beta_{00k} = \gamma_{000} + \gamma_{001}*famsize + u_{00k}$  
+$\beta_{01k} = \gamma_{010} + \gamma_{011}*famsize + u_{01k}$  
+$\beta_{10k} = \gamma_{100} + \gamma_{101}*famsize + u_{10k}$  
+$\beta_{11k} = \gamma_{110} + \gamma_{111}*famsize + u_{11k}$  
+
+```{r q2, results='asis'}
+Model_1 <- lmer(score ~ 
+                -1 + verbal + spatial + # level 1
+                order:verbal + order:spatial +  # level 2
+                fam_size_GMC:verbal + fam_size_GMC:spatial + # level 3
+                fam_size_GMC:order:verbal + fam_size_GMC:order:spatial + # level 3
+                (-1 + verbal + spatial|child_unique) +
+                (-1 + verbal + spatial + order:verbal + order:spatial|family),
+                data=dat) 
+tab1    <- table_fun(Model_1)
+
+tab1 %>% select(-type) %>%
+  # mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Term", "b", "CI"),
+        caption = "Question 2: Model 1") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(2:3, width = "2cm") %>%
+  group_rows("Fixed Parts",1,8) %>%
+  group_rows("Random Parts",9,10) %>%
+  group_rows("Model Terms",11,12) %>%
+  add_header_above(c(" " = 1, "Score" = 2))
+```
+
+Based on the model, there is no evidence for an effect of family size. 
+
+
+# Question 3 
+Modify the first model (call the modification Model 2) in a way that will provide an omnibus test for family size effect when the two models are compared. (Hint: The models should differ by 4 degrees of freedom). What does this model comparison tell you about the presence of family size effects in this sample?
+
+```{r q3, results='asis'}
+Model_2 <- lmer(score ~ 
+                -1 + verbal + spatial +         # level 1
+                order:verbal + order:spatial +  # level 2
+                (-1 + verbal + spatial|child_unique) +
+                (-1 + verbal + spatial + order:verbal + order:spatial|family),
+                data=dat) 
+tab2    <- table_fun(Model_2)
+
+tab2 %>% select(-type) %>%
+  # mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Term", "b", "CI"),
+        caption = "Question 3: Model 2") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(2:3, width = "2cm") %>%
+  group_rows("Fixed Parts",1,4) %>%
+  group_rows("Random Parts",5,6) %>%
+  group_rows("Model Terms",7,8) %>%
+  add_header_above(c(" " = 1, "Score" = 2))
+```
+
+```{r q3 anova}
+anova(Model_1, Model_2)
+```
+
+There appear to be no family effects in this sample.  
+
+## Question 4
+Now modify Model 2 to remove all birth order effects (call the new model Model 3) and conduct a model comparison to Model 2.
+
+```{r q4, results = 'asis'}
+Model_3 <- lmer(score ~ 
+                -1 + verbal + spatial + # level 1
+                (-1 + verbal + spatial | child_unique) +
+                (-1 + verbal + spatial | family),
+                data=dat) 
+tab3    <- table_fun(Model_3)
+
+tab3 %>% select(-type) %>%
+  # mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Term", "b", "CI"),
+        caption = "Question 4: Model 3") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(2:3, width = "2cm") %>%
+  group_rows("Fixed Parts",1,2) %>%
+  group_rows("Random Parts",3,4) %>%
+  group_rows("Model Terms",5,6) %>%
+  add_header_above(c(" " = 1, "Score" = 2))
+```
+
+```{r q4 aov}
+anova(Model_3, Model_2)
+```
+
+## Part A
+What can you conclude from this comparison?
+There do not appear to be any birth order effects. 
+
+## Part B
+Compare Model 3 to Model 1. What is being tested and what does it offer beyond the previous two model comparisons?
+```{r}
+anova(Model_3, Model_1)
+```
+
+This is testing whether a model that only estimates mean verbal and spatial scores, as well as unique means for each family and child within a family is a better model than one that adjusts the estimated means based on birth order and the number of children in the family. Neither of these seem to impact mean verbal or spatial ability. 
+
+# Question 5
+Using the most parsimonious of the three previous models, modify it (call it Model 4) to provide a model comparison that tests the significance of the true score correlation between verbal and spatial abilities at the level of the child.
+```{r, results = 'asis'}
+Model_4 <- lmer(score ~ 
+                -1 + verbal + spatial + # level 1
+                (-1 + verbal + spatial || child_unique) +
+                (-1 + verbal + spatial | family),
+                data=dat) 
+
+tab4    <- table_fun(Model_4)
+tab4 %>% select(-type) %>%
+  # mutate(term = str_replace_all(term, "\\_", "\\\\_")) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Term", "b", "CI"),
+        caption = "Question 4: Model 3") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(2:3, width = "2cm") %>%
+  group_rows("Fixed Parts",1,2) %>%
+  group_rows("Random Parts",3,3) %>%
+  group_rows("Model Terms",4,5) %>%
+  add_header_above(c(" " = 1, "Score" = 2))
+
+t_cor <- (sigma(Model_4)^2 - sigma(Model_3)^2)/sigma(Model_4)^2
+```
+
+```{r}
+anova(Model_4, Model_3)
+```
+
+The true score correlation is `r round(t_cor, 2)`.  
+
