@@ -1,0 +1,64 @@
+---
+title: "Homework 11"
+subtitle: "Psych 5068"
+author: "Emorie Beck"
+date: \today
+output: 
+  pdf_document:
+    toc: yes
+    includes:
+            in_header:
+                header.tex
+    keep_tex: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+options(knitr.kable.NA = '')
+```
+
+# Workspace
+
+## Packages
+```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+library(psych)
+library(lme4)
+library(knitr)
+library(qqplotr)
+library(influence.ME)
+library(HLMdiag)
+library(multcomp)
+library(kableExtra)
+library(optimx)
+library(plyr)
+library(tidyverse)
+```
+
+## Data
+```{r data}
+source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework11/homework_11(1).csv"
+dat      <- data_url %>% read.csv %>% tbl_df 
+```
+
+Level 1:  
+$\eta_{ij} = \beta_{0j} + \beta_{1j}*GMC\_Age + \beta_{2j}*sex$  
+
+Level 2:  
+$\beta_{0j} = \gamma_{00} + \gamma_{01}*crowded\_GMC_j + \gamma_{02}*economic_j + u_{0j}$  
+$\beta_{1j} = \gamma_{10} + \gamma_{11}*crowded\_GMC_j + \gamma_{12}*economic_j + u_{1j}$  
+$\beta_{2j} = \gamma_{20} + \gamma_{21}*crowded\_GMC_j + \gamma_{22}*economic_j$  
+
+For this assignment you will extend these analyses to test nonlinearity and interactions. The data for this assignment are contained in the file, Safety\_Binary.csv.  
+
+If you have problems getting some of the models to converge, you can try alternative optimizers and increase the number of iterations that are used before the algorithm gives up. The easiest way to do this is to create several alternative control lists and then substitute them into the model statement as needed:  
+`cl1 <- glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000))`  
+`cl2 <- glmerControl(optimizer = "Nelder_Mead" optCtrl=list(maxfun=10000))`  
+`cl3 <- glmerControl(optimizer="optimx",optCtrl=list(method="nlminb",maxiter=10000))`  
+
+You will need the `optimx` package for the last one.  
+Switch to a different optimizer like this:  
+
+`Safety\_Fit\_1 <- glmer(unsafe ~ 1 + Z\_Age + Z\_Age\_SQ + sex + (1 + Z\_Age + Z\_Age\_SQ + sex|street), data=Safety\_Data, binomial("logit"), control=cl1)`
