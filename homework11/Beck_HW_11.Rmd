@@ -58,7 +58,7 @@ If you have problems getting some of the models to converge, you can try alterna
 ```{r}
 cl1 <- glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000))
 cl2 <- glmerControl(optimizer = "Nelder_Mead", optCtrl=list(maxfun=10000))
-cl3 <- glmerControl(optimizer="optimx",optCtrl=list(method="nlminb",maxiter=10000))
+cl3 <- glmerControl(optimizer = "optimx",optCtrl=list(method="nlminb",maxiter=10000))
 ```
 
 
@@ -97,7 +97,7 @@ tab1 %>%
 
 ## Part A  
 Is there a nonlinear relationship between age and feeling unsafe?  
-Yes, there is a nonlinear relationship between Age and feeling unsafe (b = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$b`, OR = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$OR`, 95\% CI = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$CI`).  
+Yes, there is no nonlinear relationship between Age and feeling unsafe (b = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$b`, OR = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$OR`, 95\% CI = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$CI`).  
 
 ## Part B  
 Is sex still a significant predictor?  
@@ -294,6 +294,7 @@ crossing(
   sex = c(0,1)
 ) %>%
   mutate(pred = predict(fit4, newdata = ., re.form = NA),
+         ci = predict(fit4, newdata =., interval = "conf", re.form = NA),
          OR = exp(pred),
          p = OR/(1+OR),
          Z_Crowded = mapvalues(Z_Crowded, c(-1,0,1), c("-1 SD", "M", "+1 SD")),
