@@ -39,7 +39,7 @@ library(tidyverse)
 ## Data
 ```{r data}
 source("https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R")
-data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework11/homework_11(1).csv"
+data_url <- "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework11/Safety_Binary(2).csv"
 dat      <- data_url %>% read.csv %>% tbl_df 
 ```
 
@@ -61,4 +61,147 @@ If you have problems getting some of the models to converge, you can try alterna
 You will need the `optimx` package for the last one.  
 Switch to a different optimizer like this:  
 
-`Safety\_Fit\_1 <- glmer(unsafe ~ 1 + Z\_Age + Z\_Age\_SQ + sex + (1 + Z\_Age + Z\_Age\_SQ + sex|street), data=Safety\_Data, binomial("logit"), control=cl1)`
+`Safety\_Fit\_1 <- glmer(unsafe ~ 1 + Z\_Age + Z\_Age\_SQ + sex + (1 + Z\_Age + Z\_Age\_SQ + sex|street), data=Safety\_Data, binomial("logit"), control=cl1)`  
+
+# Question 1  
+In the data file, two of the variables are named age and crowded. Standardize them and name them Z\_Age and Z\_Crowded. Create a new variable that is the square of Z\_Age; name it Z\_Age\_SQ.  
+```{r}
+dat <- dat %>%
+  mutate_at(vars(age, crowded), funs(z = as.numeric(scale(.)))) %>%
+  rename(Z_Age = age_z, Z_Crowded = crowded_z) %>%
+  mutate(Z_Age_SQ = Z_Age^2)
+```
+
+# Question 2  
+Test a Level 1 model that contains Z\_Age, Z\_Age\_SQ, and sex. Level 2 should be unconditional (no predictors) with all residual variances estimated.  
+
+```{r}
+fit1 <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age + Z_Age_SQ + sex | street), data = dat, family = binomial)
+tab1 <- table_fun(fit1)
+```
+
+
+## Part A  
+Is there a nonlinear relationship between age and feeling unsafe?  
+Yes, there is a nonlinear relationship between Age and feeling unsafe (b = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$b`, OR = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$OR`, 95\% CI = `r (tab1 %>% filter(term == "Z\\_Age\\_SQ"))$CI`).  
+
+## Part B  
+Is sex still a significant predictor?  
+Sex is still a significant preditor of feeling unsafe (b = `r (tab1 %>% filter(term == "sex"))$b`, OR = `r (tab1 %>% filter(term == "sex"))$OR`, 95\% CI = `r (tab1 %>% filter(term == "sex"))$CI`). The odds of a woman feeling unsafe is `r (tab1 %>% filter(term == "sex"))$OR` times higher than a man, on average.  
+
+## Part C  
+Can this model be simplified by eliminating any Level 2 variances? Test the following simplifications (the intercept is retained in all random effects specifications):  
+### Part i  
+Eliminate Z_Age_SQ from the random effects.  
+```{r}
+fit1i <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age + sex | street), data = dat, family = binomial)
+tab1i <- table_fun(fit1i)
+```
+### Part ii  
+Eliminate Z_Age and Z_Age_SQ from the random effects.  
+```{r}
+fit1ii <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (sex | street), data = dat, family = binomial)
+tab1ii <- table_fun(fit1ii)
+```
+
+### Part iii  
+Eliminate sex from the random effects.  
+```{r}
+fit1iii <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (sex | street), data = dat, family = binomial)
+tab1iii <- table_fun(fit1iii)
+```
+
+### Part iv  
+Eliminate sex and Z_Age_SQ from the random effects.  
+```{r}
+fit1iv <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age | street), data = dat, family = binomial)
+tab1iv <- table_fun(fit1iv)
+```
+
+### Part v  
+Eliminate sex, Z_Age, and Z_Age_SQ from the random effects.  
+```{r}
+fit1v <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (1 | street), data = dat, family = binomial)
+tab1v <- table_fun(fit1v)
+```
+
+Compared to the original model, identify what you consider to be the simplest model
+using the likelihood ratio test as well as AIC.  
+```{r}
+anova(fit1, fit1i)
+anova(fit1, fit1ii)
+anova(fit1, fit1iii)
+anova(fit1, fit1iv)
+anova(fit1, fit1v)
+```
+
+#Question 3  
+Carry out a similar series of analyses, but substitute the sex:Z_age interaction for the nonlinear age effect.  
+```{r}
+fit3 <- glmer(unsafe ~ Z_Age*sex + (Z_Age * sex | street), data = dat, family = binomial)
+tab3 <- table_fun(fit3)
+```
+
+
+## Part A  
+Is there an interaction between age and sex?  
+No, there is no interactionAge and sex (b = `r (tab3 %>% filter(term == "Z\\_Age:sex"))$b`, OR = `r (tab3 %>% filter(term == "Z\\_Age:sex"))$OR`, 95\% CI = `r (tab3 %>% filter(term == "Z\\_Age:sex"))$CI`). Sex does not moderate the relationship between age and feeling unsafe.   
+
+## Part B  
+What is the simplest Level 2 variance model that can be used? Test the following simplifications (the intercept is retained in all random effects specifications):  
+
+### Part i  
+Eliminate sex:Z_Age from the random effects.  
+```{r}
+fit3i <- glmer(unsafe ~ Z_Age*sex + (Z_Age + sex | street), data = dat, family = binomial)
+tab3i <- table_fun(fit3i)
+```
+
+
+### Part ii  
+Eliminate Z_Age and sex:Z_Age from the random effects.  
+```{r}
+fit3ii <- glmer(unsafe ~ Z_Age*sex + (sex | street), data = dat, family = binomial)
+tab3ii <- table_fun(fit3ii)
+```
+
+
+### Part iii  
+Eliminate sex and sex:Z_Age from the random effects.  
+```{r}
+fit3iii <- glmer(unsafe ~ Z_Age*sex + (Z_Age | street), data = dat, family = binomial)
+tab3iii <- table_fun(fit3iii)
+```
+
+### Part iv  
+Eliminate sex, Z_Age, and sex:Z_Age from the random effects.  
+```{r}
+fit3iv <- glmer(unsafe ~ Z_Age*sex + (1 | street), data = dat, family = binomial)
+tab3iv <- table_fun(fit3iv)
+```
+
+Compared to the original model, identify what you consider to be the simplest model using the likelihood ratio test as well as AIC.  
+```{r}
+anova(fit3, fit3i)
+anova(fit3, fit3ii)
+anova(fit3, fit3iii)
+anova(fit3, fit3iv)
+```
+
+
+# Question 4  
+Now add Z\_Crowded to the simplest model from Question 3 and include all two-way interactions and the three-way interaction.  
+```{r}
+fit4 <- glmer(unsafe ~ Z_Age*sex + (Z_Age * sex | street), data = dat, family = binomial)
+tab3 <- table_fun(fit3)
+```
+
+
+## Part A  
+What is the highest order effect that is significant?  
+
+## Part B  
+Plot the highest order significant effect with probability of feeling unsafe as the outcome. 
+
+## Part C  
+Provide an interpretation for the plotted effect.

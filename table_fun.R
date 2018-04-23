@@ -53,11 +53,20 @@ table_fun <- function(model){
   
   tab <- fixed %>%
     full_join(rand) %>%
+    full_join(mod_terms)
+  if ("glmerMod" %in% class(fit1)){
+    tab <- tab %>% 
+      mutate(OR = sprintf("%.2f", exp(estimate)),
+             lower = exp(lower),
+             upper = exp(upper))
+  }
+  tab <- tab %>%
     mutate(CI = sprintf("[%.2f, %.2f]", lower, upper)) %>%
     select(-lower, -upper) %>%
-    full_join(mod_terms) %>%
     mutate(estimate = sprintf("%.2f", estimate)) %>%
-    dplyr::rename(b = estimate) %>%
-    select(type, everything())
+    dplyr::rename(b = estimate)
+  if ("glmerMod" %in% class(fit1)){
+    tab <- tab %>% select(type, term, b, OR, CI)
+  } else{tab <- tab %>% select(type, everything())}
   return(tab)
 }
