@@ -18,7 +18,7 @@ table_fun <- function(model){
     unite(var, var1, var2, sep = "") %>%
     mutate(var = sprintf("$\\tau_{%s}$", var))
   ## get confidence intervals ##
-  CI <- data.frame(confint.merMod(model, method = "boot", nsim = 10, oldNames = F)) %>%
+  CI <- data.frame(confint.merMod(model, method = "boot", nsim = 100, oldNames = F)) %>%
     mutate(term = rownames(.)) %>% setNames(c("lower", "upper", "term"))
   
   CI %>% filter(term == "sigma") %>%
@@ -61,7 +61,8 @@ table_fun <- function(model){
              upper = exp(upper))
   }
   tab <- tab %>%
-    mutate(CI = sprintf("[%.2f, %.2f]", lower, upper)) %>%
+    mutate_at(vars(lower, upper), funs(ifelse(is.na(.) == T, "", sprintf("%.2f", .)))) %>%
+    mutate(CI = sprintf("[%s, %s]", lower, upper)) %>%
     select(-lower, -upper) %>%
     mutate(estimate = sprintf("%.2f", estimate)) %>%
     dplyr::rename(b = estimate)

@@ -54,9 +54,13 @@ $\beta_{2j} = \gamma_{20} + \gamma_{21}*crowded\_GMC_j + \gamma_{22}*economic_j$
 For this assignment you will extend these analyses to test nonlinearity and interactions. The data for this assignment are contained in the file, Safety\_Binary.csv.  
 
 If you have problems getting some of the models to converge, you can try alternative optimizers and increase the number of iterations that are used before the algorithm gives up. The easiest way to do this is to create several alternative control lists and then substitute them into the model statement as needed:  
-`cl1 <- glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000))`  
-`cl2 <- glmerControl(optimizer = "Nelder_Mead" optCtrl=list(maxfun=10000))`  
-`cl3 <- glmerControl(optimizer="optimx",optCtrl=list(method="nlminb",maxiter=10000))`  
+
+```{r}
+cl1 <- glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000))
+cl2 <- glmerControl(optimizer = "Nelder_Mead", optCtrl=list(maxfun=10000))
+cl3 <- glmerControl(optimizer="optimx",optCtrl=list(method="nlminb",maxiter=10000))
+```
+
 
 You will need the `optimx` package for the last one.  
 Switch to a different optimizer like this:  
@@ -75,9 +79,19 @@ dat <- dat %>%
 # Question 2  
 Test a Level 1 model that contains Z\_Age, Z\_Age\_SQ, and sex. Level 2 should be unconditional (no predictors) with all residual variances estimated.  
 
-```{r}
-fit1 <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age + Z_Age_SQ + sex | street), data = dat, family = binomial)
+```{r, results = 'asis'}
+fit1 <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age + Z_Age_SQ + sex | street), 
+              data = dat, family = binomial("logit"), control=cl1)
 tab1 <- table_fun(fit1)
+
+tab1 %>%
+  select(-type) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("", "b", "OR", "CI")) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,4) %>%
+  group_rows("Random", 5,8) %>%
+  group_rows("Model", 9,10)
 ```
 
 
@@ -91,39 +105,65 @@ Sex is still a significant preditor of feeling unsafe (b = `r (tab1 %>% filter(t
 
 ## Part C  
 Can this model be simplified by eliminating any Level 2 variances? Test the following simplifications (the intercept is retained in all random effects specifications):  
+
 ### Part i  
 Eliminate Z_Age_SQ from the random effects.  
 ```{r}
-fit1i <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age + sex | street), data = dat, family = binomial)
+fit1i <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age + sex | street), 
+               data = dat, family = binomial("logit"), control=cl1)
 tab1i <- table_fun(fit1i)
 ```
+
 ### Part ii  
 Eliminate Z_Age and Z_Age_SQ from the random effects.  
 ```{r}
-fit1ii <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (sex | street), data = dat, family = binomial)
+fit1ii <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (sex | street), 
+                data = dat, family = binomial("logit"))
 tab1ii <- table_fun(fit1ii)
 ```
 
 ### Part iii  
 Eliminate sex from the random effects.  
 ```{r}
-fit1iii <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (sex | street), data = dat, family = binomial)
+fit1iii <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age + Z_Age_SQ | street), 
+                 data = dat, family = binomial("logit"))
 tab1iii <- table_fun(fit1iii)
 ```
 
 ### Part iv  
 Eliminate sex and Z_Age_SQ from the random effects.  
 ```{r}
-fit1iv <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age | street), data = dat, family = binomial)
+fit1iv <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (Z_Age | street), 
+                data = dat, family = binomial("logit"))
 tab1iv <- table_fun(fit1iv)
 ```
 
 ### Part v  
 Eliminate sex, Z_Age, and Z_Age_SQ from the random effects.  
 ```{r}
-fit1v <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (1 | street), data = dat, family = binomial)
+fit1v <- glmer(unsafe ~ Z_Age + Z_Age_SQ + sex + (1 | street), 
+               data = dat, family = binomial("logit"))
 tab1v <- table_fun(fit1v)
 ```
+
+```{r, results = 'asis'}
+tab1i %>% mutate(Model = "1i") %>%
+  full_join(tab1ii %>% mutate(Model = "1ii")) %>%
+  full_join(tab1ii %>% mutate(Model = "1iii")) %>%
+  full_join(tab1ii %>% mutate(Model = "1iv")) %>%
+  full_join(tab1ii %>% mutate(Model = "1v")) %>%
+  mutate(b = sprintf("\\makecell{%s \\\\ {%s}}", OR, CI)) %>%
+  select(type:b, Model) %>%
+  spread(key = Model, value = b) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("", rep("OR [CI]", 5))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1, 4) %>%
+  group_rows("Model", 5, 6) %>%
+  group_rows("Random", 7,9)
+```
+
 
 Compared to the original model, identify what you consider to be the simplest model
 using the likelihood ratio test as well as AIC.  
@@ -135,11 +175,23 @@ anova(fit1, fit1iv)
 anova(fit1, fit1v)
 ```
 
+The best model is the model that only includes a random slope for sex.  
+
 #Question 3  
 Carry out a similar series of analyses, but substitute the sex:Z_age interaction for the nonlinear age effect.  
-```{r}
-fit3 <- glmer(unsafe ~ Z_Age*sex + (Z_Age * sex | street), data = dat, family = binomial)
+```{r, results = 'asis'}
+fit3 <- glmer(unsafe ~ Z_Age*sex + (Z_Age * sex | street), 
+              data = dat, family = binomial("logit"), control=cl1)
 tab3 <- table_fun(fit3)
+
+tab3 %>%
+  select(-type) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("", "b", "OR", "CI")) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,4) %>%
+  group_rows("Random", 5,8) %>%
+  group_rows("Model", 9,10)
 ```
 
 
@@ -153,7 +205,8 @@ What is the simplest Level 2 variance model that can be used? Test the following
 ### Part i  
 Eliminate sex:Z_Age from the random effects.  
 ```{r}
-fit3i <- glmer(unsafe ~ Z_Age*sex + (Z_Age + sex | street), data = dat, family = binomial)
+fit3i <- glmer(unsafe ~ Z_Age*sex + (Z_Age + sex | street), 
+               data = dat, family = binomial("logit"), control=cl1)
 tab3i <- table_fun(fit3i)
 ```
 
@@ -161,7 +214,8 @@ tab3i <- table_fun(fit3i)
 ### Part ii  
 Eliminate Z_Age and sex:Z_Age from the random effects.  
 ```{r}
-fit3ii <- glmer(unsafe ~ Z_Age*sex + (sex | street), data = dat, family = binomial)
+fit3ii <- glmer(unsafe ~ Z_Age*sex + (sex | street), 
+                data = dat, family = binomial("logit"))
 tab3ii <- table_fun(fit3ii)
 ```
 
@@ -169,16 +223,36 @@ tab3ii <- table_fun(fit3ii)
 ### Part iii  
 Eliminate sex and sex:Z_Age from the random effects.  
 ```{r}
-fit3iii <- glmer(unsafe ~ Z_Age*sex + (Z_Age | street), data = dat, family = binomial)
+fit3iii <- glmer(unsafe ~ Z_Age*sex + (Z_Age | street), 
+                 data = dat, family = binomial("logit"))
 tab3iii <- table_fun(fit3iii)
 ```
 
 ### Part iv  
 Eliminate sex, Z_Age, and sex:Z_Age from the random effects.  
 ```{r}
-fit3iv <- glmer(unsafe ~ Z_Age*sex + (1 | street), data = dat, family = binomial)
+fit3iv <- glmer(unsafe ~ Z_Age*sex + (1 | street), 
+                data = dat, family = binomial("logit"))
 tab3iv <- table_fun(fit3iv)
 ```
+
+```{r, results = 'asis'}
+tab3i %>% mutate(Model = "3i") %>%
+  full_join(tab3ii %>% mutate(Model = "3ii")) %>%
+  full_join(tab3ii %>% mutate(Model = "3iii")) %>%
+  full_join(tab3ii %>% mutate(Model = "3iv")) %>%
+  mutate(b = sprintf("\\makecell{%s \\\\ {%s}}", OR, CI)) %>%
+  select(type:b, Model) %>%
+  spread(key = Model, value = b) %>%
+  select(-type) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("", rep("OR [CI]", 4))) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1, 4) %>%
+  group_rows("Model", 5, 6) %>%
+  group_rows("Random", 7,9)
+```
+
 
 Compared to the original model, identify what you consider to be the simplest model using the likelihood ratio test as well as AIC.  
 ```{r}
@@ -191,17 +265,49 @@ anova(fit3, fit3iv)
 
 # Question 4  
 Now add Z\_Crowded to the simplest model from Question 3 and include all two-way interactions and the three-way interaction.  
-```{r}
-fit4 <- glmer(unsafe ~ Z_Age*sex + (Z_Age * sex | street), data = dat, family = binomial)
-tab3 <- table_fun(fit3)
+```{r, results='asis'}
+fit4 <- glmer(unsafe ~ Z_Age*sex*Z_Crowded + (sex*Z_Crowded | street), 
+              data = dat, family = binomial("logit"), control=cl1)
+tab4 <- table_fun(fit4)
+
+tab4 %>%
+  select(-type) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("", "b", "OR", "CI")) %>%
+  kable_styling(full_width = F) %>%
+  group_rows("Fixed", 1,8) %>%
+  group_rows("Random", 9,12) %>%
+  group_rows("Model", 13,14)
 ```
 
 
 ## Part A  
 What is the highest order effect that is significant?  
+The three way interaction between Age, sex, and crowdedness is significant. 
 
 ## Part B  
 Plot the highest order significant effect with probability of feeling unsafe as the outcome. 
+```{r}
+crossing(
+  Z_Age = seq(-2,2,.1),
+  Z_Crowded = seq(-1,1,1),
+  sex = c(0,1)
+) %>%
+  mutate(pred = predict(fit4, newdata = ., re.form = NA),
+         OR = exp(pred),
+         p = OR/(1+OR),
+         Z_Crowded = mapvalues(Z_Crowded, c(-1,0,1), c("-1 SD", "M", "+1 SD")),
+         Z_Crowded = factor(Z_Crowded, levels = c("-1 SD", "M", "+1 SD")),
+         sex = mapvalues(sex, c(0,1), c("Male", "Female"))) %>%
+  ggplot(aes(x = Z_Age, y = p, color = Z_Crowded)) +
+  geom_line() +
+  facet_grid(~sex) +
+  theme_classic() +
+  labs(x = "Age (Standardized)", y = "Probability", color = "Crowdedness (Standardized)") +
+  theme(legend.position = "bottom")
+```
 
 ## Part C  
 Provide an interpretation for the plotted effect.
+
+For young men, the probability of feeling unsafe dones't vary across different levels of crowdedness. As they age, however, men become much more likely to feel unsafe on uncrowded streets. Across different ages, women are more likely to feel unsafe on less crowded streets. Older women in general are also more likely to feel unsafe.   
