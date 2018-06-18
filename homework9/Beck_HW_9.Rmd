@@ -97,7 +97,7 @@ head(BD)
 Begin by fitting an unconditional model (no dummy codes to indicate the type of outcome measure, but specify a random effects model that indicates DV is nested within study).  
 
 ```{r}
-fit2 <- rma.mv(d, BD, mods = ~ 1, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
+fit2 <- rma.mv(d, BD, mods = ~ 1, random = ~ DV | study, struct="UN", data=New_Phobia_Data)
 summary(fit2)
 ```
 
