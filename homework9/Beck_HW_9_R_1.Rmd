@@ -97,7 +97,7 @@ head(BD)
 Begin by fitting an unconditional model (no dummy codes to indicate the type of outcome measure, but specify a random effects model that indicates DV is nested within study).  
 
 ```{r}
-fit2 <- rma.mv(d, BD, mods = ~ 1, random = ~ DV | study, struct="UN", data=New_Phobia_Data)
+fit2 <- rma.mv(d, BD, mods = ~ 1, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
 summary(fit2)
 ```
 
@@ -133,6 +133,7 @@ The effect sizes in the funnel plot suggest that there is more heterogeneity in 
 Now include the dummy codes for outcome type in a no intercept model.  
 ```{r}
 fit3 <- rma.mv(d, BD, mods = ~ -1 + d_b + d_s, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
+summary(fit3)
 ```
 
 
@@ -154,20 +155,21 @@ According to the spousal reports, the treatment was effective in reducing the fe
 ## Part D  
 On average, how much better off was a treatment participant compared to a control participant?
 
-On average, spouses reported individual in the treatment group were `r round(coef(fit3)["d_s"],2)` SD less afraid than someone in the control group.  
-
-## Part E  
-Was the effect size for spouse reports significantly different from the effect size for the behavioral measure?  
-
 ```{r}
-V0=matrix(c(1,-1),nc=2)
-rownames(V0) <- c("Behavioral v Spousal")
+V0=matrix(c(c(.5, .5), 
+            c(1,-1)) , byrow = T, nc = 2)
+rownames(V0) <- c("Behavioral + Spousal", "Behavioral v Spousal")
 glht_V0 <- glht(fit3,linfct=V0,alternative="two.sided",rhs=0)
 res_V0    <- confint(glht_V0, calpha = univariate_calpha()) 
 res_V0_df <- res_V0$confint %>% data.frame()
 ```
 
-There was no difference in effect size for spouse reports v. behavioral measures, b = `r round(res_V0_df$Estimate,2)`, 95\% CI [`r round(res_V0_df$lwr,2)`, `r round(res_V0_df$upr,2)`].  
+On average, spouses reported individual in the treatment group were `r round(res_V0_df$Estimate[1],2)` SD (CI [`r round(res_V0_df$lwr[1],2)`, `r round(res_V0_df$upr[1],2)`]) less afraid than someone in the control group.  
+
+## Part E  
+Was the effect size for spouse reports significantly different from the effect size for the behavioral measure?  
+
+There was no difference in effect size for spouse reports v. behavioral measures, b = `r round(res_V0_df$Estimate[2],2)`, 95\% CI [`r round(res_V0_df$lwr[2],2)`, `r round(res_V0_df$upr[2],2)`].  
 
 ## Part F
 How highly related are the true effect sizes for behavior and spouse reports?  
@@ -193,6 +195,7 @@ Now add the weeks of therapy variable as a moderator.
 
 ```{r}
 fit4 <- rma.mv(d, BD, mods = ~ -1 + d_b + d_s + d_b:weeks + d_s:weeks, random = ~ DV | study, struct="UN", data=New_Phobia_Data, tdist=TRUE, method="REML")
+summary(fit4)
 ```
 
 ## Part A  
@@ -217,6 +220,7 @@ Yes, the length of treatment moderated effect sizes for both measures. For both 
 Examine the funnel plot again. Any evidence of lingering heterogeneity that might be modeled with the inclusion of additional predictors?  
 
 ```{r}
+par(mfrow = c(1,1))
 funnel(fit4,addtau2=TRUE,xlab="Effect Size",level=.95,back = "grey")
 title("Model Q4")
 ```

@@ -1,0 +1,24 @@
+\contentsline {section}{Workspace}{1}{section*.2}
+\contentsline {subsection}{Packages}{1}{section*.3}
+\contentsline {subsection}{Data}{1}{section*.4}
+\contentsline {section}{Question 1}{1}{section*.5}
+\contentsline {section}{Question 2}{2}{section*.6}
+\contentsline {subsection}{Part A}{2}{section*.7}
+\contentsline {subsection}{Part B}{2}{section*.8}
+\contentsline {subsection}{Part C}{3}{section*.9}
+\contentsline {subsubsection}{Part i}{3}{section*.10}
+\contentsline {subsubsection}{Part ii}{3}{section*.11}
+\contentsline {subsubsection}{Part iii}{3}{section*.12}
+\contentsline {subsubsection}{Part iv}{3}{section*.13}
+\contentsline {subsubsection}{Part v}{3}{section*.14}
+\contentsline {section}{Question 3}{5}{section*.15}
+\contentsline {subsection}{Part A}{6}{section*.16}
+\contentsline {subsection}{Part B}{6}{section*.17}
+\contentsline {subsubsection}{Part i}{6}{section*.18}
+\contentsline {subsubsection}{Part ii}{6}{section*.19}
+\contentsline {subsubsection}{Part iii}{6}{section*.20}
+\contentsline {subsubsection}{Part iv}{7}{section*.21}
+\contentsline {section}{Question 4}{8}{section*.22}
+\contentsline {subsection}{Part A}{9}{section*.23}
+\contentsline {subsection}{Part B}{9}{section*.24}
+\contentsline {subsection}{Part C}{10}{section*.25}

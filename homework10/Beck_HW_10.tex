@@ -1,0 +1,515 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Homework 10},
+            pdfauthor={Emorie Beck},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+  \title{Homework 10}
+  \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+\subtitle{Psych 5068}
+  \author{Emorie Beck}
+  \preauthor{\centering\large\emph}
+  \postauthor{\par}
+  \predate{\centering\large\emph}
+  \postdate{\par}
+  \date{\today}
+
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\section{Workspace}\label{workspace}
+
+\subsection{Packages}\label{packages}
+
+\subsection{Data}\label{data}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{source}\NormalTok{(}\StringTok{"https://raw.githubusercontent.com/emoriebeck/homeworks/master/table_fun.R"}\NormalTok{)}
+\NormalTok{data_url <-}\StringTok{ "https://raw.githubusercontent.com/emoriebeck/homeworks/master/homework10/homework_10_long.csv"}
+\NormalTok{dat      <-}\StringTok{ }\NormalTok{data_url }\OperatorTok{%>%}\StringTok{ }\NormalTok{read.csv }\OperatorTok{%>%}\StringTok{ }\NormalTok{tbl_df }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{N_items =} \KeywordTok{ifelse}\NormalTok{(R }\OperatorTok{==}\StringTok{ }\DecValTok{1}\NormalTok{, }\DecValTok{10}\NormalTok{, }\KeywordTok{ifelse}\NormalTok{(DC }\OperatorTok{==}\StringTok{ }\DecValTok{1}\NormalTok{, }\DecValTok{20}\NormalTok{, }\DecValTok{40}\NormalTok{)))}
+\end{Highlighting}
+\end{Shaded}
+
+The file, homework\_10\_long.csv, contains data from a survey study in
+which 245 undergraduates (sex is coded men = 1, women = 2) completed the
+10-item Rosenberg Self-Esteem Scale, the 20-item Desire for Control
+Scale, and the 40-item Narcissistic Personality Inventory. The items
+have been appropriately reverse-coded to all be in a consistent
+direction and they have been standardized. Higher item Z scores indicate
+higher self-esteem, higher desire for control, and higher narcissism.
+Using methods described in class, answer the following questions about
+this sample. All of these questions should be answered using the results
+from HLM analyses.
+
+\section{Question 1}\label{question-1}
+
+How reliable are these three scales? Using the results from the HLM
+analysis, find the internal consistency reliabilities.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit1 <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(Score }\OperatorTok{~}\StringTok{ }\OperatorTok{-}\DecValTok{1} \OperatorTok{+}\StringTok{ }\NormalTok{DC }\OperatorTok{+}\StringTok{ }\NormalTok{R }\OperatorTok{+}\StringTok{ }\NormalTok{N }\OperatorTok{+}\StringTok{ }
+\StringTok{                 }\NormalTok{(}\OperatorTok{-}\DecValTok{1} \OperatorTok{+}\StringTok{ }\NormalTok{DC }\OperatorTok{+}\StringTok{ }\NormalTok{R }\OperatorTok{+}\StringTok{ }\NormalTok{N }\OperatorTok{|}\NormalTok{ID), }\DataTypeTok{data=}\NormalTok{dat,}
+                 \DataTypeTok{REML=}\NormalTok{F)}
+\KeywordTok{summary}\NormalTok{(fit1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Linear mixed model fit by maximum likelihood  ['lmerMod']
+## Formula: Score ~ -1 + DC + R + N + (-1 + DC + R + N | ID)
+##    Data: dat
+## 
+##      AIC      BIC   logLik deviance df.resid 
+##  46742.5  46820.0 -23361.2  46722.5    17140 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -4.2713 -0.7311 -0.1271  0.7877  2.9545 
+## 
+## Random effects:
+##  Groups   Name Variance Std.Dev. Corr     
+##  ID       DC   0.1670   0.4086            
+##           R    0.3823   0.6183   0.46     
+##           N    0.1001   0.3163   0.67 0.39
+##  Residual      0.8364   0.9146            
+## Number of obs: 17150, groups:  ID, 245
+## 
+## Fixed effects:
+##      Estimate Std. Error t value
+## DC -1.066e-15  2.919e-02       0
+## R  -1.053e-15  4.361e-02       0
+## N  -6.191e-16  2.222e-02       0
+## 
+## Correlation of Fixed Effects:
+##   DC    R    
+## R 0.373      
+## N 0.543 0.325
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(varc1 <-}\StringTok{ }\KeywordTok{VarCorr}\NormalTok{(fit1) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{data.frame}\NormalTok{() }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(}\KeywordTok{is.na}\NormalTok{(var2) }\OperatorTok{&}\StringTok{ }\OperatorTok{!}\KeywordTok{is.na}\NormalTok{(var1)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{N_items =} \KeywordTok{ifelse}\NormalTok{(var1 }\OperatorTok{==}\StringTok{ "R"}\NormalTok{, }\DecValTok{10}\NormalTok{, }\KeywordTok{ifelse}\NormalTok{(var1 }\OperatorTok{==}\StringTok{ "DC"}\NormalTok{, }\DecValTok{20}\NormalTok{, }\DecValTok{40}\NormalTok{)),}
+         \DataTypeTok{ICC =}\NormalTok{ sdcor}\OperatorTok{^}\DecValTok{2} \OperatorTok{/}\StringTok{ }\NormalTok{(sdcor}\OperatorTok{^}\DecValTok{2} \OperatorTok{+}\StringTok{ }\KeywordTok{sigma}\NormalTok{(fit1)}\OperatorTok{^}\DecValTok{2}\OperatorTok{/}\NormalTok{N_items)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{select}\NormalTok{(var1, ICC))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   var1       ICC
+## 1   DC 0.7997107
+## 2    R 0.8204978
+## 3    N 0.8271683
+\end{verbatim}
+
+\section{Question 2}\label{question-2}
+
+What are the correlations among the scale means?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{vc1 <-}\StringTok{ }\KeywordTok{attr}\NormalTok{(}\KeywordTok{vcov}\NormalTok{(fit1), }\StringTok{"factors"}\NormalTok{)[[}\DecValTok{1}\NormalTok{]] }\OperatorTok{%>%}\StringTok{ }\NormalTok{as.matrix}
+\NormalTok{vc1[}\KeywordTok{upper.tri}\NormalTok{(vc1, }\DataTypeTok{diag =}\NormalTok{ T)] <-}\StringTok{ }\OtherTok{NA}
+\NormalTok{vc1 }\OperatorTok{%>%}\StringTok{ }\NormalTok{data.frame }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{v1 =} \KeywordTok{rownames}\NormalTok{(.)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{gather}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ v2, }\DataTypeTok{value =}\NormalTok{ value, }\DataTypeTok{na.rm =}\NormalTok{ T, }\OperatorTok{-}\NormalTok{v1) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{unite}\NormalTok{(v, v1, v2, }\DataTypeTok{sep =} \StringTok{"_"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      v     value
+## 2 R_DC 0.3726347
+## 3 N_DC 0.5428000
+## 6  N_R 0.3247658
+\end{verbatim}
+
+\section{Question 3}\label{question-3}
+
+Now find the latent variable correlations for these measures.
+
+\subsection{Part A}\label{part-a}
+
+What are the values of these correlations?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Latent_Scores_EB <-}\StringTok{ }\KeywordTok{coef}\NormalTok{(fit1)}\OperatorTok{$}\NormalTok{ID}
+\NormalTok{LSVCM <-}\StringTok{ }\KeywordTok{cov}\NormalTok{(Latent_Scores_EB)}
+\NormalTok{lc1 <-}\StringTok{ }\KeywordTok{cov2cor}\NormalTok{(LSVCM)}
+\NormalTok{lc1[}\KeywordTok{upper.tri}\NormalTok{(lc1, }\DataTypeTok{diag =}\NormalTok{ T)] <-}\StringTok{ }\OtherTok{NA}
+\NormalTok{lc1 }\OperatorTok{%>%}\StringTok{ }\NormalTok{data.frame }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{v1 =} \KeywordTok{rownames}\NormalTok{(.)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{gather}\NormalTok{(}\DataTypeTok{key =}\NormalTok{ v2, }\DataTypeTok{value =}\NormalTok{ value, }\DataTypeTok{na.rm =}\NormalTok{ T, }\OperatorTok{-}\NormalTok{v1) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{unite}\NormalTok{(v, v1, v2, }\DataTypeTok{sep =} \StringTok{"_"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      v     value
+## 2 R_DC 0.5387016
+## 3 N_DC 0.7635489
+## 6  N_R 0.4623849
+\end{verbatim}
+
+\subsection{Part B}\label{part-b}
+
+Is each latent variable correlation significantly different from 0?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{CI1 <-}\StringTok{ }\KeywordTok{confint}\NormalTok{(fit1, }\DataTypeTok{oldNames =}\NormalTok{ F)}
+
+\NormalTok{CI1 }\OperatorTok{%>%}\StringTok{ }\NormalTok{data.frame }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{var =} \KeywordTok{rownames}\NormalTok{(.)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(}\KeywordTok{grepl}\NormalTok{(}\StringTok{"cor"}\NormalTok{, var))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      X2.5..   X97.5..         var
+## 1 0.3230749 0.5798763 cor_R.DC|ID
+## 2 0.5572817 0.7577931 cor_N.DC|ID
+## 3 0.2543082 0.5191626  cor_N.R|ID
+\end{verbatim}
+
+Yes, none of the confidence intervals overlap with 0, so the
+correlations are significant.
+
+\subsection{Part C}\label{part-c}
+
+Are the correlations collectively different from 0?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit3c <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(Score }\OperatorTok{~}\StringTok{ }\OperatorTok{-}\DecValTok{1} \OperatorTok{+}\StringTok{ }\NormalTok{DC }\OperatorTok{+}\StringTok{ }\NormalTok{R }\OperatorTok{+}\StringTok{ }\NormalTok{N }\OperatorTok{+}\StringTok{ }
+\StringTok{                 }\NormalTok{(}\OperatorTok{-}\DecValTok{1} \OperatorTok{+}\StringTok{ }\NormalTok{DC }\OperatorTok{+}\StringTok{ }\NormalTok{R }\OperatorTok{+}\StringTok{ }\NormalTok{N }\OperatorTok{||}\StringTok{ }\NormalTok{ID), }\DataTypeTok{data=}\NormalTok{dat,}
+                 \DataTypeTok{REML=}\NormalTok{F)}
+\KeywordTok{anova}\NormalTok{(fit1, fit3c)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Data: dat
+## Models:
+## fit3c: Score ~ -1 + DC + R + N + ((0 + DC | ID) + (0 + R | ID) + (0 + 
+## fit3c:     N | ID))
+## fit1: Score ~ -1 + DC + R + N + (-1 + DC + R + N | ID)
+##       Df   AIC   BIC logLik deviance  Chisq Chi Df Pr(>Chisq)    
+## fit3c  7 46865 46919 -23425    46851                             
+## fit1  10 46742 46820 -23361    46722 128.27      3  < 2.2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+The model with the correlations is better than one without them, so the
+correlations are different than 0.
+
+\section{Question 4}\label{question-4}
+
+Are there sex differences for these scales?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{dat <-}\StringTok{ }\NormalTok{dat }\OperatorTok{%>%}\StringTok{ }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{Sex =} \KeywordTok{mapvalues}\NormalTok{(Sex, }\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{), }\KeywordTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{1}\NormalTok{)))}
+\NormalTok{fit4 <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(Score }\OperatorTok{~}\StringTok{ }\OperatorTok{-}\DecValTok{1} \OperatorTok{+}\StringTok{ }\NormalTok{DC }\OperatorTok{+}\StringTok{ }\NormalTok{R }\OperatorTok{+}\StringTok{ }\NormalTok{N }\OperatorTok{+}\StringTok{ }\NormalTok{DC}\OperatorTok{:}\NormalTok{Sex }\OperatorTok{+}\StringTok{ }\NormalTok{R}\OperatorTok{:}\NormalTok{Sex }\OperatorTok{+}\StringTok{ }\NormalTok{N}\OperatorTok{:}\NormalTok{Sex }\OperatorTok{+}\StringTok{ }
+\StringTok{                 }\NormalTok{(}\OperatorTok{-}\DecValTok{1} \OperatorTok{+}\StringTok{ }\NormalTok{DC }\OperatorTok{+}\StringTok{ }\NormalTok{R }\OperatorTok{+}\StringTok{ }\NormalTok{N }\OperatorTok{|}\NormalTok{ID), }\DataTypeTok{data=}\NormalTok{dat,}
+                 \DataTypeTok{REML=}\NormalTok{F)}
+\KeywordTok{summary}\NormalTok{(fit4)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Linear mixed model fit by maximum likelihood  ['lmerMod']
+## Formula: Score ~ -1 + DC + R + N + DC:Sex + R:Sex + N:Sex + (-1 + DC +  
+##     R + N | ID)
+##    Data: dat
+## 
+##      AIC      BIC   logLik deviance df.resid 
+##  46740.7  46841.4 -23357.3  46714.7    17137 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -4.2674 -0.7313 -0.1255  0.7885  2.9435 
+## 
+## Random effects:
+##  Groups   Name Variance Std.Dev. Corr     
+##  ID       DC   0.16301  0.4037            
+##           R    0.37670  0.6138   0.45     
+##           N    0.09701  0.3115   0.66 0.38
+##  Residual      0.83641  0.9146            
+## Number of obs: 17150, groups:  ID, 245
+## 
+## Fixed effects:
+##        Estimate Std. Error t value
+## DC      0.06756    0.04239   1.594
+## R       0.08033    0.06355   1.264
+## N       0.05933    0.03216   1.845
+## DC:Sex -0.12635    0.05797  -2.180
+## R:Sex  -0.15024    0.08690  -1.729
+## N:Sex  -0.11095    0.04398  -2.523
+## 
+## Correlation of Fixed Effects:
+##        DC     R      N      DC:Sex R:Sex 
+## R       0.363                            
+## N       0.533  0.313                     
+## DC:Sex -0.731 -0.266 -0.390              
+## R:Sex  -0.266 -0.731 -0.229  0.363       
+## N:Sex  -0.390 -0.229 -0.731  0.533  0.313
+\end{verbatim}
+
+\subsection{Part A}\label{part-a-1}
+
+Are men and women different in their means on each of these scales?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(res <-}\StringTok{ }\KeywordTok{table_fun}\NormalTok{(fit4) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{filter}\NormalTok{(type }\OperatorTok{==}\StringTok{ "Fixed Parts"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##          type   term     b             CI
+## 1 Fixed Parts     DC  0.07  [-0.01, 0.12]
+## 2 Fixed Parts      R  0.08   [0.02, 0.16]
+## 3 Fixed Parts      N  0.06   [0.02, 0.08]
+## 4 Fixed Parts DC:Sex -0.13  [-0.15, 0.07]
+## 5 Fixed Parts  R:Sex -0.15 [-0.24, -0.04]
+## 6 Fixed Parts  N:Sex -0.11 [-0.16, -0.08]
+\end{verbatim}
+
+Men and women differ in desire for control and narcissism. Women have
+less desire for control (b = -0.13, 95\% CI = {[}-0.15, 0.07{]}) and are
+less narcissitic (b = -0.11, 95\% CI = {[}-0.16, -0.08{]}) than men, on
+average.
+
+\subsection{Part B}\label{part-b-1}
+
+Collectively, does participant sex add significantly to the original
+model?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{anova}\NormalTok{(fit1, fit4)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Data: dat
+## Models:
+## fit1: Score ~ -1 + DC + R + N + (-1 + DC + R + N | ID)
+## fit4: Score ~ -1 + DC + R + N + DC:Sex + R:Sex + N:Sex + (-1 + DC + 
+## fit4:     R + N | ID)
+##      Df   AIC   BIC logLik deviance  Chisq Chi Df Pr(>Chisq)  
+## fit1 10 46742 46820 -23361    46722                           
+## fit4 13 46741 46841 -23357    46715 7.8074      3    0.05016 .
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+Although there are sex differences, the model that inlcudes sex is only
+marginally better.
+
+\section{Question 5}\label{question-5}
+
+Generally, research finds that narcissists think highly of themselves
+and like to control their environments. That said, a narcissist with
+high control needs but low self-esteem might be a problem. They might be
+particularly likely to manipulate others in an attempt to restore a
+grandiose sense of self. Using the latent variable scores fdrom the
+initial analysis (Question 3), identify by ID number the person in the
+sample who you think is the best candidate for this low self-esteem,
+high desire for control, high narcissism label.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{(dark_triad <-}\StringTok{ }\NormalTok{Latent_Scores_EB }\OperatorTok{%>%}\StringTok{ }\NormalTok{tbl_df }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{ID =} \KeywordTok{rownames}\NormalTok{(.)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(}\KeywordTok{sign}\NormalTok{(R) }\OperatorTok{==}\StringTok{ }\OperatorTok{-}\DecValTok{1} \OperatorTok{&}\StringTok{ }\KeywordTok{sign}\NormalTok{(DC) }\OperatorTok{==}\StringTok{ }\DecValTok{1} \OperatorTok{&}\StringTok{ }\KeywordTok{sign}\NormalTok{(N) }\OperatorTok{==}\StringTok{ }\DecValTok{1}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{dist =} \KeywordTok{rowSums}\NormalTok{(}\KeywordTok{abs}\NormalTok{(}\KeywordTok{cbind}\NormalTok{(DC}\OperatorTok{^}\DecValTok{2}\NormalTok{, R}\OperatorTok{^}\DecValTok{2}\NormalTok{, N}\OperatorTok{^}\DecValTok{2}\NormalTok{)))) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{arrange}\NormalTok{(}\KeywordTok{desc}\NormalTok{(dist)))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 35 x 5
+##        DC       R      N ID     dist
+##     <dbl>   <dbl>  <dbl> <chr> <dbl>
+##  1 0.367  -1.01   0.416  89    1.32 
+##  2 0.802  -0.316  0.667  64    1.19 
+##  3 0.0634 -0.833  0.234  108   0.753
+##  4 0.687  -0.133  0.292  25    0.574
+##  5 0.553  -0.372  0.334  233   0.557
+##  6 0.0433 -0.691  0.122  193   0.494
+##  7 0.341  -0.605  0.0446 136   0.484
+##  8 0.387  -0.0334 0.560  11    0.465
+##  9 0.420  -0.455  0.0363 134   0.385
+## 10 0.303  -0.463  0.278  148   0.383
+## # ... with 25 more rows
+\end{verbatim}
+
+I looked at the sum of the squared differences from the means (0) for
+each score for people above the mean in desire for control and
+narcissism and below the mean in self-esteem. Based on this, Person 89
+(R = -1.01; DC = 0.37; N = 0.42) appears to have the strongest
+configuration of these traits, with individual 64 (R = -0.32; DC = 0.8;
+N = 0.67)coming in a close second.
+
+
+\end{document}

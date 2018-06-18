@@ -18,7 +18,7 @@ table_fun <- function(model){
     unite(var, var1, var2, sep = "") %>%
     mutate(var = sprintf("$\\tau_{%s}$", var))
   ## get confidence intervals ##
-  CI <- data.frame(confint.merMod(model, method = "boot", nsim = 10, oldNames = F)) %>%
+  CI <- data.frame(confint.merMod(model, method = "boot", nsim = 100, oldNames = F)) %>%
     mutate(term = rownames(.)) %>% setNames(c("lower", "upper", "term"))
   
   CI %>% filter(term == "sigma") %>%
@@ -53,11 +53,21 @@ table_fun <- function(model){
   
   tab <- fixed %>%
     full_join(rand) %>%
-    mutate(CI = sprintf("[%.2f, %.2f]", lower, upper)) %>%
+    full_join(mod_terms)
+  if ("glmerMod" %in% class(fit1)){
+    tab <- tab %>% 
+      mutate(OR = sprintf("%.2f", exp(estimate)),
+             lower = exp(lower),
+             upper = exp(upper))
+  }
+  tab <- tab %>%
+    mutate_at(vars(lower, upper), funs(ifelse(is.na(.) == T, "", sprintf("%.2f", .)))) %>%
+    mutate(CI = sprintf("[%s, %s]", lower, upper)) %>%
     select(-lower, -upper) %>%
-    full_join(mod_terms) %>%
     mutate(estimate = sprintf("%.2f", estimate)) %>%
-    dplyr::rename(b = estimate) %>%
-    select(type, everything())
+    dplyr::rename(b = estimate)
+  if ("glmerMod" %in% class(fit1)){
+    tab <- tab %>% select(type, term, b, OR, CI)
+  } else{tab <- tab %>% select(type, everything())}
   return(tab)
 }
