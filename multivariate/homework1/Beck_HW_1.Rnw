@@ -1,0 +1,273 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 1\\
+\large Applied Mutlivariate Analysis}
+\date{September 7, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+<<>>=
+library(car)
+library(knitr)
+library(kableExtra)
+library(plyr)
+library(tidyverse)
+@
+
+\subsection{data}
+<<>>=
+dat <- tribble(
+  ~Group, ~V1, ~V2, ~V3, ~V4,
+  1, 4, 9, 3, 8,
+  2, 6, 7, 2, 1,
+  3, 1, 6, 6, 2,
+  4, 3, 8, 7, 4
+)
+X <- dat %>% select(-Group) %>% as.matrix
+@
+
+
+<<results='asis'>>=
+dat %>%
+  kable(., "latex", escape = F) %>%
+  column_spec(1, bold = T)
+@
+
+
+The general matrix equation, LXM, describes how to create linear combinations of the groups (the L matrix) and variables (the M matrix) to test different hypotheses.
+
+\section{Part 1}
+In words, describe what each of the following L vectors is trying to accomplish: 
+<<>>=
+L1 <- c(1, 1, 1, 1)
+L2 <- c(1, 0, 0,-1)
+L3 <- c(1, 0, 0, 0)
+L4 <- c(1, 1,-2, 0)
+L5 <- c(1, 1,-1,-1)
+@
+
+
+\subsection{Question 1}
+[1 1 1 1] = L1\\
+The grand mean across groups.  
+
+\subsection{Question 2}
+[1 0 0 -1] = L2 \\
+The difference in means between the first and fourth groups.
+
+\subsection{Question 3}
+[1 0 0 0] = L3 \\
+The mean of the first group.  
+
+\subsection{Question 4}
+[1 1 -2 0] = L4 \\
+The differnce in means between groups 1+2 and 3. 
+
+\subsection{Question 5}
+5. [1 1 -1 -1] = L5\\
+The difference in means between groups 1+2 and 3+4.
+
+\section{Part 2}
+Assume that you want to answer the following "variable" questions. Give the appropriate M vector or matrix.  
+\subsection{Question 6}
+6. The linear combination given by L should be performed separately on each of the variables (= M1).
+
+<<>>=
+(M1 <- diag(1, 4, 4))
+
+@
+
+\subsection{Question 7}
+7. Variable 3 is the only variable of interest (= M2).  
+
+<<>>=
+(M2 <- c(0,0,1,0))
+@
+
+
+\subsection{Question 8}
+8. The difference between Variables 1 and 4 is of interest (=M3).  
+<<>>=
+(M3 <- c(1, 0, -1, 0))
+@
+
+\subsection{Question 9}
+9. The sum of all variables is of interest (= M4).
+<<>>=
+(M4 <- rep(1,4))
+@
+
+
+\subsection{Question 10}
+10.The difference between the first two variables and the difference between the second two variables is to be compared (= M5).
+<<>>=
+(M5 <- c(1, -1, -1, 1))
+@
+
+
+\section{Part 3}
+Carry out the following matrix multiplications, in R. 
+
+\subsection{Question 11}
+
+
+$$
+L1XM2 =
+\begin{bmatrix}
+1\\
+1\\
+1\\
+1
+\end{bmatrix}
+\begin{bmatrix}
+4 & 9 & 3 & 8\\
+6 & 7 & 2 & 1\\
+1 & 6 & 6 & 2\\
+3 & 8 & 7 & 4
+\end{bmatrix}
+\begin{bmatrix}
+0 & 0 & 1 0
+\end{bmatrix}
+$$ 
+
+<<>>=
+L1 %*% X %*% M2
+@
+
+\subsection{Question 12}
+$$
+L2XM5 =
+\begin{bmatrix}
+1\\
+0\\
+0\\
+-1
+\end{bmatrix}
+\begin{bmatrix}
+4 & 9 & 3 & 8\\
+6 & 7 & 2 & 1\\
+1 & 6 & 6 & 2\\
+3 & 8 & 7 & 4
+\end{bmatrix}
+\begin{bmatrix}
+1 & -1 & -1 1
+\end{bmatrix}
+$$ 
+<<>>=
+L2 %*% X %*% M5
+@
+
+\subsection{Question 13}
+
+$$
+L3XM3 =
+\begin{bmatrix}
+1\\
+0\\
+0\\
+0
+\end{bmatrix}
+\begin{bmatrix}
+4 & 9 & 3 & 8\\
+6 & 7 & 2 & 1\\
+1 & 6 & 6 & 2\\
+3 & 8 & 7 & 4
+\end{bmatrix}
+\begin{bmatrix}
+1 & 0 & -1 0
+\end{bmatrix}
+$$ 
+<<>>=
+L3 %*% X %*% M3
+@
+
+\subsection{Question 14}
+$$
+L4XM4 =
+\begin{bmatrix}
+1\\
+1\\
+-2\\
+0
+\end{bmatrix}
+\begin{bmatrix}
+4 & 9 & 3 & 8\\
+6 & 7 & 2 & 1\\
+1 & 6 & 6 & 2\\
+3 & 8 & 7 & 4
+\end{bmatrix}
+\begin{bmatrix}
+1 & 1 & 1 & 1
+\end{bmatrix}
+$$ 
+<<>>=
+L4 %*% X %*% M4
+@
+
+\subsection{Question 15}
+$$
+L5XM1 =
+\begin{bmatrix}
+1\\
+1\\
+-1\\
+-1
+\end{bmatrix}
+\begin{bmatrix}
+4 & 9 & 3 & 8\\
+6 & 7 & 2 & 1\\
+1 & 6 & 6 & 2\\
+3 & 8 & 7 & 4
+\end{bmatrix}
+\begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+$$ 
+<<>>=
+L5 %*% X %*% M1
+@
+
+
+\end{document}
