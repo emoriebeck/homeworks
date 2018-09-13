@@ -1,0 +1,303 @@
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 1\\
+\large Applied Mutlivariate Analysis}
+\date{September 7, 2018}
+\author{Emorie Beck}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(car)}
+\hlkwd{library}\hlstd{(knitr)}
+\hlkwd{library}\hlstd{(kableExtra)}
+\hlkwd{library}\hlstd{(multcomp)}
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: mvtnorm}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: survival}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: TH.data}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: MASS}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# \\\#\# Attaching package: 'TH.data'}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# The following object is masked from 'package:MASS':\\\#\# \\\#\#\ \ \ \  geyser}}\begin{alltt}
+\hlkwd{library}\hlstd{(lme4)}
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: Matrix}}\begin{alltt}
+\hlkwd{library}\hlstd{(plyr)}
+\hlkwd{library}\hlstd{(tidyverse)}
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# -- Attaching packages ------------------------------------------------------------------------------- tidyverse 1.2.1 --}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# √ ggplot2 2.2.1\ \ \ \  √ purrr\ \  0.2.4\\\#\# √ tibble\ \ 1.4.2\ \ \ \  √ dplyr\ \  0.7.5\\\#\# √ tidyr\ \  0.8.0\ \ \ \  √ stringr 1.3.0\\\#\# √ readr\ \  1.1.1\ \ \ \  √ forcats 0.3.0}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# -- Conflicts ---------------------------------------------------------------------------------- tidyverse\_conflicts() --\\\#\# x dplyr::arrange()\ \  masks plyr::arrange()\\\#\# x purrr::compact()\ \  masks plyr::compact()\\\#\# x dplyr::count()\ \ \ \  masks plyr::count()\\\#\# x tidyr::expand()\ \ \ \ masks Matrix::expand()\\\#\# x dplyr::failwith()\ \ masks plyr::failwith()\\\#\# x dplyr::filter()\ \ \ \ masks stats::filter()\\\#\# x dplyr::id()\ \ \ \ \ \ \ \ masks plyr::id()\\\#\# x dplyr::lag()\ \ \ \ \ \  masks stats::lag()\\\#\# x dplyr::mutate()\ \ \ \ masks plyr::mutate()\\\#\# x dplyr::recode()\ \ \ \ masks car::recode()\\\#\# x dplyr::rename()\ \ \ \ masks plyr::rename()\\\#\# x dplyr::select()\ \ \ \ masks MASS::select()\\\#\# x purrr::some()\ \ \ \ \ \ masks car::some()\\\#\# x dplyr::summarise() masks plyr::summarise()\\\#\# x dplyr::summarize() masks plyr::summarize()}}\end{kframe}
+\end{knitrout}
+
+\subsection{data}
+The file, Set\_2.csv, contains data for four variables and four groups.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{wd} \hlkwb{<-} \hlstr{"https://github.com/emoriebeck/homeworks/raw/master/multivariate/homework2"}
+
+\hlstd{dat} \hlkwb{<-} \hlkwd{sprintf}\hlstd{(}\hlstr{"%s/Set_2(1).csv"}\hlstd{, wd)} \hlopt{%>%}
+  \hlkwd{read_csv}\hlstd{()} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{Group} \hlstd{=} \hlkwd{factor}\hlstd{(Group))}
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Parsed with column specification:\\\#\# cols(\\\#\#\ \  Group = col\_integer(),\\\#\#\ \  DV1 = col\_integer(),\\\#\#\ \  DV2 = col\_integer(),\\\#\#\ \  DV3 = col\_integer(),\\\#\#\ \  DV4 = col\_integer()\\\#\# )}}\begin{alltt}
+\hlkwd{head}\hlstd{(dat)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 6 x 5
+##   Group   DV1   DV2   DV3   DV4
+##   <fct> <int> <int> <int> <int>
+## 1 1         1     2     5     3
+## 2 1         2     2     1     1
+## 3 1         3     2     5     3
+## 4 1         2     2     2     2
+## 5 1         3     1     1     1
+## 6 1         4     4     1     4
+\end{verbatim}
+\begin{alltt}
+\hlstd{long_dat} \hlkwb{<-} \hlstd{dat} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{SID} \hlstd{=} \hlnum{1}\hlopt{:}\hlkwd{n}\hlstd{())} \hlopt{%>%}
+  \hlkwd{gather}\hlstd{(}\hlkwc{key} \hlstd{= DV,} \hlkwc{value} \hlstd{= value, DV1}\hlopt{:}\hlstd{DV4)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+\section{Question 1}
+Conduct a standard ANOVA on each of the measures using `aov( )`. Are the groups different on each of the measures? If so, conduct post-hoc comparisons using Holm correction, indicating the pairs of means that are significantly different.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{Q1} \hlkwb{<-} \hlstd{long_dat} \hlopt{%>%}
+  \hlkwd{group_by}\hlstd{(DV)} \hlopt{%>%}
+  \hlkwd{nest}\hlstd{()} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{aov} \hlstd{=} \hlkwd{map}\hlstd{(data,} \hlopt{~}\hlkwd{aov}\hlstd{(value} \hlopt{~} \hlstd{Group,} \hlkwc{data} \hlstd{= .)),}
+         \hlkwc{tidy} \hlstd{=} \hlkwd{map}\hlstd{(aov, broom}\hlopt{::}\hlstd{tidy))}
+
+\hlstd{Q1} \hlopt{%>%} \hlkwd{unnest}\hlstd{(tidy)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 8 x 7
+##   DV    term         df sumsq meansq statistic         p.value
+##   <chr> <chr>     <dbl> <dbl>  <dbl>     <dbl>           <dbl>
+## 1 DV1   Group      3.00 100    33.4      19.4   0.000000000640
+## 2 DV1   Residuals 96.0  165     1.72     NA    NA             
+## 3 DV2   Group      3.00  48.6  16.2       7.14  0.000222      
+## 4 DV2   Residuals 96.0  218     2.27     NA    NA             
+## 5 DV3   Group      3.00  30.9  10.3       6.03  0.000833      
+## 6 DV3   Residuals 96.0  164     1.71     NA    NA             
+## 7 DV4   Group      3.00  21.8   7.28      3.79  0.0128        
+## 8 DV4   Residuals 96.0  184     1.92     NA    NA
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+There are group differences on all DV's.  
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{compMat} \hlkwb{<-} \hlkwd{rbind}\hlstd{(}
+  \hlkwd{c}\hlstd{(}\hlopt{-}\hlnum{1}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{0}\hlstd{,} \hlnum{0}\hlstd{),} \hlcom{# 1 v 2}
+  \hlkwd{c}\hlstd{(}\hlopt{-}\hlnum{1}\hlstd{,} \hlnum{0}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{0}\hlstd{),} \hlcom{# 1 v 3}
+  \hlkwd{c}\hlstd{(}\hlopt{-}\hlnum{1}\hlstd{,} \hlnum{0}\hlstd{,} \hlnum{0}\hlstd{,} \hlnum{1}\hlstd{),} \hlcom{# 1 v 4}
+  \hlkwd{c}\hlstd{(} \hlnum{0}\hlstd{,}\hlopt{-}\hlnum{1}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{0}\hlstd{),} \hlcom{# 2 v 3}
+  \hlkwd{c}\hlstd{(} \hlnum{0}\hlstd{,}\hlopt{-}\hlnum{1}\hlstd{,} \hlnum{0}\hlstd{,} \hlnum{1}\hlstd{),} \hlcom{# 2 v 4}
+  \hlkwd{c}\hlstd{(} \hlnum{0}\hlstd{,} \hlnum{0}\hlstd{,}\hlopt{-}\hlnum{1}\hlstd{,} \hlnum{1}\hlstd{)}  \hlcom{# 3 v 4}
+\hlstd{)}
+\hlkwd{rownames}\hlstd{(compMat)} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"1 v 2"}\hlstd{,} \hlstr{"1 v 3"}\hlstd{,} \hlstr{"1 v 4"}\hlstd{,}
+                    \hlstr{"2 v 3"}\hlstd{,} \hlstr{"2 v 4"}\hlstd{,} \hlstr{"3 v 4"}\hlstd{)}
+
+\hlstd{tab_fun} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{)\{}
+  \hlstd{x}\hlopt{$}\hlstd{confint} \hlopt{%>%} \hlstd{data.frame} \hlopt{%>%}
+    \hlkwd{mutate}\hlstd{(}\hlkwc{Groups} \hlstd{=} \hlkwd{rownames}\hlstd{(.))} \hlopt{%>%}
+    \hlkwd{select}\hlstd{(Groups,} \hlkwd{everything}\hlstd{())}
+\hlstd{\}}
+
+\hlstd{Q1} \hlkwb{<-} \hlstd{Q1} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{comp} \hlstd{=} \hlkwd{map}\hlstd{(aov,} \hlopt{~}\hlkwd{glht}\hlstd{(.,} \hlkwc{linfct}\hlstd{=compMat,} \hlkwc{alternative}\hlstd{=}\hlstr{"two.sided"}\hlstd{,}\hlkwc{rhs}\hlstd{=}\hlnum{0}\hlstd{)),}
+         \hlkwc{summ} \hlstd{=} \hlkwd{map}\hlstd{(comp,} \hlopt{~}\hlkwd{confint}\hlstd{(.,} \hlkwd{adjusted}\hlstd{(}\hlstr{"holm"}\hlstd{),} \hlkwc{calpha} \hlstd{=} \hlkwd{univariate_calpha}\hlstd{())),}
+         \hlkwc{tab} \hlstd{=} \hlkwd{map}\hlstd{(summ, tab_fun))}
+
+\hlstd{Q1} \hlopt{%>%} \hlkwd{unnest}\hlstd{(tab)} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{==} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate}\hlopt{:}\hlstd{upr),} \hlkwd{funs}\hlstd{(}\hlkwd{sprintf}\hlstd{(}\hlstr{"%.2f"}\hlstd{, .)))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{CI} \hlstd{=} \hlkwd{sprintf}\hlstd{(}\hlstr{"[%s, %s]"}\hlstd{, lwr, upr))} \hlopt{%>%}
+  \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate, CI),} \hlkwd{funs}\hlstd{(}\hlkwd{ifelse}\hlstd{(sign} \hlopt{==} \hlstr{"sig"}\hlstd{,} \hlkwd{sprintf}\hlstd{(}\hlstr{"\textbackslash{}\textbackslash{}textbf\{%s\}"}\hlstd{, .), .)))} \hlopt{%>%}
+  \hlkwd{select}\hlstd{(}\hlopt{-}\hlstd{lwr,} \hlopt{-}\hlstd{upr,} \hlopt{-}\hlstd{sign,} \hlkwc{b} \hlstd{= Estimate)} \hlopt{%>%}
+  \hlkwd{gather}\hlstd{(}\hlkwc{key} \hlstd{= est,} \hlkwc{value} \hlstd{= value, b, CI)} \hlopt{%>%}
+  \hlkwd{unite}\hlstd{(tmp, DV, est,} \hlkwc{sep} \hlstd{=} \hlstr{"."}\hlstd{)} \hlopt{%>%}
+  \hlkwd{spread}\hlstd{(tmp, value)} \hlopt{%>%}
+  \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{escape} \hlstd{= F,}
+        \hlkwc{col.names} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"Groups"}\hlstd{,} \hlkwd{rep}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{"b"}\hlstd{,} \hlstr{"CI"}\hlstd{),} \hlkwc{times} \hlstd{=} \hlnum{4}\hlstd{)))} \hlopt{%>%}
+  \hlkwd{add_header_above}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{" "} \hlstd{=} \hlnum{1}\hlstd{,} \hlstr{"DV1"} \hlstd{=} \hlnum{2}\hlstd{,}  \hlstr{"DV2"} \hlstd{=} \hlnum{2}\hlstd{,}  \hlstr{"DV3"} \hlstd{=} \hlnum{2}\hlstd{,}  \hlstr{"DV4"} \hlstd{=} \hlnum{2}\hlstd{))}
+\end{alltt}
+\end{kframe}
+\begin{tabular}{lllllllll}
+\toprule
+\multicolumn{1}{c}{ } & \multicolumn{2}{c}{DV1} & \multicolumn{2}{c}{DV2} & \multicolumn{2}{c}{DV3} & \multicolumn{2}{c}{DV4} \\
+\cmidrule(l{2pt}r{2pt}){2-3} \cmidrule(l{2pt}r{2pt}){4-5} \cmidrule(l{2pt}r{2pt}){6-7} \cmidrule(l{2pt}r{2pt}){8-9}
+Groups & b & CI & b & CI & b & CI & b & CI\\
+\midrule
+1 v 2 & -1.68 & [-2.84, -0.52] & -2.60 & [-3.94, -1.26] & -1.96 & [-3.12, -0.80] & -1.64 & [-2.87, -0.41]\\
+1 v 3 & -2.08 & [-3.24, -0.92] & -2.76 & [-4.10, -1.42] & -3.40 & [-4.56, -2.24] & -1.76 & [-2.99, -0.53]\\
+1 v 4 & \textbf{0.16} & \textbf{[-1.00, 1.32]} & \textbf{-1.12} & \textbf{[-2.46, 0.22]} & -2.52 & [-3.68, -1.36] & -2.08 & [-3.31, -0.85]\\
+2 v 3 & \textbf{-0.40} & \textbf{[-1.14, 0.34]} & \textbf{-0.16} & \textbf{[-1.01, 0.69]} & -1.44 & [-2.17, -0.71] & \textbf{-0.12} & \textbf{[-0.90, 0.66]}\\
+2 v 4 & 1.84 & [1.10, 2.58] & 1.48 & [0.63, 2.33] & \textbf{-0.56} & \textbf{[-1.29, 0.17]} & \textbf{-0.44} & \textbf{[-1.22, 0.34]}\\
+3 v 4 & 2.24 & [1.50, 2.98] & 1.64 & [0.79, 2.49] & 0.88 & [0.15, 1.61] & \textbf{-0.32} & \textbf{[-1.10, 0.46]}\\
+\bottomrule
+\end{tabular}
+
+\begin{kframe}\begin{alltt}
+\hlcom{# Q1 <- Q1 %>%}
+\hlcom{#   mutate(ref.grid = map(aov, emmeans::ref_grid),}
+\hlcom{#          emmeans = map(ref.grid, emmeans(., "Group")))}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+
+\section{Question 2}
+Now combine all of the information for groups and variables into a no-intercept model using `lmer( )`. Test the following hypotheses about group differences by constructing an appropriate contrast using `glht( )` in the `multcomp` package. \\
+
+Test these hypotheses for each of the four measures: (12 contrasts in all, correct using the Holm method).
+
+\subsection{Part A}
+The mean for Group 1 is different from the mean for Group 3
+
+\subsection{Part B}
+The mean of Groups 1, 2, and 3 is different from the mean for Group 4
+
+\subsection{Part C}
+The mean of Groups 1 and 2 is different from the mean for Groups 3 and 4
+
+\section{Question 2}
+3. Now construct contrasts for the following hypotheses, ignoring groups (3 contrasts, correct using the Holm method).
+
+\subsection{Part A}
+The mean for DV1 is different from the mean for DV2
+
+\subsection{Part B}
+The mean for DV1 and DV2 is different from the mean for DV3 and DV4 (c) The mean for DV1, DV2, and DV3 is different from the mean for DV4
+
+\section{Question 4}
+4. Finally,test each of the hypotheses from Question 3, but combine them with each of the following group questions (a total of 9 contrasts, correct using the Holm method): 
+
+\subsection{Part A}
+Just consider Group 1 alone
+
+\subsection{Part B}
+Compare Group 2 to Group 3
+
+\subsection{Part C}
+Compare Group 1 to the combination of Groups 2, 3, and 4.
+
+
+\end{document}

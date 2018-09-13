@@ -1,0 +1,304 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 1\\
+\large Applied Mutlivariate Analysis}
+\date{September 7, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+<<>>=
+library(car)
+library(knitr)
+library(kableExtra)
+library(multcomp)
+library(lme4)
+library(plyr)
+library(tidyverse)
+@
+
+\subsection{data}
+The file, Set\_2.csv, contains data for four variables and four groups.
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homework2"
+
+dat <- sprintf("%s/Set_2(1).csv", wd) %>% 
+  read_csv() %>%
+  mutate(Group = factor(Group))
+
+head(dat)
+
+long_dat <- dat %>% 
+  mutate(SID = 1:n()) %>%
+  gather(key = DV, value = value, DV1:DV4)
+@
+
+
+\section{Question 1}
+Conduct a standard ANOVA on each of the measures using `aov( )`. Are the groups different on each of the measures? If so, conduct post-hoc comparisons using Holm correction, indicating the pairs of means that are significantly different.
+<<>>=
+Q1 <- long_dat %>%
+  group_by(DV) %>%
+  nest() %>%
+  mutate(aov = map(data, ~aov(value ~ Group, data = .)),
+         tidy = map(aov, broom::tidy))
+
+Q1 %>% unnest(tidy)
+@
+
+There are group differences on all DV's.  
+
+<<>>=
+compMat <- rbind(
+  c(-1, 1, 0, 0), # 1 v 2
+  c(-1, 0, 1, 0), # 1 v 3
+  c(-1, 0, 0, 1), # 1 v 4
+  c( 0,-1, 1, 0), # 2 v 3
+  c( 0,-1, 0, 1), # 2 v 4
+  c( 0, 0,-1, 1)  # 3 v 4
+)
+rownames(compMat) <- c("1 v 2", "1 v 3", "1 v 4",
+                    "2 v 3", "2 v 4", "3 v 4")
+
+tab_fun <- function(x){
+  x$confint %>% data.frame %>% 
+    mutate(Groups = rownames(.)) %>%
+    select(Groups, everything())
+}
+
+Q1 <- Q1 %>%
+  mutate(comp = map(aov, ~glht(., linfct=compMat, alternative="two.sided",rhs=0)),
+         summ = map(comp, ~confint(., adjusted("holm"), calpha = univariate_calpha())),
+         tab = map(summ, tab_fun))
+
+Q1 %>% unnest(tab) %>%
+  mutate(sign = ifelse(sign(lwr) == sign(upr), "ns", "sig")) %>%
+  mutate_at(vars(Estimate:upr), funs(sprintf("%.2f", .))) %>%
+  mutate(CI = sprintf("[%s, %s]", lwr, upr)) %>%
+  mutate_at(vars(Estimate, CI), funs(ifelse(sign == "sig", sprintf("\\textbf{%s}", .), .))) %>%
+  select(-lwr, -upr, -sign, b = Estimate) %>%
+  gather(key = est, value = value, b, CI) %>%
+  unite(tmp, DV, est, sep = ".") %>%
+  spread(tmp, value) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Groups", rep(c("b", "CI"), times = 4)),
+        caption = "Question 1: Pairwise Comparisons") %>%
+  add_header_above(c(" " = 1, "DV1" = 2,  "DV2" = 2,  "DV3" = 2,  "DV4" = 2))
+@
+
+
+
+\section{Question 2}
+Now combine all of the information for groups and variables into a no-intercept model using `lmer( )`. Test the following hypotheses about group differences by constructing an appropriate contrast using `glht( )` in the `multcomp` package. \\
+
+<<>>=
+Q2 <- long_dat %>%
+  mutate(DV = str_remove(DV, "DV"),
+         G1 = mapvalues(Group, 1:4, c(1,0,0,0)),
+         G2 = mapvalues(Group, 1:4, c(0,1,0,0)),
+         G3 = mapvalues(Group, 1:4, c(0,0,1,0)),
+         G4 = mapvalues(Group, 1:4, c(0,0,0,1)),
+         DV1 = mapvalues(DV, 1:4, c(1,0,0,0)),
+         DV2 = mapvalues(DV, 1:4, c(0,1,0,0)),
+         DV3 = mapvalues(DV, 1:4, c(0,0,1,0)),
+         DV4 = mapvalues(DV, 1:4, c(0,0,0,1))) %>%
+  mutate_at(vars(G1:G4, DV1:DV4), funs(as.numeric(as.character(.)))) %>%
+  # group_by(DV) %>%
+  nest() %>%
+  mutate(mod = map(data, ~lme4::lmer(value ~ -1 + G1:DV1 + G1:DV2 + G1:DV3 + G1:DV4 + 
+                                       G2:DV1 + G2:DV2 + G2:DV3 + G2:DV4 + 
+                                       G3:DV1 + G3:DV2 + G3:DV3 + G3:DV4 + 
+                                       G4:DV1 + G4:DV2 + G4:DV3 + G4:DV4 + 
+                                       (1|SID), data = .)),
+         tidy = map(mod, broom::tidy))
+
+Q2 %>% unnest(tidy) %>%
+  separate(term, c("DV", "Group"), sep = ":", remove = F) %>%
+  mutate(DV = ifelse(DV == "G1", Group, DV),
+         Group = ifelse(grepl("G1", term), "G1", Group), 
+         Group = ifelse(is.na(Group), DV, Group),
+         DV = ifelse(grepl("DV", term), DV, "DV1")) %>%
+  mutate_at(vars(estimate:std.error), funs(sprintf("%.2f", .))) %>%
+  select(-statistic, -group, -term, b = estimate, se = std.error) %>%
+  gather(key = est, value = value, b, se) %>%
+  unite(tmp, DV, est, sep = ".") %>%
+  mutate(value = ifelse(value == "NA", NA, value)) %>%
+  spread(tmp, value) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Groups", rep(c("b", "CI"), times = 4)),
+        caption = "Question 2: Model Estimated Means") %>%
+  add_header_above(c(" " = 1, "DV1" = 2,  "DV2" = 2,  "DV3" = 2,  "DV4" = 2))
+@
+
+Test these hypotheses for each of the four measures: (12 contrasts in all, correct using the Holm method).
+
+\subsection{Part A}
+The mean for Group 1 is different from the mean for Group 3
+<<>>=
+C1 <- cbind(diag(1, 4, 4), diag(0, 4, 4), diag(-1, 4, 4), diag(0,4,4))
+rownames(C1) <- paste(paste("DV", 1:4, sep = ""), ": 1 v 3", sep = "")
+
+C1 <- rbind(c(1,0,0,0, 0,0,0,0, -1, 0,0,0, 0,0,0,0),
+            c(0,1,0,0, 0,0,0,0,  0,-1,0,0, 0,0,0,0),
+            c(0,0,1,0, 0,0,0,0,  0,0,-1,0, 0,0,0,0),
+            c(0,0,0,1, 0,0,0,0,  0,0,0,-1, 0,0,0,0))
+@
+
+\subsection{Part B}
+The mean of Groups 1, 2, and 3 is different from the mean for Group 4
+<<>>=
+# C2 <- c(1/3,1/3,1/3,1/3, 1/3,1/3,1/3,1/3, 1/3,1/3,1/3,1/3, -1,-1,-1,-1)
+C2 <- cbind(diag(1/3, 4, 4), diag(1/3, 4, 4), diag(1/3, 4, 4), diag(-1,4,4))
+rownames(C2) <- paste(paste("DV", 1:4, sep = ""), ": 1+2+3 v 4", sep = "")
+@
+
+
+\subsection{Part C}
+The mean of Groups 1 and 2 is different from the mean for Groups 3 and 4
+<<>>=
+C3 <- cbind(diag(1/2, 4, 4), diag(1/2, 4, 4), diag(-1/2, 4, 4), diag(-1/2,4,4))
+rownames(C3) <- paste(paste("DV", 1:4, sep = ""), ": 1+2 v 3+4", sep = "")
+# C3 <- c(1/2,1/2,1/2,1/2, 1/2,1/2,1/2,1/2, -1/2,-1/2,-1/2,-1/2, -1/2,-1/2,-1/2,-1/2)
+@
+
+<<>>=
+compMat <- rbind(C1, C2, C3)
+
+tab_fun <- function(x){
+  x$confint %>% data.frame %>% 
+    mutate(Groups = rownames(.)) %>%
+    select(Groups, everything())
+}
+
+Q2 <- Q2 %>%
+  mutate(comp = map(mod, ~glht(., linfct=compMat, alternative="two.sided",rhs=0)),
+         summ = map(comp, ~confint(., adjusted("holm"), calpha = univariate_calpha())),
+         tab = map(summ, tab_fun))
+
+Q2 %>% unnest(tab) %>%
+  mutate(sign = ifelse(sign(lwr) == sign(upr), "ns", "sig")) %>%
+  mutate_at(vars(Estimate:upr), funs(sprintf("%.2f", .))) %>%
+  mutate(CI = sprintf("[%s, %s]", lwr, upr)) %>%
+  mutate_at(vars(Estimate, CI), funs(ifelse(sign == "sig", sprintf("\\textbf{%s}", .), .))) %>%
+  select(-lwr, -upr, -sign, b = Estimate) %>%
+  separate(Groups, c("DV", "Groups"), sep = ": ") %>%
+  gather(key = est, value = value, b, CI) %>%
+  unite(tmp, DV, est, sep = ".") %>%
+  spread(tmp, value) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        col.names = c("Groups", rep(c("b", "CI"), times = 4)),
+        caption = "Question 1: Pairwise Comparisons") %>%
+  add_header_above(c(" " = 1, "DV1" = 2,  "DV2" = 2,  "DV3" = 2,  "DV4" = 2))
+@
+
+
+\section{Question 3}
+3. Now construct contrasts for the following hypotheses, ignoring groups (3 contrasts, correct using the Holm method).
+
+\subsection{Part A}
+The mean for DV1 is different from the mean for DV2
+<<>>=
+C1 <- c(1,-1,0,0, 1,-1,0,0, 1,-1,0,0, 1,-1,0,0)
+@
+
+\subsection{Part B}
+The mean for DV1 and DV2 is different from the mean for DV3 and DV4 
+<<>>=
+C2 <- c(.5,.5,-.5,-.5, .5,.5,-.5,-.5, .5,.5,-.5,-.5, .5,.5,-.5,-.5)
+@
+
+\subsection{Part C}
+The mean for DV1, DV2, and DV3 is different from the mean for DV4
+<<>>=
+C3 <- c(.3,.3,.3,-1, .3,.3,.3,-1, .3,.3,.3,-1, .3,.3,.3,-1)
+@
+
+<<>>=
+compMat <- rbind(C1, C2, C3)
+rownames(compMat) <- c("DV1 v. DV2", "DV1+DV2 v. DV3+DV4", "DV1+DV2+DV3 v DV4")
+
+Q2 <- Q2 %>%
+  mutate(compQ3 = map(mod, ~glht(., linfct=compMat, alternative="two.sided",rhs=0)),
+         summQ3 = map(compQ3, ~confint(., adjusted("holm"), calpha = univariate_calpha())),
+         tabQ3 = map(summQ3, tab_fun))
+
+Q2 %>% unnest(tabQ3) %>%
+  mutate(sign = ifelse(sign(lwr) == sign(upr), "ns", "sig")) %>%
+  mutate_at(vars(Estimate:upr), funs(sprintf("%.2f", .))) %>%
+  mutate(CI = sprintf("[%s, %s]", lwr, upr)) %>%
+  mutate_at(vars(Estimate, CI), funs(ifelse(sign == "sig", sprintf("\\textbf{%s}", .), .))) %>%
+  select(-(lwr:sign)) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        col.names = c("Groups", "b", "CI"), 
+        caption = "Question 3 Mean Differences Across Variables") 
+@
+
+
+
+\section{Question 4}
+4. Finally,test each of the hypotheses from Question 3, but combine them with each of the following group questions (a total of 9 contrasts, correct using the Holm method): 
+
+\subsection{Part A}
+Just consider Group 1 alone
+<<>>=
+rbind(c( 1,-1,  0,  0, 0,0,0,0, 0,0,0,0, 0,0,0,0),
+      c(.5,.5,-.5,-.5, 0,0,0,0, 0,0,0,0, 0,0,0,0),
+      c(.3,.3, .3, -1, 0,0,0,0, 0,0,0,0, 0,0,0,0)
+)
+@
+
+
+\subsection{Part B}
+Compare Group 2 to Group 3
+<<>>=
+# write out contrasts
+rbind(c(0,0,0,0,       1,-1,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0),
+      c(.5,.5,-.5,-.5, 0,0,0,0, 0,0,0,0, 0,0,0,0),
+      c(.3,.3, .3, -1, 0,0,0,0, 0,0,0,0, 0,0,0,0)
+)
+@
+
+
+\subsection{Part C}
+Compare Group 1 to the combination of Groups 2, 3, and 4.
+
+
+\end{document}
