@@ -34,7 +34,7 @@
 \usepackage{threeparttable}
 
 \title{%
-Homework 1\\
+Homework 2\\
 \large Applied Mutlivariate Analysis}
 \date{September 7, 2018}
 \author{Emorie Beck}
@@ -115,7 +115,7 @@ Q1 <- Q1 %>%
          tab = map(summ, tab_fun))
 
 Q1 %>% unnest(tab) %>%
-  mutate(sign = ifelse(sign(lwr) == sign(upr), "ns", "sig")) %>%
+  mutate(sign = ifelse(sign(lwr) != sign(upr), "ns", "sig")) %>%
   mutate_at(vars(Estimate:upr), funs(sprintf("%.2f", .))) %>%
   mutate(CI = sprintf("[%s, %s]", lwr, upr)) %>%
   mutate_at(vars(Estimate, CI), funs(ifelse(sign == "sig", sprintf("\\textbf{%s}", .), .))) %>%
@@ -212,7 +212,7 @@ Q2 <- Q2 %>%
          tab = map(summ, tab_fun))
 
 Q2 %>% unnest(tab) %>%
-  mutate(sign = ifelse(sign(lwr) == sign(upr), "ns", "sig")) %>%
+  mutate(sign = ifelse(sign(lwr) != sign(upr), "ns", "sig")) %>%
   mutate_at(vars(Estimate:upr), funs(sprintf("%.2f", .))) %>%
   mutate(CI = sprintf("[%s, %s]", lwr, upr)) %>%
   mutate_at(vars(Estimate, CI), funs(ifelse(sign == "sig", sprintf("\\textbf{%s}", .), .))) %>%
@@ -223,7 +223,7 @@ Q2 %>% unnest(tab) %>%
   spread(tmp, value) %>%
   kable(., "latex", booktabs = T, escape = F,
         col.names = c("Groups", rep(c("b", "CI"), times = 4)),
-        caption = "Question 1: Pairwise Comparisons") %>%
+        caption = "Question 2: Group Combinations") %>%
   add_header_above(c(" " = 1, "DV1" = 2,  "DV2" = 2,  "DV3" = 2,  "DV4" = 2))
 @
 
@@ -259,14 +259,14 @@ Q2 <- Q2 %>%
          tabQ3 = map(summQ3, tab_fun))
 
 Q2 %>% unnest(tabQ3) %>%
-  mutate(sign = ifelse(sign(lwr) == sign(upr), "ns", "sig")) %>%
+  mutate(sign = ifelse(sign(lwr) != sign(upr), "ns", "sig")) %>%
   mutate_at(vars(Estimate:upr), funs(sprintf("%.2f", .))) %>%
   mutate(CI = sprintf("[%s, %s]", lwr, upr)) %>%
   mutate_at(vars(Estimate, CI), funs(ifelse(sign == "sig", sprintf("\\textbf{%s}", .), .))) %>%
   select(-(lwr:sign)) %>%
   kable(., "latex", escape = F, booktabs = T,
         col.names = c("Groups", "b", "CI"), 
-        caption = "Question 3 Mean Differences Across Variables") 
+        caption = "Question 3: Mean Differences Across Variables") 
 @
 
 
@@ -338,7 +338,7 @@ Q2 <- Q2 %>%
 
 <<results='asis'>>=
 Q2 %>% unnest(tabQ4) %>%
-  mutate(sign = ifelse(sign(lwr) == sign(upr), "ns", "sig")) %>%
+  mutate(sign = ifelse(sign(lwr) != sign(upr), "ns", "sig")) %>%
   mutate_at(vars(Estimate:upr), funs(sprintf("%.2f", .))) %>%
   mutate(CI = sprintf("[%s, %s]", lwr, upr)) %>%
   mutate_at(vars(Estimate, CI), funs(ifelse(sign == "sig", sprintf("\\textbf{%s}", .), .))) %>%
@@ -349,7 +349,7 @@ Q2 %>% unnest(tabQ4) %>%
   spread(tmp, value) %>%
   kable(., "latex", booktabs = T, escape = F,
         col.names = c("Groups", rep(c("b", "CI"), times = 3)),
-        caption = "Question 1: Pairwise Comparisons") %>%
+        caption = "Question 4: Group x DV Combinations") %>%
   add_header_above(c(" " = 1, "DV1+2+3 v DV4" = 2,  "V1+2 v DV3+4" = 2,  "DV1 v DV2" = 2))
 @
 

@@ -84,7 +84,7 @@
 \usepackage{threeparttable}
 
 \title{%
-Homework 1\\
+Homework 2\\
 \large Applied Mutlivariate Analysis}
 \date{September 7, 2018}
 \author{Emorie Beck}
@@ -198,7 +198,7 @@ There are group differences on all DV's.
          \hlkwc{tab} \hlstd{=} \hlkwd{map}\hlstd{(summ, tab_fun))}
 
 \hlstd{Q1} \hlopt{%>%} \hlkwd{unnest}\hlstd{(tab)} \hlopt{%>%}
-  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{==} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{!=} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate}\hlopt{:}\hlstd{upr),} \hlkwd{funs}\hlstd{(}\hlkwd{sprintf}\hlstd{(}\hlstr{"%.2f"}\hlstd{, .)))} \hlopt{%>%}
   \hlkwd{mutate}\hlstd{(}\hlkwc{CI} \hlstd{=} \hlkwd{sprintf}\hlstd{(}\hlstr{"[%s, %s]"}\hlstd{, lwr, upr))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate, CI),} \hlkwd{funs}\hlstd{(}\hlkwd{ifelse}\hlstd{(sign} \hlopt{==} \hlstr{"sig"}\hlstd{,} \hlkwd{sprintf}\hlstd{(}\hlstr{"\textbackslash{}\textbackslash{}textbf\{%s\}"}\hlstd{, .), .)))} \hlopt{%>%}
@@ -221,12 +221,12 @@ There are group differences on all DV's.
 \cmidrule(l{2pt}r{2pt}){2-3} \cmidrule(l{2pt}r{2pt}){4-5} \cmidrule(l{2pt}r{2pt}){6-7} \cmidrule(l{2pt}r{2pt}){8-9}
 Groups & b & CI & b & CI & b & CI & b & CI\\
 \midrule
-1 v 2 & -1.68 & [-2.84, -0.52] & -2.60 & [-3.94, -1.26] & -1.96 & [-3.12, -0.80] & -1.64 & [-2.87, -0.41]\\
-1 v 3 & -2.08 & [-3.24, -0.92] & -2.76 & [-4.10, -1.42] & -3.40 & [-4.56, -2.24] & -1.76 & [-2.99, -0.53]\\
-1 v 4 & \textbf{0.16} & \textbf{[-1.00, 1.32]} & \textbf{-1.12} & \textbf{[-2.46, 0.22]} & -2.52 & [-3.68, -1.36] & -2.08 & [-3.31, -0.85]\\
-2 v 3 & \textbf{-0.40} & \textbf{[-1.14, 0.34]} & \textbf{-0.16} & \textbf{[-1.01, 0.69]} & -1.44 & [-2.17, -0.71] & \textbf{-0.12} & \textbf{[-0.90, 0.66]}\\
-2 v 4 & 1.84 & [1.10, 2.58] & 1.48 & [0.63, 2.33] & \textbf{-0.56} & \textbf{[-1.29, 0.17]} & \textbf{-0.44} & \textbf{[-1.22, 0.34]}\\
-3 v 4 & 2.24 & [1.50, 2.98] & 1.64 & [0.79, 2.49] & 0.88 & [0.15, 1.61] & \textbf{-0.32} & \textbf{[-1.10, 0.46]}\\
+1 v 2 & \textbf{-1.68} & \textbf{[-2.84, -0.52]} & \textbf{-2.60} & \textbf{[-3.94, -1.26]} & \textbf{-1.96} & \textbf{[-3.12, -0.80]} & \textbf{-1.64} & \textbf{[-2.87, -0.41]}\\
+1 v 3 & \textbf{-2.08} & \textbf{[-3.24, -0.92]} & \textbf{-2.76} & \textbf{[-4.10, -1.42]} & \textbf{-3.40} & \textbf{[-4.56, -2.24]} & \textbf{-1.76} & \textbf{[-2.99, -0.53]}\\
+1 v 4 & 0.16 & [-1.00, 1.32] & -1.12 & [-2.46, 0.22] & \textbf{-2.52} & \textbf{[-3.68, -1.36]} & \textbf{-2.08} & \textbf{[-3.31, -0.85]}\\
+2 v 3 & -0.40 & [-1.14, 0.34] & -0.16 & [-1.01, 0.69] & \textbf{-1.44} & \textbf{[-2.17, -0.71]} & -0.12 & [-0.90, 0.66]\\
+2 v 4 & \textbf{1.84} & \textbf{[1.10, 2.58]} & \textbf{1.48} & \textbf{[0.63, 2.33]} & -0.56 & [-1.29, 0.17] & -0.44 & [-1.22, 0.34]\\
+3 v 4 & \textbf{2.24} & \textbf{[1.50, 2.98]} & \textbf{1.64} & \textbf{[0.79, 2.49]} & \textbf{0.88} & \textbf{[0.15, 1.61]} & -0.32 & [-1.10, 0.46]\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -351,7 +351,7 @@ The mean of Groups 1 and 2 is different from the mean for Groups 3 and 4
          \hlkwc{tab} \hlstd{=} \hlkwd{map}\hlstd{(summ, tab_fun))}
 
 \hlstd{Q2} \hlopt{%>%} \hlkwd{unnest}\hlstd{(tab)} \hlopt{%>%}
-  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{==} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{!=} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate}\hlopt{:}\hlstd{upr),} \hlkwd{funs}\hlstd{(}\hlkwd{sprintf}\hlstd{(}\hlstr{"%.2f"}\hlstd{, .)))} \hlopt{%>%}
   \hlkwd{mutate}\hlstd{(}\hlkwc{CI} \hlstd{=} \hlkwd{sprintf}\hlstd{(}\hlstr{"[%s, %s]"}\hlstd{, lwr, upr))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate, CI),} \hlkwd{funs}\hlstd{(}\hlkwd{ifelse}\hlstd{(sign} \hlopt{==} \hlstr{"sig"}\hlstd{,} \hlkwd{sprintf}\hlstd{(}\hlstr{"\textbackslash{}\textbackslash{}textbf\{%s\}"}\hlstd{, .), .)))} \hlopt{%>%}
@@ -362,12 +362,12 @@ The mean of Groups 1 and 2 is different from the mean for Groups 3 and 4
   \hlkwd{spread}\hlstd{(tmp, value)} \hlopt{%>%}
   \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{escape} \hlstd{= F,}
         \hlkwc{col.names} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"Groups"}\hlstd{,} \hlkwd{rep}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{"b"}\hlstd{,} \hlstr{"CI"}\hlstd{),} \hlkwc{times} \hlstd{=} \hlnum{4}\hlstd{)),}
-        \hlkwc{caption} \hlstd{=} \hlstr{"Question 1: Pairwise Comparisons"}\hlstd{)} \hlopt{%>%}
+        \hlkwc{caption} \hlstd{=} \hlstr{"Question 2: Group Combinations"}\hlstd{)} \hlopt{%>%}
   \hlkwd{add_header_above}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{" "} \hlstd{=} \hlnum{1}\hlstd{,} \hlstr{"DV1"} \hlstd{=} \hlnum{2}\hlstd{,}  \hlstr{"DV2"} \hlstd{=} \hlnum{2}\hlstd{,}  \hlstr{"DV3"} \hlstd{=} \hlnum{2}\hlstd{,}  \hlstr{"DV4"} \hlstd{=} \hlnum{2}\hlstd{))}
 \end{alltt}
 \end{kframe}\begin{table}
 
-\caption{\label{tab:unnamed-chunk-10}Question 1: Pairwise Comparisons}
+\caption{\label{tab:unnamed-chunk-10}Question 2: Group Combinations}
 \centering
 \begin{tabular}[t]{lllllllll}
 \toprule
@@ -375,9 +375,9 @@ The mean of Groups 1 and 2 is different from the mean for Groups 3 and 4
 \cmidrule(l{2pt}r{2pt}){2-3} \cmidrule(l{2pt}r{2pt}){4-5} \cmidrule(l{2pt}r{2pt}){6-7} \cmidrule(l{2pt}r{2pt}){8-9}
 Groups & b & CI & b & CI & b & CI & b & CI\\
 \midrule
-1 v 3 & \textbf{-0.36} & \textbf{[-1.12, 0.40]} & \textbf{-0.04} & \textbf{[-0.80, 0.72]} & \textbf{0.28} & \textbf{[-0.48, 1.04]} & -1.08 & [-1.84, -0.32]\\
-1+2 v 3+4 & -1.10 & [-1.64, -0.56] & -0.76 & [-1.30, -0.22] & \textbf{0.42} & \textbf{[-0.12, 0.96]} & \textbf{-0.32} & \textbf{[-0.86, 0.22]}\\
-1+2+3 v 4 & -2.23 & [-2.85, -1.60] & -1.60 & [-2.22, -0.98] & \textbf{-0.31} & \textbf{[-0.93, 0.32]} & \textbf{-0.00} & \textbf{[-0.62, 0.62]}\\
+1 v 3 & -0.36 & [-1.12, 0.40] & -0.04 & [-0.80, 0.72] & 0.28 & [-0.48, 1.04] & \textbf{-1.08} & \textbf{[-1.84, -0.32]}\\
+1+2 v 3+4 & \textbf{-1.10} & \textbf{[-1.64, -0.56]} & \textbf{-0.76} & \textbf{[-1.30, -0.22]} & 0.42 & [-0.12, 0.96] & -0.32 & [-0.86, 0.22]\\
+1+2+3 v 4 & \textbf{-2.23} & \textbf{[-2.85, -1.60]} & \textbf{-1.60} & \textbf{[-2.22, -0.98]} & -0.31 & [-0.93, 0.32] & -0.00 & [-0.62, 0.62]\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -431,26 +431,26 @@ The mean for DV1, DV2, and DV3 is different from the mean for DV4
          \hlkwc{tabQ3} \hlstd{=} \hlkwd{map}\hlstd{(summQ3, tab_fun))}
 
 \hlstd{Q2} \hlopt{%>%} \hlkwd{unnest}\hlstd{(tabQ3)} \hlopt{%>%}
-  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{==} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{!=} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate}\hlopt{:}\hlstd{upr),} \hlkwd{funs}\hlstd{(}\hlkwd{sprintf}\hlstd{(}\hlstr{"%.2f"}\hlstd{, .)))} \hlopt{%>%}
   \hlkwd{mutate}\hlstd{(}\hlkwc{CI} \hlstd{=} \hlkwd{sprintf}\hlstd{(}\hlstr{"[%s, %s]"}\hlstd{, lwr, upr))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate, CI),} \hlkwd{funs}\hlstd{(}\hlkwd{ifelse}\hlstd{(sign} \hlopt{==} \hlstr{"sig"}\hlstd{,} \hlkwd{sprintf}\hlstd{(}\hlstr{"\textbackslash{}\textbackslash{}textbf\{%s\}"}\hlstd{, .), .)))} \hlopt{%>%}
   \hlkwd{select}\hlstd{(}\hlopt{-}\hlstd{(lwr}\hlopt{:}\hlstd{sign))} \hlopt{%>%}
   \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{escape} \hlstd{= F,} \hlkwc{booktabs} \hlstd{= T,}
         \hlkwc{col.names} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"Groups"}\hlstd{,} \hlstr{"b"}\hlstd{,} \hlstr{"CI"}\hlstd{),}
-        \hlkwc{caption} \hlstd{=} \hlstr{"Question 3 Mean Differences Across Variables"}\hlstd{)}
+        \hlkwc{caption} \hlstd{=} \hlstr{"Question 3: Mean Differences Across Variables"}\hlstd{)}
 \end{alltt}
 \end{kframe}\begin{table}
 
-\caption{\label{tab:unnamed-chunk-14}Question 3 Mean Differences Across Variables}
+\caption{\label{tab:unnamed-chunk-14}Question 3: Mean Differences Across Variables}
 \centering
 \begin{tabular}[t]{lll}
 \toprule
 Groups & b & CI\\
 \midrule
-DV1 v. DV2 & \textbf{0.36} & \textbf{[-0.80, 1.52]}\\
-DV1+DV2 v. DV3+DV4 & -0.88 & [-1.70, -0.06]\\
-DV1+DV2+DV3 v DV4 & -2.23 & [-3.16, -1.31]\\
+DV1 v. DV2 & 0.36 & [-0.80, 1.52]\\
+DV1+DV2 v. DV3+DV4 & \textbf{-0.88} & \textbf{[-1.70, -0.06]}\\
+DV1+DV2+DV3 v DV4 & \textbf{-2.23} & \textbf{[-3.16, -1.31]}\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -587,7 +587,7 @@ Compare Group 1 to the combination of Groups 2, 3, and 4.
 \begin{kframe}
 \begin{alltt}
 \hlstd{Q2} \hlopt{%>%} \hlkwd{unnest}\hlstd{(tabQ4)} \hlopt{%>%}
-  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{==} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{sign} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lwr)} \hlopt{!=} \hlkwd{sign}\hlstd{(upr),} \hlstr{"ns"}\hlstd{,} \hlstr{"sig"}\hlstd{))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate}\hlopt{:}\hlstd{upr),} \hlkwd{funs}\hlstd{(}\hlkwd{sprintf}\hlstd{(}\hlstr{"%.2f"}\hlstd{, .)))} \hlopt{%>%}
   \hlkwd{mutate}\hlstd{(}\hlkwc{CI} \hlstd{=} \hlkwd{sprintf}\hlstd{(}\hlstr{"[%s, %s]"}\hlstd{, lwr, upr))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(Estimate, CI),} \hlkwd{funs}\hlstd{(}\hlkwd{ifelse}\hlstd{(sign} \hlopt{==} \hlstr{"sig"}\hlstd{,} \hlkwd{sprintf}\hlstd{(}\hlstr{"\textbackslash{}\textbackslash{}textbf\{%s\}"}\hlstd{, .), .)))} \hlopt{%>%}
@@ -598,12 +598,12 @@ Compare Group 1 to the combination of Groups 2, 3, and 4.
   \hlkwd{spread}\hlstd{(tmp, value)} \hlopt{%>%}
   \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{escape} \hlstd{= F,}
         \hlkwc{col.names} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"Groups"}\hlstd{,} \hlkwd{rep}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{"b"}\hlstd{,} \hlstr{"CI"}\hlstd{),} \hlkwc{times} \hlstd{=} \hlnum{3}\hlstd{)),}
-        \hlkwc{caption} \hlstd{=} \hlstr{"Question 1: Pairwise Comparisons"}\hlstd{)} \hlopt{%>%}
+        \hlkwc{caption} \hlstd{=} \hlstr{"Question 4: Group x DV Combinations"}\hlstd{)} \hlopt{%>%}
   \hlkwd{add_header_above}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{" "} \hlstd{=} \hlnum{1}\hlstd{,} \hlstr{"DV1+2+3 v DV4"} \hlstd{=} \hlnum{2}\hlstd{,}  \hlstr{"V1+2 v DV3+4"} \hlstd{=} \hlnum{2}\hlstd{,}  \hlstr{"DV1 v DV2"} \hlstd{=} \hlnum{2}\hlstd{))}
 \end{alltt}
 \end{kframe}\begin{table}
 
-\caption{\label{tab:unnamed-chunk-19}Question 1: Pairwise Comparisons}
+\caption{\label{tab:unnamed-chunk-19}Question 4: Group x DV Combinations}
 \centering
 \begin{tabular}[t]{lllllll}
 \toprule
@@ -611,9 +611,9 @@ Compare Group 1 to the combination of Groups 2, 3, and 4.
 \cmidrule(l{2pt}r{2pt}){2-3} \cmidrule(l{2pt}r{2pt}){4-5} \cmidrule(l{2pt}r{2pt}){6-7}
 Groups & b & CI & b & CI & b & CI\\
 \midrule
-G1 & \textbf{-0.33} & \textbf{[-0.79, 0.13]} & \textbf{-0.36} & \textbf{[-0.77, 0.05]} & \textbf{-0.36} & \textbf{[-0.94, 0.22]}\\
-G1vG2+3+4 & -0.45 & [-0.87, -0.04] & -1.43 & [-1.91, -0.94] & \textbf{-0.60} & \textbf{[-1.27, 0.07]}\\
-G2vG3 & \textbf{0.55} & \textbf{[-0.12, 1.22]} & \textbf{-0.50} & \textbf{[-1.08, 0.08]} & \textbf{0.24} & \textbf{[-0.58, 1.06]}\\
+G1 & -0.33 & [-0.79, 0.13] & -0.36 & [-0.77, 0.05] & -0.36 & [-0.94, 0.22]\\
+G1vG2+3+4 & \textbf{-0.45} & \textbf{[-0.87, -0.04]} & \textbf{-1.43} & \textbf{[-1.91, -0.94]} & -0.60 & [-1.27, 0.07]\\
+G2vG3 & 0.55 & [-0.12, 1.22] & -0.50 & [-1.08, 0.08] & 0.24 & [-0.58, 1.06]\\
 \bottomrule
 \end{tabular}
 \end{table}
