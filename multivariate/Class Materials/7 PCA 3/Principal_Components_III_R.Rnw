@@ -1,0 +1,914 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Principal Components I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+\subsection{Packages}
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(factoextra)
+library(FactoMineR)
+library(reshape2)
+library(GGally)
+library(MASS)
+library(parallel)
+library(MVN)
+library(qqplotr)
+library(arm)
+library(psych)
+library(lme4)
+library(lmtest)
+library(car)
+library(emmeans)
+library(multcomp)
+library(lm.beta)
+library(pls)
+library(polycor)
+@
+
+\section{Simplified Composites}
+\subsection{Data Generation}
+\textbf{\large{\textit{
+To explore forming composites of different types, we'll use data similar to what we used to examine outlier detection, with some modification.  
+We will generate a random sample of 500 cases for 9 standard normal variables from a population having moderate correlations (.45 to .70) among items in partially overlapping sets (variables 1-4, variables 4-7, variables, 7-9).
+So that the matrix is positive definite, we need to allow some correlation among variables across sets (.10 in this case).
+A 10th variable is included to serve as an outcome variable to explore the impact of different composites on regression estimates. \newline
+\newline
+\[
+R =
+\begin{bmatrix*}
+    1.00 & 0.50 & 0.45 & 0.45 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.55 \\
+		0.50 & 1.00 & 0.60 & 0.60 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.50 \\
+	  0.45 & 0.60 & 1.00 & 0.55 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.55 \\
+		0.45 & 0.60 & 0.55 & 1.00 & 0.50 & 0.60 & 0.50 & 0.00 & 0.00 & 0.55 \\
+		0.00 & 0.00 & 0.00 & 0.50 & 1.00 & 0.50 & 0.65 & 0.50 & 0.00 & 0.45 \\
+		0.00 & 0.00 & 0.00 & 0.60 & 0.50 & 1.00 & 0.50 & 0.00 & 0.00 & 0.50 \\
+		0.00 & 0.00 & 0.00 & 0.50 & 0.65 & 0.50 & 1.00 & 0.50 & 0.50 & 0.65 \\
+		0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.50 & 1.00 & 0.70 & 0.55 \\
+		0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.50 & 0.70 & 1.00 & 0.60	\\
+		0.55 & 0.50 & 0.55 & 0.55 & 0.45 & 0.50 & 0.65 & 0.55 & 0.60 & 1.00
+\end{bmatrix*}
+\]
+}}}
+
+<<tidy=TRUE>>=
+means <- matrix(c(0,0,0,0,0,0,0,0,0,0))
+sigma <- matrix(c(1.00,0.50,0.45,0.45,0.10,0.10,0.10,0.10,0.10,0.55,
+		0.50,1.00,0.60,0.60,0.10,0.10,0.10,0.10,0.10,0.50,
+	  0.45,0.60,1.00,0.55,0.10,0.10,0.10,0.10,0.10,0.55,
+		0.45,0.60,0.55,1.00,0.50,0.60,0.50,0.10,0.10,0.55,
+		0.10,0.10,0.10,0.50,1.00,0.50,0.65,0.10,0.10,0.45,
+		0.10,0.10,0.10,0.60,0.50,1.00,0.50,0.10,0.10,0.50,
+		0.10,0.10,0.10,0.50,0.65,0.50,1.00,0.50,0.50,0.65,
+		0.10,0.10,0.10,0.10,0.10,0.10,0.50,1.00,0.70,0.55,
+		0.10,0.10,0.10,0.10,0.10,0.10,0.50,0.70,1.00,0.60,
+		0.55,0.50,0.55,0.55,0.45,0.50,0.65,0.55,0.60,1.00),nrow=10,ncol=10,byrow=TRUE)
+Data <- mvrnorm(500,means,sigma)
+Data <- as.data.frame(Data)
+@
+
+\subsection{Correlations}
+\textbf{\large{\textit{
+A heat map for the correlation matrix easily identifies the pattern of correlations in the simulated data, including the relations of the first nine variables with the last one.
+}}}
+<<tidy=TRUE>>=
+ggcorr(Data, label=TRUE,angle=90,hjust=.10,size=4,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Measures")
+@
+
+\subsection{Forming Composites}
+\textbf{\large{\textit{
+Sometimes researchers will use principal components analysis to determine how composite scores should be created, but then will create these composites as simple sums of the original variables rather than optimally weighted principal component scores. \newline
+Three non-optimal rules were used to derive composites: \newline
+\begin{addmargin}[1em]{0em}
+Use all items but add or subtract depending on the sign of the loading on a component. \newline
+Use only those items that load at least .30 in absolute value. \newline
+Use only those items that load at least .50 in absolute value. \newline
+\newline
+\end{addmargin}
+These composites will be compared to principal component scores. 
+}}}
+\subsubsection{Extract Three Principal Components}
+<<tidy=TRUE>>=
+PCA <- principal(Data[,c(1:9)],nfactors=3,rotate="none",residuals=TRUE,scores=TRUE)
+PCA
+@
+
+\textbf{\large{\textit{
+Create the composites and add them to the data frame.
+}}}
+<<tidy=TRUE>>=
+PC <- cbind(Data,PCA$scores)
+PC$Unit_1 <- PC$V1+PC$V2+PC$V3+PC$V4+PC$V5+PC$V6+PC$V7+PC$V8+PC$V9
+PC$Unit_2 <- -PC$V1-PC$V2-PC$V3-PC$V4+PC$V5+PC$V6+PC$V7+PC$V8+PC$V9
+PC$Unit_3 <- PC$V1+PC$V2+PC$V3-PC$V4-PC$V5-PC$V6-PC$V7+PC$V8+PC$V9
+PC$L30_1 <- PC$V1+PC$V2+PC$V3+PC$V4+PC$V5+PC$V6+PC$V7+PC$V8+PC$V9
+PC$L30_2 <- -PC$V1-PC$V2-PC$V3-PC$V4+PC$V7+PC$V8+PC$V9
+PC$L30_3 <- PC$V2+PC$V3-PC$V5-PC$V6+PC$V8+PC$V9
+PC$L50_1 <- PC$V1+PC$V2+PC$V4+PC$V5+PC$V6+PC$V7
+PC$L50_2 <- -PC$V2-PC$V3+PC$V7+PC$V8+PC$V9
+PC$L50_3 <- -PC$V5-PC$V6+PC$V8+PC$V9
+@
+
+\subsubsection{Descriptive Statistics}
+<<tidy=TRUE>>=
+describe(PC[,c(11:22)])
+@
+
+\subsubsection{Correlations}
+<<tidy=TRUE>>=
+round(cor(PC[,c(11:13)]),3)
+round(cor(PC[,c(14:16)]),3)
+round(cor(PC[,c(17:19)]),3)
+round(cor(PC[,c(20:22)]),3)
+
+round(cor(PC[,c(11:22)]),3)
+@
+
+\textbf{\large{\textit{
+Only the PC scores are independent; the other composites are moderately correlated and not always in a consistent direction.
+Smaller components are not preserved as well in the simpler composites. 
+}}}
+
+\subsection{Multiple Regressions with Composite Scores}
+\textbf{\large{\textit{
+Here the composites are used to predict an outcome variable (Variable 10).
+The relative strength of the predictors is compared to indicate the potential consequences of using sub-optimal composites.
+}}}
+<<tidy=TRUE>>=
+LM_1 <- lm(PC$V10~PC1+PC2+PC3,data=PC)
+summary(LM_1)
+summary(lm.beta(LM_1))
+
+LM_2 <- lm(PC$V10~Unit_1+Unit_2+Unit_3,data=PC)
+summary(LM_2)
+summary(lm.beta(LM_2))
+
+LM_3 <- lm(PC$V10~L30_1+L30_2+L30_3,data=PC)
+summary(LM_3)
+summary(lm.beta(LM_3))
+
+LM_4 <- lm(PC$V10~L50_1+L50_2+L50_3,data=PC)
+summary(LM_4)
+summary(lm.beta(LM_4))
+@
+
+\textbf{\large{\textit{
+Predicting a 10th variable, the magnitude (and sometimes the sign) of prediction is not preserved for smaller components.
+}}}
+
+\section{Group Contamination}
+\textbf{\large{\textit{
+The use of principal components analysis has a hidden danger when used in experimental research. 
+Numerous measures might be collected and principal components analysis might seem to be a reasonable way to simplify the data prior to conducting major analyses. \newline
+\newline
+In experimental data, however, treatment-induced mean differences can impose a structure on the data that may distort a principal components analysis attempting to uncover the underlying dimensionality of the outcome measures.
+This artificial systematic variability should be removed prior to conducting the PCA.
+This requires extracting the residuals for analysis.
+First let's see what happens if we ignore the group effects.
+}}}
+
+\subsection{Data File}
+\textbf{\large{\textit{
+To examine the consequences of group contamination on principal components analysis, we'll use a data set (N = 500) in which participants are randomly assigned to one of two groups and 20 different outcome measures are collected.
+}}}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+PC_2 <- read.table('groups_contamination_in_principal_components.csv',sep=',',header=TRUE)
+PC_2 <- as.data.frame(PC_2)
+@
+
+\subsection{No Adjustment to the Data}
+\subsubsection{Descriptive Statistics}
+<<tidy=TRUE>>=
+describe(PC_2[,c(1:20)])
+R <- cor(PC_2[,c(1:20)])
+round(R,2)
+@
+
+\textbf{\large{\textit{
+A heat map for the correlation matrix suggests clear patterning in the data.
+}}}
+<<tidy=TRUE>>=
+ggcorr(PC_2[,c(1:20)], label=TRUE,angle=90,hjust=.10,size=4,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Measures")
+@
+
+\subsubsection{Should a PCA be Conducted?}
+<<tidy=TRUE>>=
+KMO(R)
+@
+
+<<tidy=TRUE>>=
+cortest.bartlett(R=R,n=500)
+@
+
+\subsubsection{Scree Test}
+<<tidy=TRUE>>=
+scree <- fa.parallel(PC_2[,c(1:20)],fa="pc")
+@
+
+\textbf{\large{\textit{
+The KMO, Bartlett, and scree tests all suggest that a principal components analysis should be done.
+There appears to be a single dominant component in the data.
+If true, this would imply that the 20 measures might be replaced by one in subsequent analyses.
+}}}
+
+\subsubsection{PCA}
+<<tidy=TRUE>>=
+PCA_2 <- principal(R,nfactors=1,rotate="none",n.obs=500,residuals=TRUE)
+PCA_2
+@
+
+\subsubsection{Examination of Residuals}
+\textbf{\large{\textit{
+A residual matrix gives the variances in the main diagonal and correlations in the off-diagonals.
+This can be converted to a correlation matrix, which can then be examined using the KMO and Bartlett tests to determine if additional components should be extracted.
+}}}
+
+<<tidy=TRUE>>=
+# Create a correlation matrix of the residuals by replacing the main diagonal with ones.
+R1 <- diag(PCA_2$residual)
+R2 <- diag(R1)
+R3 <- PCA_2$residual-R2
+R4 <- diag(20) + R3
+
+# Assess the factorability of the residual correlation matrix.
+KMO(R4)
+cortest.bartlett(R=R4,n=length(Data[,1]))
+scree <- fa.parallel(R4,fa="pc",n.obs=length(Data[,1]))
+@
+
+\textbf{\large{\textit{
+No evidence of additional components.
+}}}
+
+\subsection{Adjust the Data for Group Differences}
+\textbf{\large{\textit{
+Because the data came from an experiment, there is probably variation in the scores that is due to the manipulation. 
+That variation could be artificially inflating or deflating the correlations among the variables. 
+It needs to be removed before a principal components analysis is conducted.
+}}}
+\subsubsection{Group Differences: t-tests}
+<<tidy=TRUE>>=
+# t-tests to determine if group differences exist.
+t.test(v1~group,data=PC_2)
+t.test(v2~group,data=PC_2)
+t.test(v3~group,data=PC_2)
+t.test(v4~group,data=PC_2)
+t.test(v5~group,data=PC_2)
+t.test(v6~group,data=PC_2)
+t.test(v7~group,data=PC_2)
+t.test(v8~group,data=PC_2)
+t.test(v9~group,data=PC_2)
+t.test(v10~group,data=PC_2)
+t.test(v11~group,data=PC_2)
+t.test(v12~group,data=PC_2)
+t.test(v13~group,data=PC_2)
+t.test(v14~group,data=PC_2)
+t.test(v15~group,data=PC_2)
+t.test(v16~group,data=PC_2)
+t.test(v17~group,data=PC_2)
+t.test(v18~group,data=PC_2)
+t.test(v19~group,data=PC_2)
+t.test(v20~group,data=PC_2)
+@
+
+\subsubsection{Graphical Display of Group Differences}
+<<tidy=TRUE>>=
+# Graphical display of group differences.
+means <- aggregate(v1 ~ group, PC_2,mean)
+means <- cbind(means,aggregate(v2 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v3 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v4 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v5 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v6 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v7 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v8 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v9 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v10 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v11 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v12 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v13 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v14 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v15 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v16 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v17 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v18 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v19 ~ group, PC_2,mean)[,2])
+means <- cbind(means,aggregate(v20 ~ group, PC_2,mean)[,2])
+means <- as.data.frame(means)
+names(means) <- c("groups","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10",
+                  "v11","v12","v13","v14","v15","v16","v17","v18","v19","v20")
+
+sds <- aggregate(v1 ~ group, PC_2,sd)
+sds <- cbind(sds,aggregate(v2 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v3 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v4 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v5 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v6 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v7 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v8 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v9 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v10 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v11 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v12 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v13 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v14 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v15 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v16 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v17 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v18 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v19 ~ group, PC_2,sd)[,2])
+sds <- cbind(sds,aggregate(v20 ~ group, PC_2,sd)[,2])
+sds <- as.data.frame(sds)
+names(sds) <- c("groups","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10",
+                  "v11","v12","v13","v14","v15","v16","v17","v18","v19","v20")
+
+means_long <- melt(means, id.vars = "groups")
+means_long <- as.data.frame(means_long)
+names(means_long) <- c("groups","variable","means")
+sds_long <- melt(sds, id.vars = "groups")
+sds_long <- as.data.frame(sds_long)
+names(sds_long) <- c("groups","variable","sds")
+plot_data <- cbind(means_long,sds_long[,3])
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("groups","variable","means","sds")
+plot_data$CI_Low <- plot_data$means-qt(.975, df=length(PC_2[,1])-1,lower.tail = TRUE)*plot_data$sds/sqrt(length(PC_2[,1]))
+plot_data$CI_High <- plot_data$means+qt(.975, df=length(PC_2[,1])-1,lower.tail = TRUE)*plot_data$sds/sqrt(length(PC_2[,1]))
+plot_data$groups_F <- factor(plot_data$groups,levels=c(1,2),labels=c("Group 1","Group 2"))
+plot_data$variable_2 <- c(1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,
+                          13,13,14,14,15,15,16,16,17,17,18,18,19,19,20,20)
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=variable_2, y=means, color=groups_F)) + 
+    geom_errorbar(aes(ymin=CI_Low, ymax=CI_High), width=.2) +
+    geom_line(size=1) +
+    geom_point(size=2) +
+    scale_color_manual(values=c("red","blue")) +
+    scale_y_continuous(breaks=c(-2,-1,0,1,2)) +
+    scale_x_continuous(breaks=seq(1,20,1)) +
+    coord_cartesian(xlim = c(1,20), ylim =c(-2,2)) +
+    xlab("Outcome Variable") + 
+    ylab("Means with 95% CI") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=10,face="bold"),
+          axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Means by Groups (95% CI)")  
+@
+
+\subsubsection{Illustration of How Group Differences Influence Correlations}
+<<tidy=TRUE>>=
+PC_2$groups_F <- factor(PC_2$group,levels=c(1,2),labels=c("Group 1","Group 2"))
+ggplot(PC_2, aes(x=v1, y=v2, color=groups_F)) + 
+    geom_point(size=2) +
+    geom_smooth(method=lm,se=FALSE,fullrange=TRUE,size=1) +
+    geom_smooth(aes(x=v1, y=v2), method=lm, se=FALSE, color="darkgreen",size=1.5,
+                linetype=1) +
+    scale_color_manual(values=c("coral","deepskyblue2")) +
+    scale_y_continuous(breaks=seq(-4,4,1)) +
+    scale_x_continuous(breaks=seq(-4,3,1)) +
+    coord_cartesian(xlim = c(-4,3), ylim =c(-4,4)) +
+    xlab("Variable 1") + 
+    ylab("Variable 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=10,face="bold"),
+          axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+    annotate("text",label = "Total Sample", x = -3.4, y = 4, color = "darkgreen",
+             hjust=0,size=5) +
+    annotate("segment",x=-4,xend=-3.5,y=4,yend=4,color="darkgreen",size=1.5) +
+  ggtitle("Scatterplot for Variables 1 and 2 by Group")  
+@
+
+<<tidy=TRUE>>=
+ggplot(PC_2, aes(x=v1, y=v20, color=groups_F)) + 
+    geom_point(size=2) +
+    geom_smooth(method=lm,se=FALSE,fullrange=TRUE,size=1) +
+    geom_smooth(aes(x=v1, y=v20), method=lm, se=FALSE, color="darkgreen",size=1.5,
+                linetype=1) +
+    scale_color_manual(values=c("coral","deepskyblue2")) +
+    scale_y_continuous(breaks=seq(-4,4,1)) +
+    scale_x_continuous(breaks=seq(-4,3,1)) +
+    coord_cartesian(xlim = c(-4,3), ylim =c(-4,4)) +
+    xlab("Variable 1") + 
+    ylab("Variable 20") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=10,face="bold"),
+          axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+    annotate("text",label = "Total Sample", x = -3.4, y = 4, color = "darkgreen",
+             hjust=0,size=5) +
+    annotate("segment",x=-4,xend=-3.5,y=4,yend=4,color="darkgreen",size=1.5) +
+  ggtitle("Scatterplot for Variables 1 and 20 by Group")  
+@
+
+\subsubsection{Linear Models to Remove Group Differences}
+\textbf{\large{\textit{
+A separate linear model, using group as a predictor, is estimated. 
+The residuals from those analyses are then collected in one file for further analyses.
+}}}
+<<tidy=TRUE>>=
+M_1 <- lm(v1~group,data=PC_2)
+M_2 <- lm(v2~group,data=PC_2)
+M_3 <- lm(v3~group,data=PC_2)
+M_4 <- lm(v4~group,data=PC_2)
+M_5 <- lm(v5~group,data=PC_2)
+M_6 <- lm(v6~group,data=PC_2)
+M_7 <- lm(v7~group,data=PC_2)
+M_8 <- lm(v8~group,data=PC_2)
+M_9 <- lm(v9~group,data=PC_2)
+M_10 <- lm(v10~group,data=PC_2)
+M_11 <- lm(v11~group,data=PC_2)
+M_12 <- lm(v12~group,data=PC_2)
+M_13 <- lm(v13~group,data=PC_2)
+M_14 <- lm(v14~group,data=PC_2)
+M_15 <- lm(v15~group,data=PC_2)
+M_16 <- lm(v16~group,data=PC_2)
+M_17 <- lm(v17~group,data=PC_2)
+M_18 <- lm(v18~group,data=PC_2)
+M_19 <- lm(v19~group,data=PC_2)
+M_20 <- lm(v20~group,data=PC_2)
+@
+
+\subsubsection{Retain Residuals for Further Analyses}
+<<tidy=TRUE>>=
+PC_R <- cbind(M_1$residuals,M_2$residuals,M_3$residuals,M_4$residuals,
+              M_5$residuals,M_6$residuals,M_7$residuals,M_8$residuals,
+              M_9$residuals,M_10$residuals,M_11$residuals,M_12$residuals,
+              M_13$residuals,M_14$residuals,M_15$residuals,M_16$residuals,
+              M_17$residuals,M_18$residuals,M_19$residuals,M_20$residuals)
+PC_R <- as.data.frame(PC_R)
+names(PC_R) <- c("v1","v2","v3","v4","v5","v6","v7","v8","v9","v10",
+                  "v11","v12","v13","v14","v15","v16","v17","v18","v19","v20")
+@
+
+\subsection{Analyze Residuals}
+\subsubsection{Descriptive Statistics}
+<<tidy=TRUE>>=
+describe(PC_R)
+R <- cor(PC_R)
+round(R,2)
+@
+
+\textbf{\large{\textit{
+A heat map for the correlation matrix suggests no clear patterning in the data.
+}}}
+<<tidy=TRUE>>=
+ggcorr(PC_R[,c(1:20)], label=TRUE,angle=90,hjust=.10,size=4,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Measures")
+@
+
+\subsubsection{Should a PCA be Conducted?}
+<<tidy=TRUE>>=
+KMO(R)
+@
+
+<<tidy=TRUE>>=
+cortest.bartlett(R=R,n=500)
+@
+
+\subsubsection{Scree Test}
+<<tidy=TRUE>>=
+scree <- fa.parallel(PC_R[,c(1:20)],fa="pc")
+@
+
+\textbf{\large{\textit{
+The KMO and scree tests suggest no evidence for strong principal components in the data.
+}}}
+
+\subsubsection{PCA}
+<<tidy=TRUE>>=
+PCA_R <- principal(R,nfactors=1,rotate="none",n.obs=500,residuals=TRUE)
+PCA_R
+@
+
+\textbf{\large{\textit{
+The original principal components analysis would have indicated that a single component, and a single t-test, would have provided an adequate test of group differences. 
+When the correct matrix is analyzed (residuals), there is no evidence for multidimensionality, indicating the need for 20 individual t-tests (and perhaps appropriate Type I error protection).
+}}}
+
+\section{Multicollinearity}
+\textbf{\large{\textit{
+Principal components analysis can also be used to solve multicollinearity problems.
+}}}
+
+\subsection{Create a Multicollinear Data Set}
+\textbf{\large{\textit{
+Here we create a multivariate normal data set (N=100).
+The means (equal to 0) are defined in the vector, mu.
+The variance-covariance matrix is defined by the matrix, sigma.
+Because we will use standard normal variables, the covariance matrix is just a correlation matrix.
+The predictors (first 6 variables) are intercorrelated in the population at .9.  
+Each predictor has a correlation with the DV (last variable) of .6
+\[
+R =
+\begin{bmatrix*}
+    1.00 & 0.90 & 0.90 & 0.90 & 0.90 & 0.90 & 0.60  \\
+		0.90 & 1.00 & 0.90 & 0.90 & 0.90 & 0.90 & 0.60  \\
+	  0.90 & 0.90 & 1.00 & 0.90 & 0.90 & 0.90 & 0.60  \\
+		0.90 & 0.90 & 0.90 & 1.00 & 0.90 & 0.90 & 0.60  \\
+		0.90 & 0.90 & 0.90 & 0.90 & 1.00 & 0.90 & 0.60 \\
+		0.90 & 0.90 & 0.90 & 0.90 & 0.90 & 1.00 & 0.60  \\
+		0.60 & 0.60 & 0.60 & 0.60 & 0.60 & 0.60 & 1.00 
+\end{bmatrix*}
+\]
+}}}
+<<tidy=TRUE>>=
+mu <- matrix(c(0,0,0,0,0,0,0),nrow=7,ncol=1)
+sigma <- matrix(c(1,.9,.9,.9,.9,.9,.6,
+                  .9,1,.9,.9,.9,.9,.6,
+                  .9,.9,1,.9,.9,.9,.6,
+                  .9,.9,.9,1,.9,.9,.6,
+                  .9,.9,.9,.9,1,.9,.6,
+                  .9,.9,.9,.9,.9,1,.6,
+                  .6,.6,.6,.6,.6,.6,1),nrow=7,ncol=7,byrow=TRUE)
+Data <- data.frame(mvrnorm(n = 100, mu, sigma, tol = 1e-6, empirical = FALSE))
+names(Data) <- c("IV1","IV2","IV3","IV4","IV5","IV6","DV")
+@
+
+\subsubsection{Descriptive Statistics}
+<<tidy=TRUE>>=
+describe(Data)
+R <- cor(Data)
+round(R,2)
+@
+
+\textbf{\large{\textit{
+A heat map for the correlation matrix suggests no clear patterning in the data.
+}}}
+<<tidy=TRUE>>=
+ggcorr(Data[,c(1:7)], label=TRUE,angle=90,hjust=.10,size=4,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Measures")
+@
+
+\subsection{Linear Model with Multicollinear Predictors}
+\textbf{\large{\textit{
+The 6 multicollinear predictors are used to account for variance in the DV.
+The overall proportion of variance accounted for is substantial, but because of the multicollinearity, just one of the predictors is individually significant (Type III sums of squares) despite the fact that each independent variable has a substantial (and in the population, equal) relationship with the outcome.
+}}}
+\subsubsection{Regression Summary}
+<<tidy=TRUE>>=
+# Note that the following provides Type III sums of squares.
+lm_fit_1 <- lm(DV~IV1+IV2+IV3+IV4+IV5+IV6,data=Data)
+summary(lm_fit_1)
+@
+
+\subsubsection{Variance Inflation Factor}
+\textbf{\large{\textit{
+A useful way to assess multicollinearity is by the variance inflation factor (VIF).
+The VIF for a variable increases from 1 to the extent that the variable is highly related to the other predictors.
+VIF is defined as follows:
+\begin{equation*}
+    VIF_j = \frac{1}{1-R^2_j}
+\end{equation*}
+in which $R_j^2$ is the squared multiple correlation from regressing on predictor on the remaining predictors.
+The VIF indicates by how much the variance of a regression coefficient is multiplied because of collinearity. \newline
+\newline
+The reciprocal of the VIF is the tolerance, which is the amount of variance in a predictor that is unique from the other predictors.
+}}}
+<<tidy=TRUE>>=
+vif(lm_fit_1)
+1/vif(lm_fit_1)
+lm_fit_2 <- lm(IV1~IV2+IV3+IV4+IV5+IV6,data=Data)
+summary(lm_fit_2)
+@
+
+\textbf{\large{\textit{
+The VIF values are all very high, indicating serious multicollinearity.
+}}}
+
+\subsection{PCA of the Multicollinear Predictors}
+\textbf{\large{\textit{
+A principal components analysis indicates just a single underlying dimension for the predictors, accounting for over 90\% of the variance in the original data..
+The principal component score is retained for further analyses.
+}}}
+\subsubsection{Should a PCA be Conducted?}
+<<tidy=TRUE>>=
+KMO(R)
+@
+
+<<tidy=TRUE>>=
+cortest.bartlett(R=R,n=500)
+@
+
+\subsubsection{Scree Test}
+<<tidy=TRUE>>=
+scree <- fa.parallel(Data[,c(1:6)],fa="pc")
+@
+
+\clearpage
+\subsubsection{PCA Summary}
+<<tidy=TRUE>>=
+PCA_3 <- principal(Data[,1:6],nfactors=1,rotate="none",n.obs=100,residuals=TRUE)
+PCA_3
+Data <- cbind(Data,PCA_3$scores)
+@
+
+\subsection{Linear Model with Principal Component Score}
+\textbf{\large{\textit{
+The outcome variable is predicted from the single principal component score, with little loss of information.
+}}}
+<<tidy=TRUE>>=
+summary(lm(DV~PC1,data=Data))
+@
+
+\section{Ordinal Data}
+\textbf{\large{\textit{
+What about data that are strictly ordinal but often treated as though continuous?  The Need for Cognition Scale used in our first PCA example had a 5-point rating scale: \newline
+\newline
+\begin{addmargin}[1em]{0em}
+1 = very characteristic of me \newline
+2 = somewhat characteristic of me \newline
+3 = neutral \newline
+4 = somewhat uncharacteristic of me \newline
+5 = very uncharacteristic of me \newline
+\end{addmargin}
+If the underlying construct is viewed as continuous, then crude categories such as this will attenuate correlations. \newline
+\newline
+Does it matter that we are assuming the variables to be continuous when they are only approximately so?  
+We can investigate this question by converting the empirical correlations to their expected values for the underlying (and truly) continuous and bivariate normally distributed latent variables. 
+These are called polychoric correlations. 
+Then we can repeat the principal components analysis on the polychoric correlations and compare the results to the original analyses.
+}}}
+
+\subsection{Need for Cognition Data}
+<<tidy=TRUE>>=
+# Get the data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+NC <- read.table('need_for_cognition.csv',sep=',',header=TRUE)
+NC <- as.data.frame(NC)
+NC <- na.omit(NC)
+
+
+# Reverse score items
+NC$item_1 <- 6-NC$item_1
+NC$item_2 <- 6-NC$item_2
+NC$item_6 <- 6-NC$item_6
+NC$item_10 <- 6-NC$item_10
+NC$item_11 <- 6-NC$item_11
+NC$item_13 <- 6-NC$item_13
+NC$item_14<- 6-NC$item_14
+NC$item_15 <- 6-NC$item_15
+NC$item_18 <- 6-NC$item_18
+@
+
+\subsection{Conversion to Ordered Factors}
+\textbf{\large{\textit{
+We need to convert the items to ordered factors so they are treated correctly by the hetcor() function.
+Otherwise they will be treated as continuous and hetcor() will just produce Pearson product-moment correlations.
+}}}
+<<tidy=TRUE>>=
+NC$I1 <- ordered(NC$item_1,levels=c(1,2,3,4,5))
+NC$I2 <- ordered(NC$item_2,levels=c(1,2,3,4,5))
+NC$I3 <- ordered(NC$item_3,levels=c(1,2,3,4,5))
+NC$I4 <- ordered(NC$item_4,levels=c(1,2,3,4,5))
+NC$I5 <- ordered(NC$item_5,levels=c(1,2,3,4,5))
+NC$I6 <- ordered(NC$item_6,levels=c(1,2,3,4,5))
+NC$I7 <- ordered(NC$item_7,levels=c(1,2,3,4,5))
+NC$I8 <- ordered(NC$item_8,levels=c(1,2,3,4,5))
+NC$I9 <- ordered(NC$item_9,levels=c(1,2,3,4,5))
+NC$I10 <- ordered(NC$item_10,levels=c(1,2,3,4,5))
+NC$I11 <- ordered(NC$item_11,levels=c(1,2,3,4,5))
+NC$I12 <- ordered(NC$item_12,levels=c(1,2,3,4,5))
+NC$I13 <- ordered(NC$item_13,levels=c(1,2,3,4,5))
+NC$I14 <- ordered(NC$item_14,levels=c(1,2,3,4,5))
+NC$I15 <- ordered(NC$item_15,levels=c(1,2,3,4,5))
+NC$I16 <- ordered(NC$item_16,levels=c(1,2,3,4,5))
+NC$I17 <- ordered(NC$item_17,levels=c(1,2,3,4,5))
+NC$I18 <- ordered(NC$item_18,levels=c(1,2,3,4,5))
+@
+
+\subsection{Polychoric Correlations}
+\textbf{\large{\textit{
+The hetcor() function produces the expected correlations under the assumption that the underlying latent variables are continuous, using maximum likelihood.
+}}}
+<<tidy=TRUE>>=
+PR <- hetcor(NC[,19:36],ML=TRUE,pd=TRUE)$correlations
+R <- cor(NC[,1:18])
+
+# Mean difference between the off-diagonals 
+# of the two matrices.
+PR_2 <- PR
+diag(PR_2) <- NA
+R_2 <- R
+diag(R_2) <- NA
+mean(PR_2-R_2, na.rm = TRUE)
+@
+
+\subsection{Scree Tests}
+<<tidy=TRUE>>=
+scree_PR <- fa.parallel(PR,n.obs=195,fa="pc")
+scree_R <- fa.parallel(R,n.obs=195,fa="pc")
+
+spr <- scree_PR$pc.values
+sr <- scree_R$pc.values
+scree_total <- matrix(c(sr,spr))
+scree_total <- as.data.frame(scree_total)
+names(scree_total) <- c("eigenvalues")
+scree_total$component <- c(seq(1,18),seq(1,18))
+scree_total$method <- c(rep(1,18),rep(2,18))
+scree_total$method_F <- factor(scree_total$method,levels=c(1,2),labels=c("Pearson","Polychoric"))
+@
+
+<<tidy=TRUE>>=
+ggplot(scree_total, aes(x = component,y=eigenvalues,color=method_F)) +
+  geom_point(size=2) +
+  geom_line(aes(linetype=method_F),size=1) +
+  scale_color_manual(values=c("red", "blue")) +  
+  coord_cartesian(xlim = c(1,18), ylim = c(0,7)) +
+  scale_x_continuous(breaks=c(seq(1,18,1))) +
+  scale_y_continuous(breaks=seq(0,7,1)) +
+  xlab("Principal Component") + 
+  ylab("Eigenvalue") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Eigenvalues as a Function of Correlation Method")
+@
+
+\subsection{PCA}
+<<tidy=TRUE>>=
+PCA_PR <- principal(PR,nfactors=1,rotate="none",n.obs=195,residuals=TRUE)
+PCA_R <- principal(R,nfactors=1,rotate="none",n.obs=195,residuals=TRUE)
+
+PCA_PR
+PCA_R
+@
+\textbf{\large{\textit{
+As expected, the principal components analysis results are clearer when based on the polychoric correlations.
+Nonetheless, the differences are not great and conclusions would not change, in this example.
+}}}
+\end{document}

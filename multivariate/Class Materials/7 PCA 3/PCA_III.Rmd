@@ -1,0 +1,375 @@
+---
+title: "PCA III"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(psych)
+library(knitr)
+library(MASS)
+library(kableExtra)
+library(gridExtra)
+library(plyr)
+library(tidyverse)
+```
+
+
+Today . . .
+# Simplified composites  
+Sometimes researchers will use principal components analysis to determine how composite scores should be created, but then will create these scores as simple sums rather than optimally weighted principal component scores. 
+Why would it matter?
+
+To explore this issue, we will generate a random sample of 500 cases for 9 standard normal variables from a population having moderate correlations (.45 to .70) among items in partially overlapping sets (variables 1-4, variables 4-7, variables, 7-9). A 10th variable is included to serve as an outcome variable to explore the impact of different composites on regression estimates. 
+
+```{r}
+means <- matrix(c(0,0,0,0,0,0,0,0,0,0))
+sigma <- matrix(c(1.00,0.50,0.45,0.45,0.10,0.10,0.10,0.10,0.10,0.55,
+		0.50,1.00,0.60,0.60,0.10,0.10,0.10,0.10,0.10,0.50,
+	  0.45,0.60,1.00,0.55,0.10,0.10,0.10,0.10,0.10,0.55,
+		0.45,0.60,0.55,1.00,0.50,0.60,0.50,0.10,0.10,0.55,
+		0.10,0.10,0.10,0.50,1.00,0.50,0.65,0.10,0.10,0.45,
+		0.10,0.10,0.10,0.60,0.50,1.00,0.50,0.10,0.10,0.50,
+		0.10,0.10,0.10,0.50,0.65,0.50,1.00,0.50,0.50,0.65,
+		0.10,0.10,0.10,0.10,0.10,0.10,0.50,1.00,0.70,0.55,
+		0.10,0.10,0.10,0.10,0.10,0.10,0.50,0.70,1.00,0.60,
+		0.55,0.50,0.55,0.55,0.45,0.50,0.65,0.55,0.60,1.00),nrow=10,ncol=10,byrow=TRUE)
+Data <- mvrnorm(500,means,sigma)
+Data <- as.data.frame(Data)
+
+psych::cor.plot(Data)
+```
+
+## Extract 3 Components
+```{r}
+PCA <- principal(Data[,c(1:9)],nfactors=3,rotate="none",residuals=TRUE,scores=TRUE)
+PCA
+```
+
+Three components account for over three-fourths of the variance.
+
+## Three non-optimal rules were used:
+
+### 1. Use all items but add or subtract depending on the sign of the loading on a  component.
+Unit_1 = V1 + V2 + V3 + V4 + V5 + V6 + V7 + V8 + V9
+Unit_2 = -V1 - V2 - V3 - V4 + V5 + V6 + V7 + V8 + V9
+Unit_3 = V1 + V2 + V3 - V4 - V5 - V6 - V7 + V8 + V9
+
+### 2. (b)  Use only those items that load at least .30 in absolute value.
+L30_1 = V1 + V2 + V3 + V4 + V5 + V6 + V7 + V8 + V9
+L30_2 = -V1 - V2 - V3 - V4 + V7 + V8 + V9
+L30_3 = V2 + V3 - V5 - V6 + V8 + V9
+
+### 3. Use only those items that load at least .50 in absolute value.
+L50_1 = V1 + V2 + V4 + V5 + V6 + V7
+L50_2 = -V2 - V3 + V7 + V8 + V9
+L50_3 = - V5 - V6 + V8 + V9
+
+We want the basic characteristics to stay but ignore the weighting?
+
+## Composites are not independent, PC scores are
+Only the PC scores are independent; the other composites are moderately correlated and not always in a consistent direction.
+
+```{r}
+PC <- cbind(Data,PCA$scores)
+PC$Unit_1 <- PC$V1+PC$V2+PC$V3+PC$V4+PC$V5+PC$V6+PC$V7+PC$V8+PC$V9
+PC$Unit_2 <- -PC$V1-PC$V2-PC$V3-PC$V4+PC$V5+PC$V6+PC$V7+PC$V8+PC$V9
+PC$Unit_3 <- PC$V1+PC$V2+PC$V3-PC$V4-PC$V5-PC$V6-PC$V7+PC$V8+PC$V9
+PC$L30_1 <- PC$V1+PC$V2+PC$V3+PC$V4+PC$V5+PC$V6+PC$V7+PC$V8+PC$V9
+PC$L30_2 <- -PC$V1-PC$V2-PC$V3-PC$V4+PC$V7+PC$V8+PC$V9
+PC$L30_3 <- PC$V2+PC$V3-PC$V5-PC$V6+PC$V8+PC$V9
+PC$L50_1 <- PC$V1+PC$V2+PC$V4+PC$V5+PC$V6+PC$V7
+PC$L50_2 <- -PC$V2-PC$V3+PC$V7+PC$V8+PC$V9
+PC$L50_3 <- -PC$V5-PC$V6+PC$V8+PC$V9
+
+round(cor(PC[,c(11:13)]),3)
+round(cor(PC[,c(14:16)]),3)
+round(cor(PC[,c(17:19)]),3)
+round(cor(PC[,c(20:22)]),3)
+```
+
+
+Smaller components are not preserved as well in the simpler composites. 
+
+```{r}
+round(cor(PC[,c(11:22)]),3)
+```
+
+Predicting a 10th variable, the magnitude of prediction is not preserved for smaller components.
+```{r}
+LM_1 <- lm(PC$V10~PC1+PC2+PC3,data=PC)
+summary(LM_1)
+summary(lm.beta(LM_1))
+
+LM_2 <- lm(PC$V10~Unit_1+Unit_2+Unit_3,data=PC)
+summary(LM_2)
+summary(lm.beta(LM_2))
+
+LM_3 <- lm(PC$V10~L30_1+L30_2+L30_3,data=PC)
+summary(LM_3)
+summary(lm.beta(LM_3))
+
+LM_4 <- lm(PC$V10~L50_1+L50_2+L50_3,data=PC)
+summary(LM_4)
+summary(lm.beta(LM_4))
+```
+
+## Are PC scores stable across replications?  
+Principal components have desirable properties (variance maximizing, orthogonal). Short-cut procedures can lead to composite scores that are no longer orthogonal and that are missing important sources of information.
+But, minor principal component scores may not replicate well. 
+
+
+# Group contamination  
+The use of principal components analysis has a hidden danger when used in experimental research. Numerous measures might be collected and principal components analysis might be a reasonable way to simplify the data prior to conducting major analyses.
+In experimental data, however, treatment-induced mean differences can impose a structure on the data that my distort a principal components analysis attempting to uncover the underlying dimensionality of the outcome measures.
+
+## Example  
+The sample data contain two experimental groups and 20 measures (N = 500).
+A principal components analysis can be used to reduce the set of measures, avoiding redundancy in the significance tests, but it needs to be used correctly.  
+Let’s first see what happens if we ignore the experimental nature of the data.
+
+```{r}
+wd <- "~/Dropbox (Brown)/Fall 2018/Multivariate/Class Materials/7 PCA 3"
+PC_2 <- read.table(sprintf('%s/groups_contamination_in_principal_components.csv', wd),sep=',',header=TRUE)
+PC_2 <- as.data.frame(PC_2)
+```
+
+```{r}
+cor.plot(PC_2)
+```
+
+### Extract the Components  
+Appears that a single component can be used in place of the 20 original measures.
+
+```{r}
+scree <- fa.parallel(PC_2[,c(1:20)],fa="pc")
+```
+
+### Interpret the Components
+How would this component be interpreted? Any potential problems in its derivation?
+Because the data came from an experiment, there is probably variation in the scores that is due to the manipulation. That variation could be artificially inflating or deflating the correlations among the variables. It needs to be removed before a principal components analysis is conducted.
+
+But are there potenntially problematic group differences across some variables?  
+
+The group differences are substantial and could be contaminating the correlations on which the PCA is based.
+
+```{r}
+PC_2 %>% mutate(SID = 1:nrow(.)) %>%
+  gather(key = item, value = value, -SID, -group) %>%
+  Rmisc::summarySE(., measurevar = "value", groupvars = c("item", "group")) %>%
+  mutate(item = factor(item, levels = paste("v", 1:20, sep = ""))) %>%
+  ggplot(aes(x = item, y = value, ymin = value - ci, 
+             ymax = value + ci, color = factor(group), group = group)) + 
+    geom_point() +
+    geom_errorbar(width = .1) +
+    geom_line() +
+    theme_classic()
+```
+
+
+Within each group, Variables 1 and 2 are unrelated. Ignoring group, the two variables are positively related.
+
+```{r}
+PC_2 %>%
+  ggplot(aes(x = v1, y = v2)) + 
+    geom_point(aes(color = factor(group))) +
+    geom_smooth(aes(color = factor(group)), method = "lm", se = F) + 
+    geom_smooth(method = "lm", se = F) +
+    theme_classic()
+
+```
+
+Within each group, Variables 1 and 20 are unrelated. Ignoring group, the two variables are negatively related.
+
+```{r}
+PC_2 %>%
+  ggplot(aes(x = v1, y = v20)) + 
+    geom_point(aes(color = factor(group))) +
+    geom_smooth(aes(color = factor(group)), method = "lm", se = F) + 
+    geom_smooth(method = "lm", se = F) +
+    theme_classic()
+```
+
+The solution to this problem is to model the group (treatment) contribution and then remove it. Then analyze the residuals in a principal components analysis.
+```{r}
+models <- PC_2 %>%
+  mutate(SID = 1:nrow(.)) %>%
+  gather(key = item, value = value, -group, -SID) %>%
+  group_by(item) %>%
+  nest() %>%
+  mutate(mod = map(data, ~lm(value ~ factor(group), data = .)),
+         tidy = map(mod, broom::tidy),
+         resid = map(mod, ~data.frame(.$residuals)))
+
+PC_R <- models %>%
+  unnest(resid) %>%
+  group_by(item) %>%
+  mutate(SID = 1:n()) %>%
+  select(SID, item, res = ..residuals) %>%
+  spread(item, res) %>%
+  select(-SID)
+
+describe(PC_R)
+R <- cor(PC_R)
+round(R,2)
+```
+
+
+When the correct matrix is analyzed (residuals), there is no evidence for multidimensionality, indicating the need for 20 individual t-tests (and perhaps appropriate Type I error protection).
+
+```{r}
+scree <- fa.parallel(PC_R[,c(1:20)],fa="pc")
+```
+
+ 
+
+# Reducing multicollinearity  
+Principal components analysis can also be used to solve multicollinearity problems.
+We will generate a multivariate standard normal data set (N=100) with the following variance-covariance matrix:
+```{r}
+mu <- matrix(c(0,0,0,0,0,0,0),nrow=7,ncol=1)
+sigma <- matrix(c(1,.9,.9,.9,.9,.9,.6,
+                  .9,1,.9,.9,.9,.9,.6,
+                  .9,.9,1,.9,.9,.9,.6,
+                  .9,.9,.9,1,.9,.9,.6,
+                  .9,.9,.9,.9,1,.9,.6,
+                  .9,.9,.9,.9,.9,1,.6,
+                  .6,.6,.6,.6,.6,.6,1),nrow=7,ncol=7,byrow=TRUE)
+Data <- data.frame(mvrnorm(n = 100, mu, sigma, tol = 1e-6, empirical = FALSE))
+names(Data) <- c("IV1","IV2","IV3","IV4","IV5","IV6","DV")
+
+
+```
+
+
+Despite the significant overall model, none of the individual predictors is significant.
+```{r}
+lm_fit_1 <- lm(DV~IV1+IV2+IV3+IV4+IV5+IV6,data=Data)
+summary(lm_fit_1)
+```
+
+The predictors are highly correlated with little unique variance to contribute.
+
+```{r}
+vif(lm_fit_1)
+1/vif(lm_fit_1)
+```
+
+A scree test suggests a single dominant component.  
+```{r}
+scree <- fa.parallel(Data[,c(1:6)],fa="pc")
+
+PCA_3 <- principal(Data[,1:6],nfactors=1,rotate="none",n.obs=100,residuals=TRUE)
+PCA_3
+Data <- cbind(Data,PCA_3$scores)
+```
+
+The single principal component accounts for most of the variance in the original set of predictors and can be used to replace those predictors in a multiple regression.
+
+## Principle Comoponents Regression
+Data reduction followed by a multiple regression
+
+
+# Some other PCA-like methods  
+Our last example was a simple case of principal components regression (PCR).  In PCR, we reduce the predictor set (X) via principal components analysis and then regress an outcome (Y) on that reduced set.  The focus of PCR is entirely on the predictor variables.
+
+A number of other multivariate procedures resemble principal components analysis:
+
+Partial least squares regression
+Independent component analysis
+Multiple correspondence analysis
+
+## Partial Least Squares Regression  
+Partial least squares regression (PLSR) attempts to identify linear combinations of the predictors that are independent (as in PCR) but that also maximize the covariance with the outcome. Its focus is on both predictors and outcomes. If more than one outcome is present, the method resembles canonical correlation analysis.  
+
+These will not have the optimal combination for variance explained becuase it is basiclaly serving two masters
+
+## Independent component analysis (ICA)  
+Independent component analysis (ICA) sounds like it must be similar to PCA, but is motivated by a different goal and set of assumptions. ICA is often used when the data represent complex signals assumed to be a mixture of multiple independent signal sources.  ICA then has the goal of recovering those component signals and their relative contributions.  The component signals are further assumed to be non-Gaussian.
+
+ICA would be appropriate if the goal was to reduce the din of crown noise to the individual voice contributions.  
+
+## Multiple correspondence analysis (MCA)  
+Multiple correspondence analysis (MCA) represents a method with similar goals as PCA but is applied to qualitative data in multidimensional contingency tables.  The goal is to facilitate
+a simple understanding of the relationships among the categories of the variables, ideally in a lower dimension space.   
+An MCA produces descriptive maps that identify the proximity of cases and variable response categories.
+
+
+
+# What to do with ordinal data  
+What about data that are strictly ordinal but often treated as though continuous?  The Need for Cognition Scale used in our first PCA example had a 5-point rating scale:
+
+1 = very characteristic of me
+2 = somewhat characteristic of me
+3 = neutral
+4 = somewhat uncharacteristic of me
+5 = very uncharacteristic of me
+
+If the underlying construct is viewed as continuous, then crude categories such as this will attenuate correlations.
+
+Does it matter that we are assuming the variables to be continuous when they are only approximately so?  We can investigate this question by converting the empirical correlations to their expected values for the underlying (and truly) continuous and bivariate normally distributed latent variables.  These are called polychoric correlations. Then we can repeat the principal components analysis on the polychoric correlations and compare the results to the original analyses.
+
+The original items must be converted to ordered factors:
+```{r}
+NC <- read.table('~/Dropbox (Brown)/Fall 2018/Multivariate/Class Materials/5 PCA 1/need_for_cognition(2).csv',sep=',',header=TRUE)
+NC <- as.data.frame(NC)
+NC <- na.omit(NC)
+
+
+# Reverse score items
+NC$item_1 <- 6-NC$item_1
+NC$item_2 <- 6-NC$item_2
+NC$item_6 <- 6-NC$item_6
+NC$item_10 <- 6-NC$item_10
+NC$item_11 <- 6-NC$item_11
+NC$item_13 <- 6-NC$item_13
+NC$item_14<- 6-NC$item_14
+NC$item_15 <- 6-NC$item_15
+NC$item_18 <- 6-NC$item_18
+
+NC <- NC %>% mutate_all(funs(ordered), levels=c(1,2,3,4,5))
+```
+
+The hetcor( ) function from the polycor package can estimate any of the categorical-to-continuous correlations: biserial, tetrachoric, polyserial, polychoric.
+```{r}
+PR <- hetcor(NC[,19:36],ML=TRUE,pd=TRUE)$correlations
+
+PR_2 <- PR
+diag(PR_2) <- NA
+R_2 <- R
+diag(R_2) <- NA
+mean(PR_2-R_2, na.rm = TRUE)
+```
+
+
+The polychoric correlations are, on average, higher than the empirical correlations by .057. The higher polychoric correlations result in a clearer first principal component.
+```{r}
+scree_PR <- fa.parallel(PR,n.obs=195,fa="pc")
+scree_R <- fa.parallel(R,n.obs=195,fa="pc")
+
+spr <- scree_PR$pc.values
+sr <- scree_R$pc.values
+scree_total <- matrix(c(sr,spr))
+scree_total <- as.data.frame(scree_total)
+names(scree_total) <- c("eigenvalues")
+scree_total$component <- c(seq(1,18),seq(1,18))
+scree_total$method <- c(rep(1,18),rep(2,18))
+scree_total$method_F <- factor(scree_total$method,levels=c(1,2),labels=c("Pearson","Polychoric"))
+```
+
+The first principal component accounts for 6% more of variance with polychoric correlations.
+
+Assumptions about underlying latent variables is a reminder that we often are less interested in the measures per se and more interested in what they represent at the construct level. 
+
+This emphasis on latent variables underlies factor analysis.
+
+# PCA v. FA
+PCA           |   FA  
+------------  | -------------------
+
+Assume all variables can be accounted for  | Assume that not all variables can be accounted for
+Error-free variable   | Varibale = true score + error
+No concern for latent variables | latent variables are central to the method

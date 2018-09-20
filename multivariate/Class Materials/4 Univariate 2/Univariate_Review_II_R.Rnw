@@ -1,0 +1,659 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Univariate Review II}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Overview}
+\textbf{\large{\textit{
+The simple ANOVA design with one outcome can be extended to include multiple outcomes (repeated measures).
+This can include the same outcome collected at different times, or, it can include the same outcome collected under different experimental conditions.
+These are treated equivalently from a statistical standpoint ("the numbers don't know where they came from") but the two types of designs can produce numbers that may not satisfy assumptions equally well.
+}}}
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(arm)
+library(psych)
+library(lme4)
+library(lmtest)
+library(car)
+library(emmeans)
+library(multcomp)
+library(ggplot2)
+library(ez)
+library(biotools)
+library(MVN)
+@
+
+\subsection{Data Files}
+\textbf{\large{\textit{
+Data in two different formats (wide and long) will be used to illustrate different approaches to analysis of variance with repeated measures.
+Data in wide format have all information for each case in a single row; multiple columns contain the repeated measures.
+Data in long format have each repeated measure in a separate row.
+A single column contains all of the repeated measures values.
+A categorical variable is used to indicate the particular time period or repeated measure.
+Dummy variables can be useful in some analyses to produce no-intercept models that estimate means for further comparison.
+}}}
+<<tidy=TRUE>>=
+# Get the data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+Data_Wide <- read.table('Data_2.csv',sep=',',header=TRUE)
+Data_Wide <- as.data.frame(Data_Wide)
+head(Data_Wide, n=12)
+Data_Long <- read.table('Set_2.csv',sep=',',header=TRUE)
+Data_Long <- as.data.frame(Data_Long)
+
+# Create dummy variables to indicate the particular time period of measurement.
+Data_Long$T1 <- ifelse(Data_Long$Time==1,1,0)
+Data_Long$T2 <- ifelse(Data_Long$Time==2,1,0)
+Data_Long$T3 <- ifelse(Data_Long$Time==3,1,0)
+head(Data_Long, n= 12)
+
+# Create factor versions of variables.
+Data_Wide$Group_F <- factor(Data_Wide$Group,levels=c(1,2,3),labels=c("Group 1","Group 2","Group 3"))
+Data_Long$Group_F <- factor(Data_Long$Group,levels=c(1,2,3),labels=c("Group 1","Group 2","Group 3"))
+Data_Long$Time_F <- factor(Data_Long$Time,levels=c(1,2,3),labels=c("Time 1","Time 2","Time 3"))
+Data_Long$Subject_F <- factor(Data_Long$Subject)
+@
+
+\clearpage
+\section{Traditional ANOVA Model}
+\textbf{\large{\textit{
+We will treat the data as coming from a 3 x 3 (Group x Time) design.
+There are a variety of ways to get the ANOVA model with repeated measures in R.
+The traditional approach using the aov() function requires the data in long format.
+Note that Group, Time, and Subject must be specified as factors if they are not designated as such in the data frame.
+In a repeated measures design, the repeated measure is considered to be nested within the subject factor (each case has its own profile of scores).
+The Error( ) designation is needed to define the error terms correctly. \newline
+\newline
+Note that the standard ANOVA model assumes the factors are fixed.
+This becomes an important distinction when repeated measure designs are tested in a hierarchical linear model framework.
+In the HLM framework, nested variables can be specified as random or fixed.
+The aov() function also produces Type I sums of squares in which variance accounted for by the effects is based on order of entry.
+Other approaches (Type II and Type III sums of squares) can be obtained with the ezANOVA() function from the ez package. 
+When the design is balanced (as is true here), all of these approach produce identical results.
+}}}
+
+<<tidy=TRUE>>=
+ANOVA_1 <- aov(Data_Long$DV ~ Time_F + Group_F + Time_F:Group_F + Error(Subject_F/Time_F),data=Data_Long)
+summary(ANOVA_1)
+@
+
+\subsection{Means, Standard Errors, and Confidence Intervals}
+\textbf{\large{\textit{
+The function, emmeans( ), from the emmeans package provides marginal and cell means, standard errors, and confidence limits.
+It requires a reference grid that defines the nature of the design.
+That information is contained in the fit object from the ANOVA.
+}}}
+<<tidy=TRUE>>=
+model_rg <- ref_grid(ANOVA_1)
+
+Group_emm <- emmeans(model_rg, "Group_F")
+Time_emm <- emmeans(model_rg, "Time_F")
+Group_x_Time_emm <- emmeans(model_rg, c("Group_F","Time_F"))
+
+Group_emm
+Time_emm
+Group_x_Time_emm
+@
+
+\subsection{Bar Graphs with 95\% Confidence Intervals}
+\textbf{\large{\textit{
+The following figures provide a better illustration of the ANOVA effects.
+They provide the condition means and 95\% confidence intervals.
+}}}
+<<tidy=TRUE>>=
+plot_data <- cbind(summary(Group_emm)[1],summary(Group_emm)[2],summary(Group_emm)[3],summary(Group_emm)[5],summary(Group_emm)[6])
+plot_data <- as.data.frame(plot_data)
+
+ggplot(plot_data, aes(x=Group_F, y=emmean)) + 
+    geom_bar(position=position_dodge(), stat="identity",color="white",width=.5,fill="grey") +
+    geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL),
+                  width=.1,position = position_dodge(0.5)) +
+    coord_cartesian(xlim = c(1,3), ylim = c(1,10)) +
+    scale_y_continuous(breaks=seq(1,10,1)) +
+    xlab("Group") + 
+    ylab("Outome") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+    ggtitle("Group Differences Collapsed Across Time \n(95% Confidence Intervals)")
+@
+
+<<tidy=TRUE>>=
+plot_data <- cbind(summary(Time_emm)[1],summary(Time_emm)[2],summary(Time_emm)[3],summary(Time_emm)[5],summary(Time_emm)[6])
+plot_data <- as.data.frame(plot_data)
+
+ggplot(plot_data, aes(x=Time_F, y=emmean)) + 
+    geom_bar(position=position_dodge(), stat="identity",color="white",width=.5,fill="grey") +
+    geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL),
+                  width=.1,position = position_dodge(0.5)) +
+    coord_cartesian(xlim = c(1,3), ylim = c(1,10)) +
+    scale_y_continuous(breaks=seq(1,10,1)) +
+    xlab("Time") + 
+    ylab("Outome") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+    ggtitle("Time Differences Collapsed Across Group \n(95% Confidence Intervals)")
+@
+
+<<tidy=TRUE>>=
+plot_data <- cbind(summary(Group_x_Time_emm)[1],summary(Group_x_Time_emm)[2],summary(Group_x_Time_emm)[3],summary(Group_x_Time_emm)[6],summary(Group_x_Time_emm)[7])
+plot_data <- as.data.frame(plot_data)
+
+ggplot(plot_data, aes(x=Group_F, y=emmean, fill=Time_F)) + 
+    geom_bar(position=position_dodge(), stat="identity",color="white",width=.5) +
+    scale_fill_manual(values=c("gray90", "gray75","gray60")) +   
+    geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL),
+                  width=.1,position = position_dodge(0.5)) +
+    coord_cartesian(xlim = c(1,3), ylim = c(1,10)) +
+    scale_y_continuous(breaks=seq(1,10,1)) +
+    xlab("Time") + 
+    ylab("Outome") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+    ggtitle("Outcome as a Function of Group and Time \n(95% Confidence Intervals)")
+@
+
+\subsection{Comparisons Among Means}
+\textbf{\large{\textit{
+The CLD( ) function can be used to obtain pairwise comparisons.
+The "adjust" option allows specifying the particular form of Type I error control (Holm procedure is used here).
+The pairwise comparisons can be made at any level in the design.
+For interactions, the pair-wise comparisons are conducted using a simple main effects approach.
+That means that pairs of means for one of the variables involved in the interaction are compared within each level of the other variable involved in the interaction (or each combination of levels if the interaction is three-way). \newline
+\newline
+The output that has "group" as the right-most column provides a convenient summary display. 
+Rows that do not share any numbers in the group column represent conditions that are significantly different. \newline
+}}}
+<<tidy=TRUE>>=
+CLD(Group_emm, alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Time_emm, alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Group_x_Time_emm, by="Group_F",alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Group_x_Time_emm, by="Time_F",alpha = .05,adjust="holm",details=TRUE)
+@
+
+\subsection{Assumption Checks}
+\textbf{\large{\textit{
+The analysis of variance makes several assumptions.
+The residuals are assumed to be normally distributed.
+The variance-covariance matrices for the repeated measures are assumed to be homogeneous across between-subjects conditions (Group in this case).
+The repeated measures are assumed to satisfy the sphericity assumption.
+}}}
+
+\subsubsection{Normality}
+\textbf{\large{\textit{
+The validity of the normality assumption is examined via the residuals from the model so that systematic variability does not contaminate the evaluation.
+Because there are multiple error terms (i.e., multiple linear combinations), there are multiple sets of residuals that need to be checked for normality.
+}}}
+\paragraph{Shapiro-Wilk Test}
+\textbf{\large{\textit{
+The Shapiro-Wilk test can be applied to the distribution of residuals to determine if the normal distribution is a reasonable approximation.
+Mild violations are not a concern.
+As sample size grows, even trivial violations can be statistically significant.
+Graphical methods (presented later) provide another evaluation tool.
+}}}
+<<tidy=TRUE>>=
+# Save the residuals from the model.
+resid_data_b <- residuals(ANOVA_1$Subject_F)
+resid_data_b <- as.data.frame(resid_data_b)
+names(resid_data_b) <- c("R")
+
+resid_data_w_Time <- residuals(ANOVA_1$`Subject_F:Time_F`)
+resid_data_w_Time <- as.data.frame(resid_data_w_Time)
+names(resid_data_w_Time) <- c("R")
+
+# Shapiro-Wilk test.
+shapiro.test(resid_data_b$R)
+shapiro.test(resid_data_w_Time$R)
+@
+
+\textbf{\large{\textit{
+The normality tests suggest no violations of normality.
+}}}
+
+\paragraph{Residual Plots}
+\textbf{\large{\textit{
+The residuals can be plotted for visual evaluation of normality.
+In the following QQ-plots, the data are plotted against the expected distribution if normality holds.
+Deviations from normality are indicated by data points that fall greater distances from the diagonal (normal fit) line.
+}}}
+
+<<tidy=TRUE>>=
+# The data to be plotted are standardized and saved.
+resid_data_b$RS <- scale(resid_data_b$R)
+
+# ggplot2 does produce an "expected" line in its
+# QQ plot. It can be added by finding the location of
+# the interquartile range (1st and 3rd quartiles) for
+# the data to be plotted and then finding the 
+# corresponding normal values. The X-Y coordinates
+# can then be used to define the slope of the line
+# and the intercept.
+
+# The Y (obtained sample) values for the 1st and
+# 3rd quartiles.
+Y     <- quantile(resid_data_b$RS, c(0.25, 0.75),na.rm=TRUE) 
+# The standard normal values corresponding to the
+# Y values (i.e., the X coordinates)
+X     <- qnorm( c(0.25, 0.75))
+# The slope of the line defined by the pairs of
+# X and Y values.
+Slope <- diff(Y) / diff(X)     
+# And the intercept.
+Intercept   <- Y[1] - Slope * X[1]
+
+ggplot(resid_data_b, aes(sample=RS)) +
+    stat_qq(distribution=qnorm) + 
+    geom_abline(intercept=Intercept, slope=Slope) + 
+    scale_y_continuous(breaks=c(-4,-3,-2,-1,0,1,2,3,4)) +
+    scale_x_continuous(breaks=c(-4,-3,-2,-1,0,1,2,3,4)) +
+    coord_cartesian(xlim = c(-4,4), ylim =c(-4,4)) +
+    xlab("Theoretical") + 
+    ylab("Residuals") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Q-Q Plot for \n Between-Subject Residuals")
+@
+
+<<tidy=TRUE>>=
+# The data to be plotted are standardized and saved.
+resid_data_w_Time$RS <- scale(resid_data_w_Time$R)
+
+# ggplot2 does produce an "expected" line in its
+# QQ plot. It can be added by finding the location of
+# the interquartile range (1st and 3rd quartiles) for
+# the data to be plotted and then finding the 
+# corresponding normal values. The X-Y coordinates
+# can then be used to define the slope of the line
+# and the intercept.
+
+# The Y (obtained sample) values for the 1st and
+# 3rd quartiles.
+Y     <- quantile(resid_data_w_Time$RS, c(0.25, 0.75),na.rm=TRUE) 
+# The standard normal values corresponding to the
+# Y values (i.e., the X coordinates)
+X     <- qnorm( c(0.25, 0.75))
+# The slope of the line defined by the pairs of
+# X and Y values.
+Slope <- diff(Y) / diff(X)     
+# And the intercept.
+Intercept   <- Y[1] - Slope * X[1]
+
+ggplot(resid_data_w_Time, aes(sample=RS)) +
+    stat_qq(distribution=qnorm) + 
+    geom_abline(intercept=Intercept, slope=Slope) + 
+    scale_y_continuous(breaks=c(-4,-3,-2,-1,0,1,2,3,4)) +
+    scale_x_continuous(breaks=c(-4,-3,-2,-1,0,1,2,3,4)) +
+    coord_cartesian(xlim = c(-4,4), ylim =c(-4,4)) +
+    xlab("Theoretical") + 
+    ylab("Residuals") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Q-Q Plot for \n Within-Subject Time Residuals")
+@
+
+\textbf{\large{\textit{
+As one additional check, the residuals are plotted in histograms, with the expected distribution if normality holds.
+}}}
+<<tidy=TRUE>>=
+ggplot(resid_data_b, aes(x = RS)) +
+  geom_histogram(aes(y=..density..), binwidth=.25,color = "black",fill="skyblue",
+                 size=.5,na.rm=TRUE) +
+  stat_function(fun = dnorm,
+              args = list(mean = mean(resid_data_b$RS,na.rm=TRUE),
+              sd = sd(resid_data_b$RS,na.rm=TRUE)),
+              size = 1.25,
+              color = "darkgreen") +
+  coord_cartesian(xlim = c(-3,3), ylim = c(0,.7)) +
+  scale_x_continuous(breaks=c(seq(-3,3,1))) +
+  scale_y_continuous(breaks=seq(0,.7,.1)) +
+  xlab("Between-Subject Residuals") + 
+  ylab("Density") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  geom_vline(xintercept = mean(resid_data_b$RS),size=1.25,color="blue") +   
+  geom_vline(xintercept = median(resid_data_b$RS),size=1.25,color="red") +  
+  annotate("segment",x=-3,xend=-2.8,y=.7,yend=.7,color="blue",linetype=1,size=1.25) +
+  annotate("text",x=-2.6,y=.7,label="Mean",color="blue",size=5,hjust=0) +  
+  annotate("segment",x=-3,xend=-2.8,y=.65,yend=.65,color="red",linetype=1,size=1.25) +
+  annotate("text",x=-2.6,y=.65,label="Median",color="red",size=5,hjust=0) + 
+  annotate("segment",x=-3,xend=-2.8,y=.60,yend=.60,color="darkgreen",linetype=1,size=1.25) +
+  annotate("text",x=-2.6,y=.60,label="Normal Density",color="darkgreen",size=5,hjust=0) +     
+  ggtitle("Distribution of Between-Subjects Residuals")
+@
+
+<<tidy=TRUE>>=
+ggplot(resid_data_w_Time, aes(x = RS)) +
+  geom_histogram(aes(y=..density..), binwidth=.25,color = "black",fill="skyblue",
+                 size=.5,na.rm=TRUE) +
+  stat_function(fun = dnorm,
+              args = list(mean = mean(resid_data_w_Time$RS,na.rm=TRUE),
+              sd = sd(resid_data_w_Time$RS,na.rm=TRUE)),
+              size = 1.25,
+              color = "darkgreen") +
+  coord_cartesian(xlim = c(-3,3), ylim = c(0,.8)) +
+  scale_x_continuous(breaks=c(seq(-3,3,1))) +
+  scale_y_continuous(breaks=seq(0,.8,.1)) +
+  xlab("Within-Subject Time Residuals") + 
+  ylab("Density") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  geom_vline(xintercept = mean(resid_data_b$RS),size=1.25,color="blue") +   
+  geom_vline(xintercept = median(resid_data_b$RS),size=1.25,color="red") +  
+  annotate("segment",x=-3,xend=-2.8,y=.7,yend=.7,color="blue",linetype=1,size=1.25) +
+  annotate("text",x=-2.6,y=.7,label="Mean",color="blue",size=5,hjust=0) +  
+  annotate("segment",x=-3,xend=-2.8,y=.65,yend=.65,color="red",linetype=1,size=1.25) +
+  annotate("text",x=-2.6,y=.65,label="Median",color="red",size=5,hjust=0) + 
+  annotate("segment",x=-3,xend=-2.8,y=.60,yend=.60,color="darkgreen",linetype=1,size=1.25) +
+  annotate("text",x=-2.6,y=.60,label="Normal Density",color="darkgreen",size=5,hjust=0) +     
+  ggtitle("Distribution of Within-Subject Time Residuals")
+@
+
+\textbf{\large{\textit{
+The normality assumption is largely met for these data.
+The violations are mild, the residuals are symmetric, and there is not evidence of extreme outliers.
+}}}
+
+\subsection{Homogeneity of Covariance Matrices}
+\textbf{\large{\textit{
+The variance-covariance matrices for repeated measures are assumed to be homogeneous across between-subjects conditions.
+This is examined with Box's M test, but must be viewed with caution.
+The test is also sensitive to violations of normality.
+}}}
+
+<<tidy=TRUE>>=
+Box <- boxM(Data_Wide[3:5],Data_Wide$Group_F)
+
+Box
+
+Box$cov
+
+Box$pooled
+@
+
+\textbf{\large{\textit{
+The variance homogeneity part of the assumption can be checked by Levene's test.
+It needs to be conducted separately for each of the repeated measures.
+As with other assumption tests based on significance, it becomes very sensitive as sample size grows.
+Mild violations are not a concern.
+}}}
+
+<<tidy=TRUE>>=
+leveneTest(Data_Wide[,3],Data_Wide$Group_F)
+leveneTest(Data_Wide[,4],Data_Wide$Group_F)
+leveneTest(Data_Wide[,5],Data_Wide$Group_F)
+@
+
+\textbf{\large{\textit{
+There are no violations of the homogeneity assumptions. 
+}}}
+
+\subsection{Sphericity}
+\textbf{\large{\textit{
+Repeated measures designs also must satisfy the sphericity assumption.
+Sphericity is met when there is homogeneity of the variances for all possible difference scores.
+This will often be violated in any time-based design.
+Violations of sphericity are especially problematic because they can inflate the Type I error rate. \newline
+\newline
+A test for sphericity is available in the ez package with the ezANOVA() function. 
+This function also allows specifying the type of sums of squares.
+Type II sums of square are requested, but because we have a balanced design, the results will duplicate those found earlier with the aov() function (which uses Type I sums of squares).
+}}}
+<<tidy=TRUE>>=
+# Fit a standard analysis of variance.
+ANOVA_2 <- ezANOVA(Data_Long,dv=DV,wid=Subject_F,within=.(Time_F),between=Group_F,detailed=TRUE,return_aov = TRUE,type=2)
+ANOVA_2$ANOVA
+ANOVA_2$`Mauchly's Test for Sphericity`
+ANOVA_2$`Sphericity Corrections`
+@
+
+\textbf{\large{\textit{
+The sphericity assumption is met for these data.
+}}}
+
+\subsection{Correlations}
+\textbf{\large{\textit{
+With more than one variable, we will likely be interested in the correlations among the variables.
+These need to be obtained with care when there is an experimental group structure to the data.
+The imposed group differences can artificially inflate or deflate correlations.
+This artifact can be eliminated by correlating the residuals.
+}}}
+<<tidy=TRUE>>=
+# Run linear models to get residuals.
+DV1_LM <- lm(Data_Wide$DV1~-1 + Data_Wide$G1 + Data_Wide$G2 + Data_Wide$G3)
+DV2_LM <- lm(Data_Wide$DV2~-1 + Data_Wide$G1 + Data_Wide$G2 + Data_Wide$G3)
+DV3_LM <- lm(Data_Wide$DV3~-1 + Data_Wide$G1 + Data_Wide$G2 + Data_Wide$G3)
+# Correlations among original variables.
+cor(Data_Wide[,3:5])
+# Create a matrix of residuals.
+R <- cbind(resid(DV1_LM),resid(DV2_LM),resid(DV3_LM))
+# Correlations among residuals.
+cor(R)
+@
+
+\section{Multi-Level Model Approach}
+\textbf{\large{\textit{
+An alternative is to use the lmer() function from the lme4 package.
+This package is used for multilevel models, of which a repeated measures design is an example.
+In this case, the repeated measures are treated as nested within subjects.
+The dummy codes for time and group are used in a no-intercept model so that the coefficients are the cell means for all Group x Time combinations. \newline
+\newline
+The glht() function from the multcomp package can be used to create very specific linear combinations of the means.
+Because all of the means from the 3 x 3 design are included in a single vector of coefficients, the information contained in the L and M matrices is combined in each vector of the matrix of coefficients.
+}}}
+
+<<tidy=TRUE>>=
+ANOVA_3 <- lmer(Data_Long$DV ~ -1 + G1:T1 + G1:T2 + G1:T3 +
+                  + G2:T1 + G2:T2 + G2:T3 +
+                  + G3:T1 + G3:T2 + G3:T3 +
+                  (1|Subject), data=Data_Long)
+summary(ANOVA_3)
+
+LM_Matrix=matrix(c(1,0,-1,1,0,-1,1,0,-1,
+                  1,-2,1,1,-2,1,1,-2,1,
+                  0,0,0,0,0,0,1,0,-1,
+                  1,-2,1,0,0,0,0,0,0,
+                  1,1,1,-1,-1,-1,0,0,0,
+                  1,0,-1,-1,0,1,0,0,0,
+                  -1,2,-1,0,0,0,1,-2,1,
+                  1,0,0,1,0,0,-2,0,0),nrow=8,ncol=9,byrow=TRUE)
+rownames(LM_Matrix) <- c("Overall Linear","Overall Quadratic","G3:Linear",
+                        "G1:Quadratic","G1 vs G2","Linear: G1 vs G2",
+                        "Quadratic: G1 vs G3",
+                        "T1: G1 and G2 vs G3")
+LM_Matrix
+glht_LM_Matrix <- glht(ANOVA_3,linfct=LM_Matrix,alternative="two.sided",rhs=0)
+summary(glht_LM_Matrix, adjusted("holm"))
+par(mai=c(1,2,1,0))
+plot(confint(glht_LM_Matrix,calpha = univariate_calpha()),main="95% Confidence Intervals")
+@
+
+\textbf{\large{\textit{
+If we specify a random intercept for each case, we assume compound symmetry among the repeated measures.
+This is a special case of sphericity.
+That this is being imposed on the data is apparent in the equivalence of the standard errors for each coefficient in the fixed effects (which are the means) and in the equivalent fixed effect correlations within each group. 
+We can compare the F ratios from the two approaches by retrieving the ANOVA summary from a standard model specification with lmer().
+They duplicate those obtained earlier with the aov() function. \newline
+\newline
+The compound symmetry assumption can be relaxed.
+This can be done with the lme() function from the nlme package, which allows more complex error structures.
+The gls() function from the same package can also be used for more complex error structures.
+}}}
+
+<<tidy=TRUE>>=
+# Original F ratios
+summary(ANOVA_1)
+ANOVA_4 <- lmer(Data_Long$DV ~ 1 + Group_F*Time_F +
+                  (1|Subject), data=Data_Long)
+summary(ANOVA_4)
+
+# F ratios from the mixed model approach:
+anova(ANOVA_4)
+
+# Original F ratios:
+summary(ANOVA_1)
+@
+
+\end{document}

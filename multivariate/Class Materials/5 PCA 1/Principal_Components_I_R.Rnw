@@ -1,0 +1,295 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Principal Components I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+\subsection{Packages}
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(factoextra)
+library(FactoMineR)
+library(reshape2)
+library(GGally)
+@
+
+\subsection{Data Files}
+\textbf{\large{\textit{
+The data can be in standard wide format for principal component analyses.
+There are missing data in the original file.
+To keep things simple, the few cases with any missing data will be excluded from analyses (known as listwise deletion).
+This insures that the correlation matrix will not contain any impossible values (a problem that could arise with pairwise deletion).
+Alternative strategies, such as multiple imputation, would ordinarily be explored as well.
+}}}
+<<tidy=TRUE>>=
+# Get the data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+NC <- read.table('need_for_cognition.csv',sep=',',header=TRUE)
+NC <- as.data.frame(NC)
+NC <- na.omit(NC)
+
+
+# Reverse score items
+NC$item_1 <- 6-NC$item_1
+NC$item_2 <- 6-NC$item_2
+NC$item_6 <- 6-NC$item_6
+NC$item_10 <- 6-NC$item_10
+NC$item_11 <- 6-NC$item_11
+NC$item_13 <- 6-NC$item_13
+NC$item_14<- 6-NC$item_14
+NC$item_15 <- 6-NC$item_15
+NC$item_18 <- 6-NC$item_18
+
+NC$total <- NC$item_1+NC$item_2+NC$item_3+NC$item_4+NC$item_5+NC$item_6+NC$item_7+
+            NC$item_8+NC$item_9+NC$item_10+NC$item_11+NC$item_12+NC$item_13+
+            NC$item_14+NC$item_15+NC$item_16+NC$item_17+NC$item_18
+
+NC_long <- melt(NC,id.vars = "total")
+NC_long <- as.data.frame(NC_long)
+@
+
+\section{Graphical Display of Data}
+\subsection{Item Scores}
+\textbf{\large{\textit{
+Here are some boxplots of the items.
+The crude level of measurement is apparent for items.
+This is an important feature of the data.
+Variables can correlate more highly when their distributions have similar shapes.
+For this reason, and others, it is often better to conduct analyses on composite scores rather than individual items.
+}}}
+<<tidy=TRUE>>=
+NC_long$item <- factor(NC_long$variable,levels=c("item_1","item_2","item_3","item_4","item_5",
+                                                 "item_6","item_7","item_8","item_9","item_10",
+                                                 "item_11","item_12","item_13","item_14","item_15",
+                                                 "item_16","item_17","item_18"),labels = c("1","2",
+                                                 "3","4","5","6","7","8","9","10","11","12","13",
+                                                 "14","15","16","17","18"))
+ggplot(NC_long, aes(y=value,x=item)) +
+    geom_boxplot(aes(y=value,x=item),color="black",size=.5,width=.5, fill="grey",
+                 outlier.colour = "red", outlier.shape = 19,
+                 outlier.size = 2, notch=FALSE) + 
+    ylab("Need for Cognition") + 
+    xlab("Item") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+    ggtitle("Need for Cognition as a Function of Item")
+@
+
+\subsection{Total NC Score}
+\textbf{\large{\textit{
+Here is a histogram for the total NC scores.
+As the number of scale levels increases, score distributions have a greater opportunity to approach normal (or whatever parent distribution underlies them).
+}}}
+<<tidy=TRUE>>=
+ggplot(NC, aes(x = total)) +
+  geom_histogram(aes(y=..density..), color = "black",fill="skyblue",
+                 size=.5,na.rm=TRUE,bins=20) +
+  stat_function(fun = dnorm,
+              args = list(mean = mean(NC$total,na.rm=TRUE),
+              sd = sd(NC$total,na.rm=TRUE)),
+              size = 1.25,
+              color = "darkgreen") +
+  coord_cartesian(xlim = c(18,80), ylim = c(0,.07)) +
+  scale_x_continuous(breaks=c(seq(18,80,10))) +
+  scale_y_continuous(breaks=seq(0,.07,.025)) +
+  xlab("Need for Cognition Total Score") + 
+  ylab("Density") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  geom_vline(xintercept = mean(NC$total),size=1.25,color="blue") +   
+  geom_vline(xintercept = median(NC$total),size=1.25,color="red") +  
+  annotate("text",x=58,y=.07,label="Mean",color="blue",size=5,hjust=0) +  
+  annotate("text",x=58,y=.067,label="Median",color="red",size=5,hjust=0) + 
+  annotate("text",x=58,y=.064,label="Normal Density",color="darkgreen",size=5,hjust=0) +     
+  ggtitle("Distribution of Need for Cognition Scores")
+@
+\section{Intercorrelations}
+\textbf{\large{\textit{
+The PCA will attempt to summarize the data by finding linear combinations that contain most of the information in the original variables.
+The linear combinations correspond to items that correlate highly.
+This simplification can sometimes be viewed in the correlation matrix of the original variables, although as the number of variables increases, examination of correlations gets challenging.
+}}}
+
+<<tidy=TRUE>>=
+R <- cor(NC[1:18],use="complete.obs")
+round(R,2)
+@
+
+\textbf{\large{\textit{
+A heat map for the correlation matrix can help ease the pain of examining a large correlation matrix.
+Patterns in the data, if present, are easier to detect.
+The following heat map suggests fairly homogeneous correlations indicative of a single principal component.
+}}}
+<<tidy=TRUE>>=
+ggcorr(NC[,1:18], label=TRUE,angle=90,hjust=.10,size=4) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among NC Items")
+@
+
+\section{Should A PCA Be Conducted?}
+\textbf{\large{\textit{
+Two tests can be used to determine if a PCA should be conducted (generally a good idea if the approach is exploratory).
+The Kaiser-Meyer-Olkin (KMO) factor adequacy test can range from 0 to 1 and roughly indicates the proportion of variance in the data that might be common factor variance. 
+The KMO test has the following cut-offs for sampling adequacy: .90 and above (undeniable evidence for factorability), .80 to .89 (very strong evidence), .70 to .79 (modest evidence), .60 to .69 (weak evidence), .50 to .59 (very weak evidence), and below .50 (unacceptable for factoring).
+The Bartlett test for sphericity (not the same as in repeated measures ANOVA) should be highly significant, indicating that the correlation matrix departs noticeably from an identity matrix.
+}}}
+<<tidy=TRUE>>=
+KMO(R)
+@
+
+<<tidy=TRUE>>=
+cortest.bartlett(R=R,n=length(NC[,1]))
+@
+
+\section{How Many Components?}
+\textbf{\large{\textit{
+If the correlation matrix is not singular, then as many components as there are variables or items can be extracted.
+But, only a few of them are likely to be meaningful or useful.
+The scree test is the most common way to determine how many components should be extracted.
+To make sure only meaningful departures from the scree are interpreted, a parallel analysis (Horn's procedure) or random selection of data points can be used. \newline
+\newline
+Most of the PCA-related analyses can be conducted on raw data or on correlation matrices.
+If the latter are used, the number of cases needs to be specified as well.
+Note that the first option will give simulated and resampled parallel analyses.
+Analysis of the correlation matrix will not provide resampled results.
+}}}
+<<tidy=TRUE>>=
+scree <- fa.parallel(NC[,c(1:18)],fa="pc")
+scree <- fa.parallel(R,n.obs=195,fa="pc")
+@
+
+\section{PCA}
+\textbf{\large{\textit{
+The scree test indicates a single component is the likely best solution (accounts for non-trivial amount of variance).
+One is requested here.
+}}}
+
+<<tidy=TRUE>>=
+PCA_1 <- principal(R,nfactors=1,rotate="none",n.obs=195,residuals=TRUE)
+PCA_1
+@
+
+\clearpage
+\section{Examination of Residuals}
+\textbf{\large{\textit{
+A residual matrix gives the variances in the main diagonal and correlations in the off-diagonals.
+This can be converted to a correlation matrix, which can then be examined using the KMO and Bartlett tests to determine if additional components should be extracted.
+}}}
+
+<<tidy=TRUE>>=
+# Create a correlation matrix of the residuals by replacing the main diagonal with ones.
+R1 <- diag(PCA_1$residual)
+R2 <- diag(R1)
+R3 <- PCA_1$residual-R2
+R4 <- diag(18) + R3
+
+# Assess the factorability of the residual correlation matrix.
+KMO(R4)
+cortest.bartlett(R=R4,n=195)
+@
+
+\textbf{\large{\textit{
+Mixed evidence, but probably not worth additional extraction.
+The KMO test indicates no additional common component variance is present.
+Bartlett's test is significant however. 
+In situations like this it is best to mistrust the significance test, which will be increasingly powerful as sample size increases, perhaps identifying trivial evidence for additional components.
+}}}
+
+\end{document}

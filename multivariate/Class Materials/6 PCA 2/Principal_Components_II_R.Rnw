@@ -1,0 +1,568 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Principal Components I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+\subsection{Packages}
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(factoextra)
+library(FactoMineR)
+library(reshape2)
+library(GGally)
+library(MASS)
+library(parallel)
+library(MVN)
+library(qqplotr)
+@
+
+\section{Outlier Detection}
+\textbf{\large{\textit{
+Principal components analysis can be used to screen the data for outliers, especially cases that may not be univariate outliers but are unusual in the multivariate sense.
+}}}
+
+\subsection{Data Without an Outlier}
+\textbf{\large{\textit{
+To provide a basis for comparison, we will start with a simulated data set containing no outliers, 250 cases, and 9 variables.
+The correlations among the variables designed to represent three underlying principal components. \newline
+\newline
+\[
+R =
+\begin{bmatrix*}
+    1.0 & 0.7 & 0.7 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+		0.7 & 1.0 & 0.7 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+	  0.7 & 0.7 & 1.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+		0.0 & 0.0 & 0.0 & 1.0 & 0.7 & 0.7 & 0.0 & 0.0 & 0.0 \\
+		0.0 & 0.0 & 0.0 & 0.7 & 1.0 & 0.7 & 0.0 & 0.0 & 0.0 \\
+		0.0 & 0.0 & 0.0 & 0.7 & 0.7 & 1.0 & 0.0 & 0.0 & 0.0 \\
+		0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 1.0 & 0.7 & 0.7 \\
+		0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.7 & 1.0 & 0.7 \\
+		0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.7 & 0.7 & 1.0 	
+\end{bmatrix*}
+\]
+}}}
+
+\subsubsection{Data Generation}
+<<tidy=TRUE>>=
+means <- matrix(c(0,0,0,0,0,0,0,0,0))
+sigma <- matrix(c(1,.7,.7,0,0,0,0,0,0,
+                  .7,1,.7,0,0,0,0,0,0,
+                  .7,.7,1,0,0,0,0,0,0,
+                  0,0,0,1,.7,.7,0,0,0,
+                  0,0,0,.7,1,.7,0,0,0,
+                  0,0,0,.7,.7,1,0,0,0,
+                  0,0,0,0,0,0,1,.7,.7,
+                  0,0,0,0,0,0,.7,1,.7,
+                  0,0,0,0,0,0,.7,.7,1),nrow=9,ncol=9)
+Data <- mvrnorm(250,means,sigma)
+Data <- as.data.frame(Data)
+cor(Data)
+
+Data_Original <- Data
+@
+
+\subsubsection{Correlations}
+\textbf{\large{\textit{
+A heat map for the correlation matrix easily identifies the pattern of correlations in the simulated data.
+}}}
+<<tidy=TRUE>>=
+ggcorr(Data, label=TRUE,angle=90,hjust=.10,size=4,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Items")
+@
+
+\subsubsection{Should A PCA Be Conducted?}
+\textbf{\large{\textit{
+Two tests can be used to determine if a PCA should be conducted (generally a good idea if the approach is exploratory).
+The Kaiser-Meyer-Olkin (KMO) factor adequacy test can range from 0 to 1 and roughly indicates the proportion of variance in the data that might be common factor variance. 
+The KMO test has the following cut-offs for sampling adequacy: .90 and above (undeniable evidence for factorability), .80 to .89 (very strong evidence), .70 to .79 (modest evidence), .60 to .69 (weak evidence), .50 to .59 (very weak evidence), and below .50 (unacceptable for factoring).
+The Bartlett test for sphericity (not the same as in repeated measures ANOVA) should be highly significant, indicating that the correlation matrix departs noticeably from an identity matrix.
+}}}
+<<tidy=TRUE>>=
+R <- cor(Data)
+KMO(R)
+@
+
+<<tidy=TRUE>>=
+cortest.bartlett(R=R,n=length(Data[,1]))
+@
+
+\textbf{\large{\textit{
+These tests verify that the correlation matrix is more than an identity matrix, justifying a principal components analysis.
+}}}
+
+\subsubsection{How Many Components?}
+\textbf{\large{\textit{
+If the correlation matrix is not singular, then as many components as there are variables or items can be extracted.
+But, only a few of them are likely to be meaningful or useful.
+The scree test is the most common way to determine how many components should be extracted.
+To make sure only meaningful departures from the scree are interpreted, a parallel analysis (Horn's procedure) or random selection of data points can be used.
+}}}
+<<tidy=TRUE>>=
+scree <- fa.parallel(Data,fa="pc")
+@
+
+\textbf{\large{\textit{
+The scree test verifies the underlying three components designed into the data generation.
+}}}
+
+\subsubsection{PCA}
+\textbf{\large{\textit{
+The following PCA is restricted to the three components that we believe underlie the data.
+}}}
+
+<<tidy=TRUE>>=
+PCA_1 <- principal(Data,nfactors=3,rotate="none",residuals=TRUE)
+PCA_1
+@
+
+\subsubsection{Examination of Residuals}
+\textbf{\large{\textit{
+A residual matrix gives the variances in the main diagonal and correlations in the off-diagonals.
+This can be converted to a correlation matrix, which can then be examined using the KMO and Bartlett tests to determine if additional components should be extracted.
+}}}
+
+<<tidy=TRUE>>=
+# Create a correlation matrix of the residuals by replacing the main diagonal with ones.
+R1 <- diag(PCA_1$residual)
+R2 <- diag(R1)
+R3 <- PCA_1$residual-R2
+R4 <- diag(9) + R3
+
+# Assess the factorability of the residual correlation matrix.
+KMO(R4)
+cortest.bartlett(R=R4,n=length(Data[,1]))
+@
+
+\textbf{\large{\textit{
+Once the three components are extracted, the residual correlation matrix shows no evidence of remaining components.
+}}}
+
+\subsection{Data Modification: Addition of an Outlier}
+\textbf{\large{\textit{
+Now to simulate an outlier, we replace the last case with a profile of scores that is unusual, although not unlikely on a variable-by-variable basis: \newline
+\newline
+3,-3,3,-3,3,-3,3,-3,3
+}}}
+
+<<tidy=TRUE>>=
+Data[250,] <- c(3,-3,3,-3,3,-3,3,-3,3)
+@
+
+\subsubsection{Descriptive Statistics}
+\textbf{\large{\textit{
+There is nothing in the following descriptive statistics that indicates any particular problem.
+The case with the odd profile does not have the most extreme scores for some of the variables.
+}}}
+<<tidy=TRUE>>=
+describe(Data)
+@
+
+\subsubsection{Normality Tests}
+\textbf{\large{\textit{
+The distribution of each variable can be tested for its departure from normal, using either the Kolmogorov-Smirnoff test or the Shapiro-Wilk test.
+The latter is usually preferred, especially for small samples.
+There is no evidence of a problem from these tests.
+}}}
+<<tidy=TRUE>>=
+ks.test(Data$V1,"pnorm")
+ks.test(Data$V2,"pnorm")
+ks.test(Data$V3,"pnorm")
+ks.test(Data$V4,"pnorm")
+ks.test(Data$V5,"pnorm")
+ks.test(Data$V6,"pnorm")
+ks.test(Data$V7,"pnorm")
+ks.test(Data$V8,"pnorm")
+ks.test(Data$V9,"pnorm")
+@
+
+<<tidy=TRUE>>=
+shapiro.test(Data$V1)
+shapiro.test(Data$V2)
+shapiro.test(Data$V3)
+shapiro.test(Data$V4)
+shapiro.test(Data$V5)
+shapiro.test(Data$V6)
+shapiro.test(Data$V7)
+shapiro.test(Data$V8)
+shapiro.test(Data$V9)
+@
+
+\textbf{\large{\textit{
+We can also examine the QQ-plots.
+The following all verify overall normality.
+The outlier is not evident in the displays.
+}}}
+
+<<tidy=TRUE>>=
+Data_long <- melt(Data)
+Data_long <- as.data.frame(Data_long)
+Data_long$item <- factor(Data_long$variable,levels=c("V1","V2","V3","V4","V5",
+                                                 "V6","V7","V8","V9"),labels = c("1","2",
+                                                 "3","4","5","6","7","8","9"))
+p <- ggplot(Data_long, aes(sample=value)) +
+    stat_qq_band() + stat_qq_line() + stat_qq(distribution=qnorm) +
+    scale_y_continuous(breaks=c(-4,-3,-2,-1,0,1,2,3,4)) +
+    scale_x_continuous(breaks=c(-4,-3,-2,-1,0,1,2,3,4)) +
+    coord_cartesian(xlim = c(-4,4), ylim =c(-4,4)) +
+    xlab("Theoretical") + 
+    ylab("Scores") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=10,face="bold"),
+          axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Q-Q Plot for Items")
+p + facet_wrap(~item)
+@
+
+\subsubsection{Boxplots}
+\textbf{\large{\textit{
+Boxplots are useful when searching for outliers, although the problematic case is not evidient here.
+}}}
+<<tidy=TRUE>>=
+ggplot(Data_long, aes(y=value,x=item)) +
+    geom_boxplot(aes(y=value,x=item),color="black",size=.5,width=.5, fill="grey",
+                 outlier.colour = "red", outlier.shape = 19,
+                 outlier.size = 2, notch=FALSE) + 
+    ylab("Score Value") + 
+    xlab("Item") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+    ggtitle("Score Value as a Function of Item")
+@
+
+\subsubsection{PCA As Outlier Detector}
+\textbf{\large{\textit{
+A principal components analysis will seek linear combinations that capture the major sources of variance in the data. 
+Most of these will be governed by the "well-behaved" data. 
+But, once those data are captured, especially deviant multivariate cases may dominant the smaller components and emerge more readily.
+In this approach, all components are derived and component scores are produced. 
+Then diagnostics are performed on the component scores.
+}}}
+
+\paragraph{Extract All Principal Components}
+<<tidy=TRUE>>=
+PCA_2 <- principal(Data,nfactors=9,rotate="none",residuals=TRUE,scores=TRUE)
+PCA_2
+@
+
+\paragraph{Repeat Diagnostics on PC Scores}
+<<tidy=TRUE>>=
+Data_PC <- as.data.frame(PCA_2$scores)
+@
+
+\paragraph{Descriptive Statistics}
+\textbf{\large{\textit{
+The descriptives now indicate a problem with the fourth principal component.
+}}}
+<<tidy=TRUE>>=
+describe(Data_PC)
+@
+
+\paragraph{Normality Tests}
+\textbf{\large{\textit{
+The distribution of each variable can be tested for its departure from normal, using either the Kolmogorov-Smirnoff test or the Shapiro-Wilk test.
+The latter is usually preferred, especially for small samples.
+The fourth principal component is now quite clearly not normally distributed.
+}}}
+<<tidy=TRUE>>=
+ks.test(Data_PC$PC1,"pnorm")
+ks.test(Data_PC$PC2,"pnorm")
+ks.test(Data_PC$PC3,"pnorm")
+ks.test(Data_PC$PC4,"pnorm")
+ks.test(Data_PC$PC5,"pnorm")
+ks.test(Data_PC$PC6,"pnorm")
+ks.test(Data_PC$PC7,"pnorm")
+ks.test(Data_PC$PC8,"pnorm")
+ks.test(Data_PC$PC9,"pnorm")
+@
+
+<<tidy=TRUE>>=
+shapiro.test(Data_PC$PC1)
+shapiro.test(Data_PC$PC2)
+shapiro.test(Data_PC$PC3)
+shapiro.test(Data_PC$PC4)
+shapiro.test(Data_PC$PC5)
+shapiro.test(Data_PC$PC6)
+shapiro.test(Data_PC$PC7)
+shapiro.test(Data_PC$PC8)
+shapiro.test(Data_PC$PC9)
+@
+
+<<tidy=TRUE>>=
+ggplot(Data_PC, aes(sample=PC4)) +
+    stat_qq_band() + stat_qq_line() + stat_qq(distribution=qnorm) +
+    scale_y_continuous(breaks=seq(-12,12,2)) +
+    scale_x_continuous(breaks=seq(-4,4,1)) +
+    coord_cartesian(xlim = c(-4,4), ylim =c(-12,12)) +
+    xlab("Theoretical") + 
+    ylab("Scores") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Q-Q Plot for Principal Component 4")
+@
+
+\paragraph{Boxplots}
+\textbf{\large{\textit{
+The unusual case is not quite clearly identified in boxplots of the principal component scores.
+}}}
+<<tidy=TRUE>>=
+Data_PC_long <- melt(Data_PC)
+Data_PC_long <- as.data.frame(Data_PC_long)
+
+Data_PC_long$item <- factor(Data_PC_long$variable,levels=c("PC1","PC2","PC3","PC4","PC5",
+                                                 "PC6","PC7","PC8","PC9"),labels = c("1","2",
+                                                 "3","4","5","6","7","8","9"))
+ggplot(Data_PC_long, aes(y=value,x=item)) +
+    geom_boxplot(aes(y=value,x=item),color="black",size=.5,width=.5, fill="grey",
+                 outlier.colour = "red", outlier.shape = 19,
+                 outlier.size = 2, notch=FALSE) + 
+    ylab("PC Score Value") + 
+    xlab("Item") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+    ggtitle("PC Score Value as a Function of Component Number")
+@
+
+\section{Multivariate Normality}
+\textbf{\large{\textit{
+In univariate statistics, the normality assumption underlies significance testing.  
+It is with reference to sampling from some theoretical distribution that we can make claims about the likelihood of results occurring "by chance" or "under the null hypothesis."  
+Similarly, the establishment of confidence intervals depends on distributional assumptions. \newline
+Many multivariate procedures rely on maximum likelihood estimation.  
+The normality assumption is important there as well.  
+In maximum likelihood, the parameter estimates maximize the probability of the data, assuming a multivariate normal distribution. \newline
+Assessing multivariate normality is a bit tricky. 
+When multivariate normality holds: \newline
+\begin{addmargin}[1em]{0em}
+All marginal distributions will be normal. \newline
+All pairs of variables will be bivariate normal. \newline
+All linear combinations will be normal. \newline
+All pairs of linear combinations will be bivariate normal. \newline
+Squared distances from the population centroid will be $\chi^2$ distributed with k (k = number of variables) degrees of freedom.
+\end{addmargin}
+}}}
+
+\subsection{Mahalanobis Distance}
+\textbf{\large{\textit{
+Multivariate outliers are often revealed more easily using multivariate distance as assessed by Mahalanobis Distance.
+When multivariate normality holds, squared Mahalanobis distances will be $\chi^2$ distributed with degrees of freedom equal to the number of measures.
+}}}
+
+\subsubsection{Data With Outlier}
+<<tidy=TRUE>>=
+mvn(Data,mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE)
+mvn(Data,mvnTest="royston")
+mvn(Data,mvnTest="hz")
+mvn(Data,mvnTest="dh")
+mvn(Data,mvnTest="energy")
+
+# Mahalanobis distance is the same if calculated
+# on the principal components.
+mvn(Data_PC,mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE)
+@
+
+<<tidy=TRUE>>=
+CV <- cov(Data)
+D2_2 <- mahalanobis(Data,center=colMeans(Data),cov=CV)
+D2_2 <- as.data.frame(D2_2)
+ggplot(D2_2, aes(sample=D2_2)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=9)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=9)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=9)) +
+    scale_y_continuous(breaks=seq(0,120,10)) +
+    scale_x_continuous(breaks=seq(0,26,1)) +
+    coord_cartesian(xlim = c(0,26), ylim =c(0,120)) +
+    xlab(expression("Expected Values from" * ~ chi[9]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[9]^2))
+@
+\textbf{\large{\textit{
+Mahalanobis distance is sensitive to all variables simultaneously, so it detects the unusual pattern. 
+}}}
+
+\subsubsection{Data Without Outlier}
+\textbf{\large{\textit{
+The original data, without the outlier, more closely approximate multivariate normality.
+}}}
+<<tidy=TRUE>>=
+mvn(Data_Original,mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE)
+mvn(Data_Original,mvnTest="royston")
+mvn(Data_Original,mvnTest="hz")
+mvn(Data_Original,mvnTest="dh")
+mvn(Data_Original,mvnTest="energy")
+@
+
+<<tidy=TRUE>>=
+# Get the Mahalanobis distances for later use.
+CV <- cov(Data_Original)
+D2_1 <- mahalanobis(Data_Original,center=colMeans(Data_Original),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=9)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=9)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=9)) +
+    scale_y_continuous(breaks=seq(0,26,1)) +
+    scale_x_continuous(breaks=seq(0,26,1)) +
+    coord_cartesian(xlim = c(0,26), ylim =c(0,26)) +
+    xlab(expression("Expected Values from" * ~ chi[9]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[9]^2))
+@
+\end{document}

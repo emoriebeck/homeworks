@@ -1,0 +1,204 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# PCA
+
+Seeks a linear combination z that is a weighted combination of the original variables, Xu, such that the variance of z has the largest value possible  
+
+$\sigma^2_z = \frac{1}{N-1}u'X'Xu$  
+
+The weight vector, u, must be constrained in order to have a unique solution:  
+$u'u=1$  
+This is called normalizing the vector. We want the relative value of the weights to matter, but the absoute value of those weights.  
+
+## Recasting the Problem  
+$R = \frac{1}{N-1}X'X$  
+The standard correlation function can be used with the weights in order to get the variance-covariance form.  
+$\sigma^2_z = \frac{1}{N-1}u'X'Xu$  
+The problem can be recast as maximizing u'Ru.
+This is sensible because the application of a vector of weights to a variance-covariance matrix will produce the variance of the linear combination that those weights would create if applied to the original data.
+
+## Eigenvalues and Eigenvectors  
+The weights that satisfy the variance-maximizing goal are called an eigenvector ($\mathbf{u}$). The variance of the resulting linear combination is called an eigenvalue ($\lambda$).  
+If the original correlation matrix is of full rank (no perfect dependencies), then there will be as many eigenvectors and eigenvalues as there are original variables.  
+The collection of eigenvectors is contained in the matrix, $\mathbf{U}$.  
+
+The variance-covariance matrix of the principal components is a diagonal matrix, D, with the eigenvalues on the main diagonal:
+
+$\mathbf{D} = U'RU$  
+
+The diagonal elements are the variances of the linear combinations.  The off-diagonals are zero because the procedure creates linear combinations that are independent.  
+
+The eigenvalues are just variances. 
+
+## Principal Components are just re-expressing the data: 
+
+Principal components analysis re-expresses the original variables. It simply rearranges the variance, shifting it so that most is contained in the first principal component, the next most in the second principal component, and so on.  
+
+This means that $trace(\mathbf{D}) = trace(\mathbf{R})$. The matrices D and R contain the same information, but in different arrangements.
+
+## Proportion of Variance
+The proportion of variance that each principal component accounts for in the original data can be expressed as: 
+
+$proportion~of~variance(\lambda_i) = \frac{\lambda_i}{trace(D)} = \frac{\lambda_i}{\Sigma{\lambda_j}}$  
+
+## The Determinant of R
+The determinant of R is usually complex to find. It can be faound easily with D:
+$|R| = \prod_{j=1}^kd_{jj} = \prod_{j=1}^k\lambda_j$  
+That the determinant of R is also the determinant of D is a reminder that principal components analysis simply rearranges the variance.  
+
+## The Z Matrix  
+If $Z_s$ is a matrix of standardized principal components scores, D is the diagonal matrix that contains variances for the principal components (the eigenvalues) and U is a matrix that contains the weights for creating the linear combinations (the eigenvectors), then:  
+$X = Z_sD^{\frac{1}{2}}U'$  
+Original scores are weighted combinations of the PC scores. The only trick is that we have to rescale at some point. Why do we have to do this when we could just use standardized scores with weights to get the PC scores. This is because the PC scores don't necessarily start off as standardized.
+
+This formula can be rearranged to provide the PC scores: 
+$Z_s = XUD^{-\frac{1}{2}}$  
+These might be used in other statistical analyses because of their desirable properties.
+The meaning of the new linear combinations is sometimes easier to grasp by examining the correlations of the original variables with the new linear combinations—the principal component scores. 
+
+$R_{X,Z} = \frac{1}{N-1}X'Z_s$  
+$R_{X,Z} = \frac{1}{N-1}X'XUD^{-\frac{1}{2}}$
+$R_{X,Z} = (\frac{1}{N-1}X'X)UD^{-\frac{1}{2}}$
+$R_{X,Z} = (R)UD^{-\frac{1}{2}} = (UDU')UD^{-\frac{1}{2}}$
+$R_{X,Z} = UD(U'U)D^{-\frac{1}{2}} = UDD^{-\frac{1}{2}} = UD^{\frac{1}{2}}$  
+
+This means that it's the correlation is basically the eigenvalue matrix rescaled by the SD's  
+
+## The Structure Matrix
+These correlations are called principal component loadings and are found by:  
+ 
+$F = UD^{\frac{1}{2}}$  
+
+The principal component loadings are just a rescaling of the eigenvectors. The matrix, F, is called the structure matrix.  
+We will later distinguish between the structure matrix and the pattern matrix. We'll find out that the pattern matrix will have coefficients similar to regression coefficients, while in PCA, these will only be correlations. In FA, we can have independent factors.  
+
+The proportion of variance for a vairbale in X that is accounted for by C principal coponents is called teh communality: 
+
+$h^2_j = \sum_{c=1}^Cf_{j,c}$
+Each element, fjc, is a principal component loading.  
+The communality provides an index of how well the principal components can reproduce each of the original variables.  
+
+Why does it make sense to simply sum the squares of these correlations to get the proportion of variance accounted for in Xj by the C components?
+They are independent
+
+## Variances of Linear Combinations  
+The variances of linear combinations can be obtained by applying the weights for the linear combinations to the covariance matrix of the original variables. In standard score form:
+$D=U'RU$  
+This also means that the correlations among the original variables can be recovered from the covariance matrix of linear combinations:  
+$R = UDU'$  
+
+## The Reconstituted COrrelation Matrix  
+If all of the principal components are derived, the reconstructed correlation matrix will be exactly the original correlation matrix. 
+But, if only c components are derived, the reconstructed matrix will be an estimate of the original matrix, R, that is implied by the components:
+
+$\hat{R} = U_CD_CU_C'$  
+
+The closeness of the reconstructed matrix to the original can be used to gauge how well the C components capture the variance in the original variables:
+$R_{residual} = R-(\hat{R})$  
+We can see whether we want to try to extract another component out of them  
+
+## Do we need components?  
+### Bartlett's test
+The correlation matrix, reconstructed correlation matrix, and the residual matrix play a role in determining how many components should be derived.
+$X^2_{[\frac{p^2-p}{2}]} = [(N-1) -\frac{2p+5}{6}]ln|R|$
+This is Bartlett’s test of sphericity, a test that the matrix R is an identity matrix. A modification of this test can be applied to residual matrices to test if additional components should be extracted.
+Significance means we might want to extract more?  
+
+### Other Methods  
+Two other methods are commonly used to determine how many components are necessary to capture the information in the original variables:
+<ul>
+<li>The scree test</li>
+<li>Kaiser’s l > 1.0 rule</li>
+</ul>
+The scree test is based on the idea that a meaningful component should have an eigenvalue that is noticeably different from what would emerge from random data.
+The $\lambda > 1.0$ rule is based on the idea that a component should have more variance than any random item. This holds because when the variables are standardized, all variables have a variance of 1, so if a component's eigenvalue is greater than 1, then it is better than random. 
+
+## Example  
+Ofir and Simonson (2001) collected data (N = 195) on an individual difference measure called “need for cognition.” They wanted to know if this 18-item scale was best described by one dimension. If so, a single composite score would be an appropriate summary for research purposes.
+[     ]   3.  Thinking is not my idea of fun.
+[     ]   7.  I only think as hard as I have to.
+[     ] 11.  I really enjoy a task that involves coming up with new solutions to problems.
+[     ] 13.  I prefer my life to be filled with puzzles that I must solve.  
+
+Each items is rated using the following scale:
+1 = very characteristic of me
+2 = somewhat characteristic of me
+3 = neutral
+4 = somewhat uncharacteristic of me
+5 = very uncharacteristic of me
+
+```{r}
+library(psych)
+library(plyr)
+library(tidyverse)
+wd <- "~/Dropbox (Brown)/Fall 2018/Multivariate/5 PCA I"
+
+dat <- sprintf("%s/need_for_cognition(2).csv", wd) %>% 
+  read_csv %>%
+  mutate(SID = 1:n())
+
+dat %>% 
+  gather(key = item, value = value, -SID) %>%
+  separate(item, c("scrap", "item"), sep = "_") %>%
+  ggplot(aes(x = item, y = value)) + 
+    geom_boxplot(fill = "gray") + 
+    theme_classic()
+```
+
+We may have a problem here because we have apparent multidimensionality of the data when it might not actually be there. We have variables that seem to differentially distributed.  
+
+```{r}
+psych::cor.plot(cor(dat %>% select(-SID), use = "pairwise"), upper = F)
+```
+
+## Missing Data  
+Missing data can complicate PCA analyses.  Listwise deletion insures that the correlation matrix is consistent, but the available sample size will be at a minimum.  Pairwise deletion conserves cases, but can produce inconsistent correlations.  Imputation preserves sample size but can encounter estimation difficulties.  All of these procedures have assumptions that must be carefully considered.
+
+## Should I do a PCA?
+Two tests are available for determining if a principal components analysis should be conducted.  In addition to Bartlett’s test of sphericity, the <font color = "blue><strong>Kaiser-Meyer-Olkin Measure of Sampling Adequacy (MSA)</strong></font> can be used to determine if common factor variance underlies the correlations in a matrix.  
+
+The MSA ranges between 0 and 1, with the following guidance for interpretation: .90 and above (undeniable evidence for factorability), .80 to .89 (very strong evidence), .70 to .79 (modest evidence), .60 to .69 (weak evidence), .50 to .59 (very weak evidence), and below .50 (unacceptable for factoring).
+
+```{r}
+R <- cor(dat %>% select(-SID), use = "pairwise")
+cortest.bartlett(R, n = nrow(dat))
+```
+
+```{r}
+mat <- dat %>% select(-SID) %>% as.matrix
+scree <- fa.parallel(mat, fa = "pc")
+```
+
+```{r}
+PCA_1 <- principal(R, nfactors = 1, rotate = "none", n.obs = 195, residuals = T)
+```
+
+The items vary in the strength of their associations with the principal component (related to their weights in the linear combination).
+
+The principal component accounts for 32% of the variability in the original data.
+
+## How many components?
+The scree test suggests a single component is required, but several additional components have eigenvalues greater than 1.00. Are those meaningful? Are they just error? The principal components analysis will capitalize on chance relations in the data and extract some components with eigenvalues greater than 1.00.
+
+One way to address this question is to determine what pattern of eigenvalues would emerge if the data were simply random.
+
+One approach, first suggested by Horn, is based on generating a new matrix of random, normally distributed variables. This matrix is the same size as the original data matrix.
+
+Another approach, patterned after bootstrapping, generates a new matrix of data by resampling with replacement from the original data matrix. Each data point is independently (not case) sampled.
+
+These random data are then analyzed with principal components analysis and serve as a baseline for the PCA of the actual data.
+
+In the case of our sample data, 1 component seems sufficient.
+
+```{r}
+PCA_1
+```
+
+The ability of the principal components to account for each variable’s variance is indicated by the communality.

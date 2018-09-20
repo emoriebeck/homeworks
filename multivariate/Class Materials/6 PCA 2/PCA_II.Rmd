@@ -1,0 +1,216 @@
+---
+title: "PCA II"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(MASS)
+library(psych)
+library(knitr)
+library(kableExtra)
+library(plyr)
+library(tidyverse)
+```
+
+
+# Identification of Outliers  
+
+Principal components analysis can be used to screen the data for outliers, especially cases that may not be univariate outliers but are unusual in the multivariate sense.
+
+To provide a comparison, we will first examine data that does not contain outliers. The data (N = 250) are generated from a multivariate normal distribution with 9 variables.  Later we will replace the last case with a multivariate outlier.
+
+The generated data will fit this pattern, especially as sample size increases.
+```{r}
+means <- matrix(c(0,0,0,0,0,0,0,0,0))
+sigma <- matrix(c(1,.7,.7,0,0,0,0,0,0,
+                  .7,1,.7,0,0,0,0,0,0,
+                  .7,.7,1,0,0,0,0,0,0,
+                  0,0,0,1,.7,.7,0,0,0,
+                  0,0,0,.7,1,.7,0,0,0,
+                  0,0,0,.7,.7,1,0,0,0,
+                  0,0,0,0,0,0,1,.7,.7,
+                  0,0,0,0,0,0,.7,1,.7,
+                  0,0,0,0,0,0,.7,.7,1),nrow=9,ncol=9)
+Data <- mvrnorm(250,means,sigma)
+Data <- as.data.frame(Data)
+cor(Data)
+
+corPlot(Data)
+
+Data_Original <- Data
+```
+The intended correlations exist in the sample and the pattern of correlations suggests that three independent linear combinations likely will account for the 9 variables.
+
+## Do we need to do PCA?
+Both the KMO and Bartlett tests indicate that the correlation matrix departs from an identity matrix.
+```{r}
+R <- cor(Data)
+KMO(R)
+```
+
+```{r}
+cortest.bartlett(R=R,n=length(Data[,1]))
+```
+
+## How Many Components  
+
+The scree test indicates that three components should be extracted from the data. Beyond three components, the eigenvalues suggest randomness.  In a random pattern, we would expect about half the components to be great than 1. 
+
+```{r}
+scree <- fa.parallel(Data,fa="pc")
+```
+
+## Run the PCA  
+```{r}
+PCA_1 <- principal(Data, nFactors = 3, rotate = "none", residuals = T)
+PCA_1
+```
+
+The components account for 80% of the original score variance.
+
+Note that the principal component loadings do not suggest simple interpretations; that will require an additional transformation.
+
+This kind of solution, where the first component contains a lot of large values is not uncommon. This is because the soltuion is unrotated, which makes naming the constructs less interpretable.
+
+## How'd we do?  
+
+Should we be looking for more meaningful variability? We can use the residuals to find out.  
+
+Once the three components are removed, there is no additional meaningful variability.
+```{r}
+# Create a correlation matrix of the residuals by replacing the main diagonal with ones.
+R1 <- diag(PCA_1$residual)
+R2 <- diag(R1)
+R3 <- PCA_1$residual-R2
+R4 <- diag(9) + R3
+
+# Assess the factorability of the residual correlation matrix.
+KMO(R4)
+cortest.bartlett(R=R4,n=length(Data[,1]))
+```
+
+
+
+The data are in standard score form to make interpretation easy. The last case was replaced with a profile that made it unusual in the multivariate sense, though not terribly deviant in the univariate sense:
+Variable 1: 	 3
+Variable 2: 	-3
+Variable 3: 	 3
+Variable 4:	-3
+Variable 5:	 3
+Variable 6:	-3
+Variable 7:	 3
+Variable 8:	-3
+Variable 9:	 3
+
+In a sample this large, such values would be expected, but probably not for the same case and certainly not in this pattern.
+
+
+## Univariate Outliers  
+The univariate outliers do not distort the descriptive statistics in any obvious way. The case with the odd profile does not have the most extreme scores for some of the variables.
+
+### Adding an Outlier
+```{r}
+Data[250,] <- c(3,-3,3,-3,3,-3,3,-3,3)
+```
+
+```{r}
+describe(Data)
+```
+
+```{r}
+Data %>%
+  gather(key = item, value = value) %>%
+  ggplot(aes(x = item, y = value)) + 
+    geom_boxplot() +
+    theme_classic()
+```
+
+## All the Components  
+Here we extract all 9 principal components to see if the multivariate outlier reveals itself in these linear combinations. Our goal is not data reduction.
+```{r}
+PCA_2 <- principal(Data,nfactors=9,rotate="none",residuals=TRUE,scores=TRUE)
+PCA_2
+```
+
+A principal components analysis will seek linear combinations that capture the major sources of variance in the data.  Most of these will be governed by the "well-behaved" data.  But, once that variation is captured, especially deviant multivariate cases may dominant the smaller components and emerge more readily. 
+
+For outlier detection, all components are derived and component scores are produced.  Then diagnostics are performed on the component scores.
+
+```{r}
+Data_PC <- as.data.frame(PCA_2$scores)
+```
+
+eigenvalues are variances
+eigenvectors are weights
+
+Problems are now readily apparent.
+
+Approximate standard errors for skew and kurtosis are (6/N)1/2 and (24/N)1/2, respectively (.15 and .31).
+```{r}
+describe(Data_PC)
+```
+
+```{r}
+Data_PC %>%
+  gather(key = PC, value = value) %>%
+  ggplot(aes(x = PC, y = value)) + 
+    geom_boxplot(fill = "gray") + 
+    theme_classic()
+```
+
+## Dealing with Outliers
+Once identified, a multivariate outlier must be dealt with in some way.  
+
+<ul>
+<li>Transformation (probably will not help)<br>
+The problem with doing this with outliers is that the rest of the distribution is generally relatively normally distributed.</li>
+<li>Elimination (requires strong justification)</li>
+<li>Sensitivity analysis</li>
+</ul>
+
+In univariate statistics, the normality assumption underlies significance testing.  It is with reference to sampling from some theoretical distribution that we can make claims about the likelihood of results occurring “by chance” or “under the null hypothesis.”  Similarly, the establishment of confidence intervals depends on distributional assumptions. 
+
+
+# Verifying Multivariate Normality  
+Underlying many multivariate procedures is the assumption of multivariate normality.  This assumption extends the idea of bivariate normality to more than two dimensions.  In bivariate normality, the distribution of one variable is normal for all values of the other variable, even when the variables are highly correlated.  
+
+# Assumptions: 
+When multivariate normality holds:
+
+All marginal distributions will be normal.
+All pairs of variables will be bivariate normal.
+All linear combinations will be normal.
+All pairs of linear combinations will be bivariate normal.
+Squared distances from the population centroid will be chi-square distributed with k (k =number of variables) degrees of freedom.
+
+Violating any of these is a violation of multivariate normality.
+
+## Notes
+All linear combinations will be normal 
+It is not practical to test all linear combinations—there are an infinite number of them.  But, testing a small number of commonly used linear combinations is important. The most commonly tested:
+Sum of all measures
+Pair-wise differences
+Principal components
+
+## Malahanobis Distance
+The distance of each case from the multivariate mean is indicated by the  Mahalanobis distance:
+$X = [X_1, X_2, X_3,...]$   
+$\mu = [\mu_1,\mu_2, \mu_3,...]$  
+$D_x = \sqrt{[X-\mu]'\Sigma^-1[X-\mu]}$  
+
+Mahalanobis distance squared is $\chi^2$ distributed with degrees of freedom equal to the number of measures (here df = 9).  
+
+
+## Q-Q Plot of Malahanobis Distance  
+Mahalanobis distance provides a clear indication that something is amiss.
+
+## MD and PCA  
+How is this simplified when applied to principal component scores?
+The variance covariance matrix and it's inverse will be an identity matrix, and the means vector will be 0's.
+
+Which means we are just lect with the PC scores for each person, so $D^2$ will be the squared sum of the scores.  
+

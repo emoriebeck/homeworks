@@ -1,0 +1,481 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Matrix Algebra}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Overview}
+\textbf{\large{\textit{
+Multivariate statistics are often represented in matrix form.
+This provides a convenient shorthand for what ordinarily could be very cumbersome equations.
+In addition, there are matrix characteristics (e.g., singularity, determinant) that play important roles in interpreting multivariate statistics.
+And, transformations of data and means are common in multivariate statistics.
+These are easily represented in matrix form.
+For these reasons, and to obtain some street cred among statisticians, it is useful to know a few matrix algebra basics.
+}}}
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+# Load the psych package.
+library(psych)
+library(MASS)
+@
+
+\section{A Symmetric Matrix}
+\textbf{\large{\textit{
+A symmetric matrix has an equal number of rows and columns.
+}}}
+
+\subsection{Define a Matrix}
+<<tidy=TRUE>>=
+F <- matrix(c(1, 3, -4, 3, 11, 7, -4, 7, 2), nrow=3, ncol=3, byrow=TRUE)
+F
+@
+
+\section{Trace of the Matrix}
+\textbf{\large{\textit{
+The sum of the elements on the main diagonal of a symmetric matrix is called the trace.
+The trace can be obtained using the tr() function from the psych package.
+}}}
+<<tidy=TRUE>>=
+t_F <- tr(F)
+@
+
+\textbf{\large{\textit{
+The trace for matrix, \textbf{F}, is \Sexpr{t_F}. 
+}}}
+
+\section{Diagonal Matrix}
+\textbf{\large{\textit{
+If all elements of a matrix except the main diagonal are zero, the matrix is a diagonal matrix.
+}}}
+
+<<tidy=TRUE>>=
+# A diagonal matrix can be created in the usual way:
+F <- matrix(c(1, 0, 0, 0, 11, 0, 0, 0, 2), nrow=3, ncol=3, byrow=TRUE)
+# Or, it can be created using the diag() function. This is 
+# easier for large matrices.
+F <- diag(c(1,11,2))
+F
+@
+
+\section{Matrix Addition and Subtraction}
+\textbf{\large{\textit{
+Matrices can be added and subtracted, element by element, provided they are of the same order (i.e., have the same numbers of rows and columns).
+}}}
+
+\subsection{Define Matrices}
+<<tidy=TRUE>>=
+F <- matrix(c(1, 3, 3, 11, -4, 7), nrow=3, ncol=2, byrow=TRUE)
+H <- matrix(c(4, -1, 6, 2, 12, 8), nrow=3, ncol=2, byrow=TRUE)
+F
+H
+@
+
+\subsection{Define a New Matrix: K = F + H}
+<<tidy=TRUE>>=
+K <- F + H
+K
+@
+
+\subsection{Define a New Matrix: K = F - H}
+<<tidy=TRUE>>=
+K <- F - H
+K
+@
+
+\section{Zero Matrix}
+\textbf{\large{\textit{
+It is occasionally useful to have a matrix of zeros.
+This is created in the usual way.
+}}}
+<<tidy=TRUE>>=
+Z <- matrix(0,nrow=3,ncol=5)
+Z
+@
+
+\section{Scalar Multiplication}
+\textbf{\large{\textit{
+A matrix multiplied by a scalar is equivalent to multiplying each matrix element by the scalar.
+}}}
+
+\subsection{Define a Matrix}
+<<tidy=TRUE>>=
+F <- matrix(c(1, 3, -4, 3, 11, 7, -4, 7, 2), nrow=3, ncol=3, byrow=TRUE)
+F
+@
+
+\subsection{Define a New Matrix: K = 5*F}
+<<tidy=TRUE>>=
+K <- 5*F
+K
+@
+
+\section{Matrix Multiplication}
+\textbf{\large{\textit{
+Two matrices can be multiplied provided the number of columns in the first matrix is equal to the number of rows in the second matrix. 
+Order of multiplication matters.
+To multiply matrices we use the matrix multiplication operator, \%*\%.
+}}}
+
+\subsection{Define Matrices}
+<<tidy=TRUE>>=
+A <- matrix(c(4, -1, 7, 0, 6, 2), nrow=3, ncol=2, byrow=TRUE)
+B <- matrix(c(1, 7, 0, 4, 2, 6), nrow=2, ncol=3, byrow=TRUE)
+A
+B
+@
+
+\subsection{Define a New Matrix: C = A*B}
+<<tidy=TRUE>>=
+C <- A %*% B
+C
+@
+
+\subsection{AB May Not Equal BA}
+<<tidy=TRUE>>=
+A %*% B
+B %*% A
+@
+
+\section{Matrix Transpose}
+\textbf{\large{\textit{
+Every matrix has a transpose that is obtained by exchanging the rows and columns.
+}}}
+
+\subsection{Define Matrix}
+<<tidy=TRUE>>=
+X <- matrix(c(4, -1, 7, 0, 6, 2), nrow=3, ncol=2, byrow=TRUE)
+X
+@
+
+\subsection{Transpose}
+\textbf{\large{\textit{
+To get the transpose of a matrix, use the t() function.
+}}}
+<<tidy=TRUE>>=
+t(X)
+@
+
+\subsection{The Transpose in Action}
+\textbf{\large{\textit{
+Transposes are useful for arranging a matrix so that matrix multiplication is possible.
+For example, we frequently need to generate the sums of squares and cross-products for a data matrix. 
+If $X_{n,v}$ is a matrix of deviation scores, then $X_{n,v}X_{n,v}$ is not possible. But, $X_{v,n}X_{n,v}$ can be carried out.
+The matrix, $X_{v,n}$, is the transpose of $X_{n,v}$ and can be symbolized as $X^{'}_{n,v}$ or as $X^{T}_{n,v}$. \newline
+\newline
+Here we will create a matrix of random numbers to simulate some data. 
+We will pretend we have 100 cases and 4 variables and will draw the variables from a multivariate normal distribution with means of 0 and a covariance matrix of
+\[
+\begin{bmatrix*}
+    1.0 & 1.2 & 0.3 & 0.4 \\
+		1.2 & 2.0 & 0.2 & 0.3 \\
+		0.3 & 0.2 & 3.0 & 0.4\\
+		0.4 & 0.3 & 0.4 & 4.0
+\end{bmatrix*}
+\]
+}}}
+
+\subsection{Define Matrix}
+<<tidy=TRUE>>=
+mu <- matrix(0,nrow=1,ncol=4)
+VC <- matrix(c(1,1.2,.3,.4,1.2,2,.2,.3,.3,.2,3,.4,.4,.3,.4,4),nrow=4,ncol=4,byrow = TRUE)
+X <- mvrnorm(100,mu,VC)
+head(X)
+@
+
+\subsection{Create Deviation Scores}
+\textbf{\large{\textit{
+We need deviation scores.
+We might think we already have them because we drew the sample from a population with means of 0.
+The finite sample means will likely not be zero exactly, however.
+We can make them so by centering the variables.
+}}}
+<<tidy=TRUE>>=
+describe(X)
+X <- scale(X,center=TRUE,scale=FALSE)
+describe(X)
+@
+
+\subsection{Sums of Squares and Cross-Products}
+\textbf{\large{\textit{
+Multiplication using the transpose produces the desired matrix.
+}}}
+<<tidy=TRUE>>=
+SSCP <- t(X) %*% X
+@
+
+\subsection{Variance-Covariance Matrix}
+\textbf{\large{\textit{
+The sum of squares and cross-products matrix is one step away from the variance-covariance matrix.
+All we need to do is divide each element of the matrix by the degrees of freedom, N-1.
+That is simply a scalar operation.
+}}}
+<<tidy=TRUE>>=
+VC_Sample <- SSCP/(99)
+VC_Sample
+@
+
+\textbf{\large{\textit{
+We did this set of operations for demonstration purposes.
+The variance-covariance matrix can be obtained directly using the cov() function.
+}}}
+<<tidy=TRUE>>=
+cov(X)
+@
+
+\textbf{\large{\textit{
+We can convert the variance-covariance matrix to a correlation matrix using the cov2cor() function.
+}}}
+<<tidy=TRUE>>=
+cov2cor(VC_Sample)
+@
+
+\textbf{\large{\textit{
+The correlation matrix can be thought of as a standardized variance-covariance matrix.
+If we standarize the variables and calculate the variance-covariance matrix, it will equal the correlation matrix for the original variable.
+}}}
+<<tidy=TRUE>>=
+Z <- scale(X,scale=TRUE,center=TRUE)
+cov(Z)
+cor(X)
+@
+
+\section{Identity matrix}
+\textbf{\large{\textit{
+The identity matrix is a diagonal matrix with ones on the main diagonal.
+We can create it in two steps by first creating a square matrix of 0s and then replacing the main diagonal with 1s.
+}}}
+
+<<tidy=TRUE>>=
+I <- matrix(0,nrow=4,ncol=4)
+diag(I) <- 1
+I
+@
+
+\section{Multiplication By Diagonal Matrices}
+\textbf{\large{\textit{
+A diagonal matrix has zero values for all non-diagonal elements.
+It can be used to multiply the rows or columns (or both) of another matrix by constants.
+}}}
+
+\subsection{Define Matrices}
+<<tidy=TRUE>>=
+X <- matrix(c(4, 7, 7, 6), nrow=2, ncol=2, byrow=TRUE)
+D <- diag(c(3,2))
+D
+X
+@
+
+\subsection{Post-Multiplication By A Diagonal Matrix}
+\textbf{\large{\textit{
+Post-multiplication of a matrix, X, by a diagonal matrix, D, results in the columns of X being multiplied by the corresponding diagonal element in D.
+}}}
+<<tidy=TRUE>>=
+Y <- X %*% D
+Y
+@
+
+\subsection{Pre-Multiplication By A Diagonal Matrix}
+\textbf{\large{\textit{
+Pre-multiplication of a matrix, X, by a diagonal matrix, D, results in the rows of X being multiplied by the corresponding diagonal element in D.
+}}}
+<<tidy=TRUE>>=
+Y <- D %*% X
+Y
+@
+
+\subsection{Scalar Multiplication Revisited}
+\textbf{\large{\textit{
+Scalar multiplication is just multiplication by a diagonal matrix with a constant in the diagonal.
+}}}
+<<tidy=TRUE>>=
+X <- matrix(c(4, 7, 7, 6), nrow=2, ncol=2, byrow=TRUE)
+D <- matrix(c(3, 0, 0, 3), nrow=2, ncol=2, byrow=TRUE)
+X
+D
+3*X
+X %*% D
+D %*% X
+@
+
+\section{The Determinant}
+\textbf{\large{\textit{
+Variance-covariance matrices and correlation matrices can be characterized by a single number called the determinant that represents the "generalized variance."
+For the correlation matrix, this number can take on values from 0 to 1. When all variables are independent (an identity matrix), the determinant is 1. 
+As variables increase in their interdependence, the determinant approaches 0.  
+A singular matrix has a determinant of 0.
+The determinant thus indexes the redundancy among variables in a correlation matrix.
+We can obtain the determinant using the det() function, here demonstrated using the sample variance-covariance matrix from an earlier example.
+The determinant of matrix A is symbolized as |A|.
+The context is usually sufficient to not confuse this with absolute value.
+If there is potential confusion, then $\det{A}$ would be used.
+}}}
+
+<<tidy=TRUE>>=
+det(VC_Sample)
+det(cov2cor((VC_Sample)))
+@
+
+\section{The Inverse}
+\textbf{\large{\textit{
+Some square matrices have an inverse such that $AA^{-1} = I$. 
+The inverse is useful in solving matrix equations and is obtained in R by using the solve() function.
+We will use it here to obtain the regression coefficients from a multiple regression using matrix operations. \newline
+\newline
+First we will create some data consisting of 100 cases and 4 variables.
+The first variable will be treated as the outcome and the remaining variables treated as predictors.
+}}}
+
+<<tidy=TRUE>>=
+mu <- matrix(0,nrow=1,ncol=4)
+VC <- matrix(c(1,1.2,.3,.4,1.2,2,.2,.3,.3,.2,3,.4,.4,.3,.4,4),nrow=4,ncol=4,byrow = TRUE)
+Data <- mvrnorm(100,mu,VC)
+Data <- as.data.frame(Data)
+names(Data) <- c("DV","IV1","IV2","IV3")
+@
+
+\textbf{\large{\textit{
+Now we conduct a simple multiple regression using the lm() function.
+Our goal is to reproduce the regression coefficients using matrix operations.
+}}}
+<<tidy=TRUE>>=
+fit <- lm(DV ~ 1 + IV1 + IV2 + IV3, data=Data)
+summary(fit)
+@
+
+\textbf{\large{\textit{
+The matrix equation for the regression coefficients is: \newline
+\newline
+$B = (X^{'}X)^{-1}X^{'}Y$
+\newline
+\newline
+in which X is the matrix of predictor values with a column of 1s added to account for the constant and Y is the vector of Y values.
+Note that the equation contains an inverse, in this case an inverse of a matrix formed by multiplying the transpose of X by X.
+The matrix operations produce identical values for the regression coefficients.
+}}}
+
+<<tidy=TRUE>>=
+X <- Data[,2:4]
+X <- cbind(matrix(1,nrow=100,ncol=1),X)
+X <- as.matrix(X)
+colnames(X) <- c("Constant","X1","X2","X3")
+Y <- Data[,1]
+Y <- as.matrix(Y)
+colnames(Y) <- c("Y")
+B <- solve(t(X) %*% X) %*% t(X) %*% Y
+B
+@
+
+\section{Variances and Covariances of Linear Combinations}
+\textbf{\large{\textit{
+Quite frequently in statistics we will form linear combinations of variables and will need to know the variances and covariances of those linear combinations.
+Of course, one simple way to do that is to carry out the linear combination calculations, producing new variables, and then calculating the variances and covariances of those new variables.
+There is, however, a very useful matrix solution.
+If Y = XW, in which X is a matrix of data transformed by the weight matrix, W, to produce linear combinations, then the variance-covariance matrix for the transformed variables, Y, can be found with the matrix calculation: $W^{'}\Sigma_X W$, in which $\Sigma_X$ is the variance-covariance matrix for the original variables. \newline
+\newline
+To demonstrate, we first create some sample data consisting of 100 cases and 3 variables from a multivariate standard normal distribution with all intercorrelations assumed to be .2.
+}}}
+
+<<tidy=TRUE>>=
+mu <- matrix(0,nrow=1,ncol=3)
+VC <- matrix(c(1,.2,.2,.2,1,.2,.2,.2,1),nrow=3,ncol=3,byrow = TRUE)
+X <- mvrnorm(100,mu,VC)
+X <- as.matrix(X)
+colnames(X) <- c("V1","V2","V3")
+@
+
+\textbf{\large{\textit{
+Next we create a matrix of weights, W, that will be used to transform the original variables.
+\[
+\text{W =}
+\begin{pmatrix}
+    1 & 1 & 1 \\
+    1 & 0 & -2 \\
+    1 & -1 & 1     
+\end{pmatrix}
+\]
+Because the data matrix is post-multiplied by W, this will create three new variables consisting of the sum of the original variables, the difference between the first and third variables, and the difference between the second variable and the sum of the first and third variables.
+}}}
+
+<<tidy=TRUE>>=
+W <- matrix(c(1,1,1,1,0,-2,1,-1,1),nrow=3,ncol=3)
+Y <- X %*% W
+@
+
+\textbf{\large{\textit{
+First, we can obtain the variances and covariances for the new variables using the cov() function.
+}}}
+
+<<tidy=TRUE>>=
+cov(Y)
+@
+
+\textbf{\large{\textit{
+But, we can obtain those variances and covariances by transforming the variance-covariance matrix of the original variables (X) using the weights that create the new variables.
+}}}
+
+<<tidy=TRUE>>=
+t(W) %*% cov(X) %*% W
+@
+
+\textbf{\large{\textit{
+This may seem like a trivial difference in the way the variances and covariances are derived, but it speaks to a very important link between original and transformed variables. 
+Transformations do not add or subtract information but merely represent it differently.
+Whatever variability and correlation was present in the original variables is also present in the transformed variables, but it is distributed differently.
+}}}
+\end{document}

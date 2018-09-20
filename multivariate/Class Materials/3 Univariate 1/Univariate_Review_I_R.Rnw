@@ -1,0 +1,543 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Univariate Review I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Overview}
+\textbf{\large{\textit{
+The primary goal of inferential statistics is to provide a basis for confidently claiming that a theory-predicted "signal" is present in the data.
+Statistical tests can be thought of as "signal-to-noise" ratios: \newline
+\begin{equation*}
+	Test = \dfrac{Signal + Noise}{Noise}
+\end{equation*}
+When the signal is "large enough" relative to the noise, we may claim it to be a "significant" signal. \newline
+\newline
+Another way to frame the basic inferential test is as an "effect" relative to its standard error. \newline
+\begin{equation*}
+	Test = \dfrac{Signal + Noise}{Noise} = \dfrac{Effect}{SE_{Effect}}
+\end{equation*}
+The standard error (SE), or standard deviation of the effect, tells us how much the effect can be expected to vary under the null hypothesis that there is no signal.  
+If the effect is unusual in this context, we can claim there is probably a signal present (i.e., not just noise).   
+}}}
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(arm)
+library(psych)
+library(lmtest)
+library(car)
+library(lsmeans)
+library(multcomp)
+library(ggplot2)
+@
+
+<<tidy=TRUE>>=
+# Get the data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+Data_1 <- read.table('univariate_t_test_example.csv',sep=',',header=TRUE)
+Data_1 <- as.data.frame(Data_1)
+
+Data_2 <- read.table('Set_1.csv',sep=',',header=TRUE)
+Data_2 <- as.data.frame(Data_2)
+@
+
+\section{Simple Two-Group Example}
+\textbf{\large{\textit{
+The basic idea of statistical tests as signal detection can be illustrated with a two-group example.
+}}}
+
+\subsection{Means and Variability}
+<<tidy=TRUE>>=
+Means <- aggregate(Data_1$DV,by=list(Data_1$Group),FUN=mean)
+SDs <- aggregate(Data_1$DV,by=list(Data_1$Group),FUN=sd)
+@
+
+\begin{tabular}{| L{2.5cm} | R{1.5cm} | R{1.5cm} |}
+\hline
+\multicolumn{3}{|c|}{Two-Group Example} \\
+\hline
+\textit{Group}  & \multicolumn{1}{|c|}{\textit{Mean}} & \multicolumn{1}{|c|}{\textit{SE}} \\
+\hline
+Treatment & \Sexpr{round(Means$x[1],1)} & \Sexpr{round(SDs$x[1]/sqrt(10),1)} \\ 
+\hline 
+Control & \Sexpr{round(Means$x[2],1)} & \Sexpr{round(SDs$x[2]/sqrt(10),1)}  \\ 
+\hline 
+\end{tabular}
+
+\textbf{\large{\textit{
+\newline
+\newline
+The effect or signal of interest is the mean difference:
+6.3 - 4.7 = 1.6
+Is this big or "significant?" 
+We need to consider variability under the null to know this.
+This can partly be gauged by examining boxplots, which illustrate separation of the groups (signal + noise) relative to variability within the groups (noise).
+}}}
+<<tidy=TRUE>>=
+# Boxplots by group
+Data_1$Group_F <- factor(Data_1$Group,levels=c(1,2),labels=c("Treatment","Control"))
+
+ggplot(Data_1, aes(y=DV,fill=Group_F,x=Group_F)) +
+    geom_boxplot(aes(y=DV,fill=Group_F,x=Group_F),fill=c("grey80","grey50"),color="black",size=.5,width=.5,
+                 outlier.colour = "red", outlier.shape = 19,
+                 outlier.size = 2, notch=FALSE) + 
+    coord_flip() +
+    ylab("Outcome") + 
+    xlab("Group") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+    ggtitle("Outcomes as a Function of Group")
+@
+
+\subsection{Sampling Distribution for the Mean Difference}
+\textbf{\large{\textit{
+The simple t-test can be thought of as a signal detection test.
+It takes the mean difference and scales it by the standard error of the mean difference.
+This produces a t-value, which can be compared to the t-distribution.
+The t-distribution is assumed to describe the sampling distribution of mean differences under the null hypothesis.
+}}}
+<<tidy=TRUE>>=
+t_output <-t.test(DV~Group,data=Data_1,var.equal = TRUE)
+t_output
+t_output[[1]]
+t_output[[2]]
+@
+
+\textbf{\large{\textit{
+The results of the t-test can be illustrated using the assumed sampling distribution of the mean differences for degrees of freedom equal to 18 (N - 2).
+In this example, the mean difference is a rare event in the context of the null hypothesis.
+}}}
+<<tidy=TRUE>>=
+set.seed(1)
+x <- seq(-4,4,.0001)
+y <- dt(x,df=18)
+
+D <- cbind(x,y)
+D <- as.data.frame(D)
+
+ggplot(data = D, aes(x = x, y = y)) +
+      geom_line(size=1) +
+      geom_area(aes(x = ifelse(x>=2.101, x, 0)),
+            fill = "red", alpha = .75) +
+      geom_area(aes(x = ifelse(x<=-2.101, x, -2.101)),
+            fill = "red", alpha = .75) +  
+      scale_y_continuous(limits = c(0, max(D$y))) +
+      scale_x_continuous(breaks=seq(-4,4,.5)) +
+      coord_cartesian(xlim = c(-4,4), ylim = c(0,max(D$y))) +
+      xlab("t") + 
+      ylab("Density") +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold", angle=90),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+      geom_hline(yintercept=0,size=1,linetype=1,color="black") +
+      geom_vline(xintercept=2.762,size=1,linetype=1,color="black") +
+      annotate("text",x=3,y=.1,label="t = 2.762", angle=90,size=5) +
+      ggtitle("The t Distribution (df=18, p = .05)")
+@
+
+\section{More Than Two Groups}
+\textbf{\large{\textit{
+With more than two groups, an ANOVA is used, but the basic principles remain the same.
+If, for example, we have five groups rather than two, we are still interested in the variability of the means relative to the variability within the groups.
+}}}
+
+\begin{tabular}{| C{1.5cm} | C{1.5cm} | C{1.5cm} | C{1.5cm} | C{1.5cm} |}
+\hline
+\multicolumn{1}{|c|}{$Group_{1}$}  & \multicolumn{1}{|c|}{$Group_{2}$} & \multicolumn{1}{|c|}{$Group_{3}$} & \multicolumn{1}{|c|}{$Group_{4}$} & \multicolumn{1}{|c|}{$Group_{5}$}\\
+\hline
+$Y_{11}$ & $Y_{12}$ & $Y_{13}$ & $Y_{14}$ & $Y_{15}$ \\ 
+\hline
+$Y_{21}$ & $Y_{22}$ & $Y_{23}$ & $Y_{24}$ & $Y_{25}$ \\ 
+\hline 
+$Y_{31}$ & $Y_{32}$ & $Y_{33}$ & $Y_{34}$ & $Y_{35}$ \\ 
+\hline 
+$Y_{41}$ & $Y_{42}$ & $Y_{43}$ & $Y_{44}$ & $Y_{45}$ \\ 
+\hline 
+$Y_{51}$ & $Y_{52}$ & $Y_{53}$ & $Y_{54}$ & $Y_{55}$ \\ 
+\hline 
+. & . & . & . & . \\ 
+\hline 
+. & . & . & . & . \\ 
+\hline 
+. & . & . & . & . \\ 
+\hline 
+$\overline{Y}_{.1}$ & $\overline{Y}_{.2}$ & $\overline{Y}_{.3}$ & $\overline{Y}_{.4}$ & $\overline{Y}_{.5}$ \\ 
+\hline 
+\end{tabular}
+
+\textbf{\large{\textit{
+\newline
+\newline
+We are interested in the variability of the means as evidence for a treatment-induced signal.
+\newline
+}}}
+
+\begin{tabular}{| C{1.5cm} | C{1.5cm} | C{1.5cm} | C{1.5cm} | C{1.5cm} |}
+\hline
+\multicolumn{1}{|c|}{$Group_{1}$}  & \multicolumn{1}{|c|}{$Group_{2}$} & \multicolumn{1}{|c|}{$Group_{3}$} & \multicolumn{1}{|c|}{$Group_{4}$} & \multicolumn{1}{|c|}{$Group_{5}$}\\
+\hline
+$M_{1}$ & $M_{2}$ & $M_{3}$ & $M_{4}$ & $M_{5}$ \\ 
+\hline
+\end{tabular}
+
+\textbf{\large{\textit{
+\newline
+\newline
+We get an estimate of the expected means variability in the absence of a signal by examining the variability within the groups. 
+The variability within the groups is assumed to be homogeneous; each provides an estimate of expected variability under the null hypothesis.\newline
+}}}
+
+\begin{tabular}{| C{1.5cm} | C{1.5cm} | C{1.5cm} | C{1.5cm} | C{1.5cm} |}
+\hline
+\multicolumn{1}{|c|}{$Group_{1}$}  & \multicolumn{1}{|c|}{$Group_{2}$} & \multicolumn{1}{|c|}{$Group_{3}$} & \multicolumn{1}{|c|}{$Group_{4}$} & \multicolumn{1}{|c|}{$Group_{5}$}\\
+\hline
+$M_{1}$ & $M_{2}$ & $M_{3}$ & $M_{4}$ & $M_{5}$ \\ 
+\hline
+$\hat{\sigma}^2_{1}$ & $\hat{\sigma}^2_{2}$ & $\hat{\sigma}^2_{3}$ & $\hat{\sigma}^2_{4}$ & $\hat{\sigma}^2_{5}$ \\ 
+\hline 
+\end{tabular}
+
+\textbf{\large{\textit{
+\newline
+\newline
+The variance of the means when the null hypothesis is true can be estimated from the variance of scores.\newline
+\begin{equation*}
+	\boldsymbol{\sigma}^2_{\overline{Y}} = \dfrac{\boldsymbol{\sigma}^2_{Y}}{\sqrt{n}}
+\end{equation*}
+\newline
+The ratio of two estimates of score variability, one based on means and one based on within-groups variances, is F distributed under the null hypothesis.
+As the ratio departs from 1, there is increasing evidence for a signal in the data. \newline
+\begin{equation*}
+	F \approx \dfrac{n\boldsymbol{\sigma}^2_{\overline{Y}}}{\boldsymbol{\overline{\sigma}}^2_{Y}}
+\end{equation*}
+}}}
+\textbf{\large{\textit{
+\newline
+\newline
+For our example we will use a data set with three groups and three variables.
+At the moment, we will treat each variable separately.
+Later, we will examine linear combinations of the variables.
+}}}
+\subsection{Means and Variability}
+<<tidy=TRUE>>=
+# Create a unique dummy code for each of the three groups.
+Data_2$G1 <- ifelse(Data_2$Group==1,1,0)
+Data_2$G2 <- ifelse(Data_2$Group==2,1,0)
+Data_2$G3 <- ifelse(Data_2$Group==3,1,0)
+
+describeBy(Data_2$DV1,group=Data_2$Group)
+describeBy(Data_2$DV2,group=Data_2$Group)
+describeBy(Data_2$DV3,group=Data_2$Group)
+@
+
+<<tidy=TRUE>>=
+# Boxplots by group
+Data_2$Group_F <- factor(Data_2$Group,levels=c(1,2,3),labels=c("Group 1","Group 2","Group 3"))
+
+ggplot(Data_2, aes(y=DV1,fill=Group_F,x=Group_F)) +
+    geom_boxplot(fill=c("grey90","grey75","grey60"),color="black",size=.5,width=.5,
+                 outlier.colour = "red", outlier.shape = 19,
+                 outlier.size = 2, notch=FALSE) + 
+    scale_y_continuous(breaks = seq(1, 10,1)) +
+    coord_cartesian(xlim = c(1,3), ylim = c(1,10)) +  
+    ylab(expression(paste(DV[1]))) + 
+    xlab("Group") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+    ggtitle(expression(paste(DV[1]," as a Function of Group")))
+@
+
+<<tidy=TRUE>>=
+# Boxplots by group
+ggplot(Data_2, aes(y=DV2,fill=Group_F,x=Group_F)) +
+    geom_boxplot(fill=c("grey90","grey75","grey60"),color="black",size=.5,width=.5,
+                 outlier.colour = "red", outlier.shape = 19,
+                 outlier.size = 2, notch=FALSE) + 
+    scale_y_continuous(breaks = seq(1, 10,1)) +
+    coord_cartesian(xlim = c(1,3), ylim = c(1,10)) + 
+    ylab(expression(paste(DV[2]))) + 
+    xlab("Group") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+    ggtitle(expression(paste(DV[2]," as a Function of Group")))
+@
+
+<<tidy=TRUE>>=
+# Boxplots by group
+ggplot(Data_2, aes(y=DV3,fill=Group_F,x=Group_F)) +
+    geom_boxplot(fill=c("grey90","grey75","grey60"),color="black",size=.5,width=.5,
+                 outlier.colour = "red", outlier.shape = 19,
+                 outlier.size = 2, notch=FALSE) + 
+    scale_y_continuous(breaks = seq(1, 10,1)) +
+    coord_cartesian(xlim = c(1,3), ylim = c(1,10)) + 
+    ylab(expression(paste(DV[3]))) + 
+    xlab("Group") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+    ggtitle(expression(paste(DV[3]," as a Function of Group")))
+@
+
+\subsection{Correlations}
+\textbf{\large{\textit{
+With more than one variable, we will likely be interested in the correlations among the variables.
+These need to be obtained with care when there is an experimental group structure to the data.
+The imposed group differences can artificially inflate or deflate correlations.
+This artifact can be eliminated by correlating the residuals.
+}}}
+<<tidy=TRUE>>=
+# Run linear models to get residuals.
+DV1_LM <- lm(Data_2$DV1~-1 + Data_2$G1 + Data_2$G2 + Data_2$G3)
+DV2_LM <- lm(Data_2$DV2~-1 + Data_2$G1 + Data_2$G2 + Data_2$G3)
+DV3_LM <- lm(Data_2$DV3~-1 + Data_2$G1 + Data_2$G2 + Data_2$G3)
+# Correlations among original variables.
+cor(Data_2[,2:4])
+# Create a matrix of residuals.
+R <- cbind(resid(DV1_LM),resid(DV2_LM),resid(DV3_LM))
+# Correlations among residuals.
+cor(R)
+@
+
+\subsection{ANOVA Results}
+\textbf{\large{\textit{
+The analysis of variance produces an F ratio, which is a ratio of two estimates of variance of the scores within-groups under the null hypothesis.
+One of these is based on the variability of the means.
+Provided there are no systematic differences among the groups (i.e., no signal), then the variability among the means (when scaled appropriately) will be consistent with the variability within the groups.
+}}}
+<<tidy=TRUE>>=
+summary(aov(Data_2$DV1~as.factor(Data_2$Group)))
+summary(aov(Data_2$DV2~as.factor(Data_2$Group)))
+summary(aov(Data_2$DV3~as.factor(Data_2$Group)))
+@
+
+\textbf{\large{\textit{
+The results of the F-tests can be illustrated using the assumed F sampling distribution for degrees of freedom equal to 2 and 72.
+}}}
+<<tidy=TRUE>>=
+set.seed(1)
+x <- seq(0,35,.0001)
+y <- df(x,df1=2,df2=72)
+
+D <- cbind(x,y)
+D <- as.data.frame(D)
+
+ggplot(data = D, aes(x = x, y = y)) +
+      geom_line(size=1) +
+      geom_area(aes(x = ifelse(x>=3.124, x, 0)),
+            fill = "red", alpha = .75) +
+      scale_y_continuous(limits = c(0, max(D$y))) +
+      scale_x_continuous(breaks=seq(0,35,5)) +
+      coord_cartesian(xlim = c(0,35), ylim = c(0,max(D$y))) +
+      xlab("F") + 
+      ylab("Density") +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold", angle=90),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm")) + 
+      geom_hline(yintercept=0,size=1,linetype=1,color="black") +
+      geom_vline(xintercept=.2,size=1,linetype=2,color="black") +
+      geom_vline(xintercept=31.4,size=1,linetype=2,color="black") +
+      geom_vline(xintercept=20.2,size=1,linetype=2,color="black") +
+      ggtitle("The F Distribution (df = 2, 72, p = .05)")
+@
+
+\subsection{Homogeneity of Variance}
+\textbf{\large{\textit{
+The ANOVA uses a single estimate of the within-group variability, called the residual mean square.
+This is a pooling of the separate within-group variances.
+This pooling is appropriate provided the separate estimates come from the same population; this is the homogeneity of variances assumption.
+}}}
+<<tidy=TRUE>>=
+leveneTest(Data_2$DV1~as.factor(Data_2$Group), data=Data_2)
+leveneTest(Data_2$DV2~as.factor(Data_2$Group), data=Data_2)
+leveneTest(Data_2$DV3~as.factor(Data_2$Group), data=Data_2)
+@
+
+\subsection{Pairwise Comparisons}
+\textbf{\large{\textit{
+In the presence of a significant effect, we likely will want to conduct follow-up comparisons to better understand its nature.
+Pairwise comparisons are common, but need to be conducted using adjusted p-values to keep the family-wise error rate under control.
+}}}
+<<tidy=TRUE>>=
+pairwise.t.test(Data_2$DV2,as.factor(Data_2$Group),p.adj="holm")
+TukeyHSD(aov(Data_2$DV2~as.factor(Data_2$Group)))
+@
+
+\subsection{L Matrix Approach}
+\textbf{\large{\textit{
+Maximum flexibility comes from using the L matrix approach to tailor group comparisons.
+To use this approach, we specify a "no intercept" model, which produces group means as coefficients.
+We can then form linear combinations of these coefficients.
+}}}
+
+<<tidy=TRUE>>=
+# Now run no-intercept models, saving the results in an object.
+DV1_LM <- lm(Data_2$DV1~-1 + Data_2$G1 + Data_2$G2 + Data_2$G3)
+DV2_LM <- lm(Data_2$DV2~-1 + Data_2$G1 + Data_2$G2 + Data_2$G3)
+DV3_LM <- lm(Data_2$DV3~-1 + Data_2$G1 + Data_2$G2 + Data_2$G3)
+# The coefficients will now be the group means.
+summary(DV1_LM)
+summary(DV2_LM)
+summary(DV3_LM)
+@
+
+\textbf{\large{\textit{
+The multcomp package can be used to specify the weighted combinations to test.
+}}}
+
+<<tidy=TRUE>>=
+L_Matrix=matrix(c(1,-1,0,1,0,-1,0,1,-1,
+             1,1,-2,2,-1,-1,1,-2,1),nrow=6,ncol=3,byrow=TRUE)
+rownames(L_Matrix) <- c("G1 vs G2","G1 vs G3","G2 vs G3","G1 and G2 vs G3","G1 vs G2 and G3","G2 vs G1 and G3")
+L_Matrix
+glht_L_Matrix_1 <- glht(DV1_LM,linfct=L_Matrix,alternative="two.sided",rhs=0)
+summary(glht_L_Matrix_1,adjusted("holm"))
+glht_L_Matrix_2 <- glht(DV2_LM,linfct=L_Matrix,alternative="two.sided",rhs=0)
+summary(glht_L_Matrix_2,adjusted("holm"))
+glht_L_Matrix_3 <- glht(DV3_LM,linfct=L_Matrix,alternative="two.sided",rhs=0)
+summary(glht_L_Matrix_3,adjusted("holm"))
+par(mai=c(1,2,1,1))
+plot(confint(glht_L_Matrix_1,calpha = univariate_calpha()),main="95% Confidence Interval: DV 1")
+plot(confint(glht_L_Matrix_2,calpha = univariate_calpha()),main="95% Confidence Interval: DV 2")
+plot(confint(glht_L_Matrix_3,calpha = univariate_calpha()),main="95% Confidence Interval: DV 3")
+@
+
+\textbf{\large{\textit{
+When the L matrix or vector is applied to the variance-covariance matrix (V) of the elements using L'VL, the result is the variance-covariance matrix for the linear combination(s).
+The following uses the variance-covariance matrix from the linear model of DV2 and the first comparison.
+The result is the standard error for that comparison (see summary output).
+}}}
+
+<<tidy=TRUE>>=
+V <- as.matrix(vcov(DV2_LM))
+L1 <- as.matrix(L_Matrix[1,])
+V
+L1
+t(L1) %*% V %*% L1
+sqrt(t(L1) %*% V %*% L1)
+@
+
+\end{document}
