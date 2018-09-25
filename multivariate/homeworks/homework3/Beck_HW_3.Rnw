@@ -63,7 +63,7 @@ library(MVN)
 @
 
 \subsection{data}
-The file, Set_3.csv, contains the data from a study in which 500 high school students completed a measure of scholastic aptitude: Grammar, Paragraph Comprehension, Vocabulary, Sentence Completion, Geometry, Algebra, Numerical Puzzles, Series Completion, Practical Problem Solving, Symbol Manipulation, Analytical Ability, and Formal Logic. 
+The file, Set\_3.csv, contains the data from a study in which 500 high school students completed a measure of scholastic aptitude: Grammar, Paragraph Comprehension, Vocabulary, Sentence Completion, Geometry, Algebra, Numerical Puzzles, Series Completion, Practical Problem Solving, Symbol Manipulation, Analytical Ability, and Formal Logic. 
 <<>>=
 wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework3"
 
@@ -149,56 +149,42 @@ scores_2 <- pca_2$scores %>% data.frame
 describe(scores_2)
 @
 
-Checking the PCA suggests that there is a multivariate outlier in PCA 4 (Sentence_Completion)
+Checking the PCA suggests that there is a multivariate outlier in PCA 4 (Sentence\_Completion)
 
 But let's check multivariate normality
 <<>>=
-dat2 <- dat %>% select(-ID) %>% as.matrix
-(mv <- mvn(dat,mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE))
+dat2 <- dat %>% select(-ID) %>% data.frame
+rownames(dat2) <- 1:nrow(dat2)
+(mv <- mvn(dat2,mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE))
 @
 
 Based on the test of multivariate normality, there are 16(!) outliers. Let's remove the outlier and check again.
 
+I'm going to use a while loop to do this rather than copying and pasting the code. 
+
 <<>>=
 k <- 1
 remove <- c()
+par(mfrow = c(1,2))
 while(nrow(mv$multivariateOutliers) > 0){
-  dat2 <- dat %>% filter(!(row_number() %in% remove)) %>% select(-ID)
-  mv <- mvn(dat2, mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE)
+  if(k!=1){tmp <- dat2[-remove,]} else{tmp <- dat2}
+  mv <- mvn(tmp, mvnTest="mardia", multivariatePlot="none",multivariateOutlierMethod="quan",showOutliers=TRUE, univariatePlot = "none")
   mv$multivariateOutliers
-  CV <- cov(dat2)
-  D2_1 <- mahalanobis(dat2,center=colMeans(dat2),cov=CV)
-  remove <- c(remove, which(D2_1 == max(D2_1)))
-  print(sprintf("Case %s removed. This is the %s round", remove[k], k))
+  remove <- c(remove, as.numeric(as.character(mv$multivariateOutliers$Observation[1])))
+  sink("/dev/null")
+  scree <- fa.parallel(tmp, fa="pc")
+  sink()
+  print(sprintf("Case %s removed. %s factors remain. This is the %s round", remove[k], scree$ncomp, k))
+  if(nrow(mv$multivariateOutliers) == 0){break}
   k <- k + 1
 }
 @
 
+In total, using the mardia test, it took \Sexpr{k} rounds to remove the following outliers: cases \Sexpr{cat(remove, sep = ", ")}.
 
-<<>>=
-CV <- cov(dat %>% select(-ID))
-D2_1 <- mahalanobis(dat %>% select(-ID),center=colMeans(dat %>% select(-ID)),cov=CV)
-remove <- which(D2_1 == max(D2_1))
+Our conclusions do not change. We would still extract 3 components.
 
-dat <- dat %>% filter(row_number() != remove)
-@
 
-<<>>=
-(mv <- mvn(dat %>% select(-ID),mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE))
-@
-
-Now there are 14 outliers. Let's remove the next largest and keep going.  
-<<>>=
-CV <- cov(dat %>% select(-ID))
-D2_1 <- mahalanobis(dat %>% select(-ID),center=colMeans(dat %>% select(-ID)),cov=CV)
-remove <- which(D2_1 == max(D2_1))
-
-dat <- dat %>% filter(row_number() != remove)
-@
-
-<<>>=
-(mv <- mvn(dat %>% select(-ID),mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE))
-@
 
 
 \end{document}
