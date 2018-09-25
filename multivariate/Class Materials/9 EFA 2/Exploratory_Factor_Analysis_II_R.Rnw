@@ -1,0 +1,426 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Exploratory Factor Analysis II}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+\subsection{Packages}
+<<tidy=TRUE>>=
+library(psych)
+library(car)
+library(multcomp)
+library(ggplot2)
+library(MASS)
+library(parallel)
+library(corrgram)
+library(ellipse)
+library(FactoMineR)
+library(PerformanceAnalytics)
+library(plotpc)
+library(sciplot)
+library(GPArotation)
+library(GGally)
+library(MVN)
+library(qqplotr)
+library(scatterplot3d)
+library(rgl)
+library(cowplot)
+@
+
+\subsection{Data File}
+\textbf{\large{\textit{
+The example data set comes from a sample of 538 university students who completed the Schwartz Values Inventory (1992). 
+Participants rated the importance of 46 values representing 10 basic groups of values: \newline
+\begin{addmargin}[3em]{0em}
+\begin{enumerate}[leftmargin=!,labelindent=5pt,itemindent=-3pt]
+\item
+Universalism
+\item
+Benevolence
+\item
+Tradition
+\item
+Conformity
+\item
+Security
+\item
+Power
+\item
+Achievement
+\item
+Hedonism
+\item
+Stimulation
+\item
+Self-Direction \newline
+\end{enumerate}
+\end{addmargin}
+Each value was rated using the following rating scale: \newline
+\begin{addmargin}[3em]{0em}
+1 = not at all important \newline
+\newline
+2 = slightly important \newline
+\newline
+3 = somewhat important \newline
+\newline
+4 = moderately important \newline
+\newline
+5 = very important \newline
+\newline
+6 = extremely important \newline
+\newline
+7 = completely important
+\end{addmargin}
+}}}
+
+<<tidy=TRUE>>=
+# Get the drug use data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+SVI <- read.table('values.csv',sep=',',header=TRUE)
+SVI <- as.data.frame(SVI)
+SVI <- na.omit(SVI)
+names(SVI) <- c("ID","Equality","World_Peace","Unity_With_Nature","Wisdom",
+                "World_Of_Beauty","Social_Justice","Broad_Minded","Protect_Enviroment",
+                "Loyal","Honest","Helpful","Responsible","Forgiving","Respect_For_Tradition",
+                "Moderate","Humble","Accept_My_Life","Devout","Self-Discipline",
+                "Respect_Elders","Obedient","Politeness","Social_Order","National_Security",
+                "Reciprocity","Family_Security","Clean","Social_Power","Wealth",
+                "Authority","Public_Image","Ambitious","Influential","Capable","Successful",
+                "Pleasure","Enjoy_Life","Self-Indulgent","Exciting_Life","Varied_Life",
+                "Daring","Freedom","Creativity","Independent","Choose_Own_Goals","Curious",
+                "Age_In_Months","Sex")
+@
+
+\section{Correlations}
+\textbf{\large{\textit{
+A heat map for the correlation matrix easily identifies the pattern of correlations in the simulated data.
+}}}
+<<tidy=TRUE>>=
+ggcorr(SVI[,2:47], label=FALSE, angle=90,hjust=.10,size=2.5,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Items")
+@
+
+\section{KMO Test}
+<<tidy=TRUE>>=
+kmo_1 <- KMO(SVI[,2:47])
+kmo_1
+@
+
+\section{Bartlett Test}
+<<tidy=TRUE>>=
+bart_1 <- cortest.bartlett(SVI[,2:47])
+bart_1
+@
+
+\section{Scree Test and Parallel Analysis}
+\textbf{\large{\textit{
+This question focuses on principal components so it is important that the "pc" option be specified in the following functions.
+}}}
+<<tidy=TRUE>>=
+scree_1 <- fa.parallel(SVI[,2:47],fa="both",fm="pa",error.bars = TRUE)
+scree_1 <- fa.parallel(SVI[,2:47],fa="fa",fm="pa",error.bars = TRUE)
+@
+
+<<tidy=TRUE>>=
+plot_data <- scree_1$fa.values
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("eigen")
+plot_data$factor <- seq(1,46,1)
+
+ggplot(plot_data, aes(x=factor, y=eigen)) +
+  geom_line(size=1) + geom_point(size=2) + 
+  coord_cartesian(xlim = c(1,46), ylim = c(0,11)) +
+  scale_x_continuous(breaks=c(seq(1,46,2))) +
+  scale_y_continuous(breaks=seq(0,11,1)) +
+  xlab("Factor") + 
+  ylab("Eigenvalue") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+      axis.text.y = element_text(colour = "black",size=12,face="bold"),
+      axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+      axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+      axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+      axis.line.x = element_blank(),
+      axis.line.y = element_blank(),
+      plot.title = element_text(size=16, face="bold", 
+                                margin = margin(0, 0, 20, 0),hjust=.5),
+      panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),  
+      plot.background = element_rect(fill = "white"),
+      plot.margin = unit(c(1, 1, 1, 1), "cm"),
+      legend.position = "bottom", 
+      legend.title = element_blank()) +
+  geom_hline(yintercept=0,size=1,linetype=2) +
+  ggtitle("Factor Analysis Scree Plot")
+@
+
+\section{Very Simple Structure}
+<<tidy=TRUE>>=
+R_1 <- cor(SVI[,2:47])
+M_1 <- vss(SVI[,2:47],n=10,fm="pa",rotate="varimax")
+@
+
+\section{Velicer MAP Index}
+<<tidy=TRUE>>=
+plot_data <- M_1$map
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("map")
+plot_data$component <- seq(1,10,1)
+
+ggplot(plot_data, aes(x=component, y=map)) +
+  geom_line(size=1) + geom_point(size=3) + 
+  coord_cartesian(xlim = c(1,10), ylim = c(0,.02)) +
+  scale_x_continuous(breaks=c(seq(1,10,1))) +
+  scale_y_continuous(breaks=seq(0,.02,.005)) +
+  xlab("Factors") + 
+  ylab("MAP") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+      axis.text.y = element_text(colour = "black",size=12,face="bold"),
+      axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+      axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+      axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+      axis.line.x = element_blank(),
+      axis.line.y = element_blank(),
+      plot.title = element_text(size=16, face="bold", 
+                                margin = margin(0, 0, 20, 0),hjust=.5),
+      panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),  
+      plot.background = element_rect(fill = "white"),
+      plot.margin = unit(c(1, 1, 1, 1), "cm"),
+      legend.position = "bottom", 
+      legend.title = element_blank()) +
+  geom_hline(yintercept=min(plot_data$map,size=1,linetype=2)) +
+  ggtitle("MAP Index as a Function of Factors")
+@
+
+\section{Comparison of Factor Analysis and Principal Components}
+\textbf{\large{\textit{
+Here we extract four components and four factors so that we can compare the magnitude of the loadings, communalities, etc.
+Because the factor analysis approach does not pretend to account for all variability, it will generally have reduced estimates (communalities, loadings, etc,) compared to a principal components analysis.
+}}}
+
+<<tidy=TRUE>>=
+fit_FA_1 <- fa(SVI[,2:47],nfactors=4,rotate="none",fm="pa")
+fit_PC_1 <- principal(SVI[,2:47],nfactors=4,rotate="none")
+fit_PC_1
+fit_FA_1
+@
+
+\section{Rotation}
+\textbf{\large{\textit{
+The unrotated factor loadings may not provide an easy interpretation.
+Rotation can assist that process.
+Varimax rotation is the most common orthogonal method.
+}}}
+<<tidy=TRUE>>=
+fit_FA_2 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="pa",scores=TRUE)
+fit_FA_2
+
+fa.sort(fit_FA_2,polar=FALSE)
+@
+
+\section{Rotation Transformation Matrix}
+\textbf{\large{\textit{
+The transformation matrix that defines the location of the new factor locations relative to the unrotated factors can be found by matrix algebra with the rotated and unrotated loading matrices.
+}}}
+<<tidy=TRUE>>=
+# Calculate the transformation matrix.
+L1 <- as.matrix(fit_FA_1$loadings[,1:4])
+L2 <- as.matrix(fit_FA_2$loadings[,1:4])
+W <- solve(t(L1) %*% L1) %*% t(L1) %*% L2
+W
+acos(W)*180/pi
+@
+
+\section{Factor Scores}
+\textbf{\large{\textit{
+Scores on the underlying common factors can be obtained in much the same way as in principal components analysis. 
+The key difference is that variables are assumed to be measured with error in factor analysis. 
+These are often referred to as regression-based factor scores.
+Because they are estimated, not exact calculations, they can have small correlations despite the orthogonal nature of the factors.
+}}}
+
+<<tidy=TRUE>>=
+cor(fit_FA_2$scores)
+describe(fit_FA_2$scores)
+@
+\section{Orthogonal Rotation Methods}
+\textbf{\large{\textit{
+In addition to varimax, there are several other orthogonal rotation methods.
+They typically will agree with varimax and each other.
+}}}
+<<tidy=TRUE>>=
+fit_FA_3 <- fa(SVI[,2:47],nfactors=4,rotate="quartimax",fm="pa")
+fit_FA_3
+
+fa.sort(fit_FA_3,polar=FALSE)
+@
+
+<<tidy=TRUE>>=
+fit_FA_4 <- fa(SVI[,2:47],nfactors=4,rotate="equamax",fm="pa")
+fit_FA_4
+
+fa.sort(fit_FA_4,polar=FALSE)
+@
+
+<<tidy=TRUE>>=
+fit_FA_5 <- fa(SVI[,2:47],nfactors=4,rotate="bifactor",fm="pa")
+fit_FA_5
+
+fa.sort(fit_FA_5,polar=FALSE)
+@
+
+\section{Estimation Methods}
+<<tidy=TRUE>>=
+fit_FA_6 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="pa")
+fit_FA_6
+
+fa.sort(fit_FA_6,polar=FALSE)
+@
+
+<<tidy=TRUE>>=
+fit_FA_7 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="minres")
+fit_FA_7
+
+fa.sort(fit_FA_7,polar=FALSE)
+@
+
+<<tidy=TRUE>>=
+fit_FA_8 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="wls")
+fit_FA_8
+
+fa.sort(fit_FA_8,polar=FALSE)
+@
+
+<<tidy=TRUE>>=
+fit_FA_9 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="ml")
+fit_FA_9
+
+fa.sort(fit_FA_9,polar=FALSE)
+@
+
+<<tidy=TRUE>>=
+fit_FA_10 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="uls")
+fit_FA_10
+
+fa.sort(fit_FA_10,polar=FALSE)
+@
+
+<<tidy=TRUE>>=
+fit_FA_11 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="gls")
+fit_FA_11
+
+fa.sort(fit_FA_11,polar=FALSE)
+@
+
+<<tidy=TRUE>>=
+fit_FA_12 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="alpha")
+fit_FA_12
+
+fa.sort(fit_FA_12,polar=FALSE)
+@
+
+
+
+<<tidy=TRUE>>=
+loadings <- cbind(fit_FA_6$Structure,fit_FA_7$Structure,fit_FA_8$Structure,fit_FA_9$Structure)
+
+loadings <- loadings[,c(1,5,9,13,2,6,10,14,3,7,11,16,4,8,12,15)]
+loadings <- as.data.frame(loadings)
+names(loadings) <- c("PA1","MR1","WL1","ML1","PA2","MR2","WL2","ML2",
+                     "PA3","MR3","WL3","ML3","PA4","MR4","WL4","ML4")
+cor(loadings)
+@
+
+<<tidy=TRUE>>=
+ggcorr(loadings, label=FALSE, angle=90,hjust=.10,size=2.5,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Loadings")
+@
+\end{document}
