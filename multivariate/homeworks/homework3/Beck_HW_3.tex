@@ -391,7 +391,7 @@ Visual inspection of the boxplot suggests there is one outlier in the algebra in
 \end{kframe}
 \end{knitrout}
 
-Checking the PCA suggests that there is a multivariate outlier in PCA 4 (Sentence\_Completion)
+Checking the PCA suggests that there is a multivariate outlier in PCA 4 
 
 But let's check multivariate normality
 \begin{knitrout}
@@ -470,20 +470,25 @@ But let's check multivariate normality
 ## 
 ## $multivariateOutliers
 ##     Observation Mahalanobis Distance Outlier
-## 401         401              304.270    TRUE
-## 129         129              257.852    TRUE
-## 243         243               76.443    TRUE
-## 456         456               30.479    TRUE
-## 201         201               27.725    TRUE
-## 223         223               27.365    TRUE
-## 268         268               25.908    TRUE
-## 172         172               25.869    TRUE
-## 404         404               24.663    TRUE
-## 423         423               24.565    TRUE
-## 339         339               24.532    TRUE
-## 245         245               23.903    TRUE
-## 239         239               23.587    TRUE
-## 316         316               23.477    TRUE
+## 401         401              308.127    TRUE
+## 129         129              261.764    TRUE
+## 243         243               76.265    TRUE
+## 456         456               29.895    TRUE
+## 223         223               27.886    TRUE
+## 201         201               27.874    TRUE
+## 268         268               26.026    TRUE
+## 172         172               25.537    TRUE
+## 404         404               25.216    TRUE
+## 339         339               24.361    TRUE
+## 420         420               24.155    TRUE
+## 423         423               24.045    TRUE
+## 316         316               24.008    TRUE
+## 263         263               23.977    TRUE
+## 37           37               23.946    TRUE
+## 245         245               23.704    TRUE
+## 27           27               23.397    TRUE
+## 239         239               23.374    TRUE
+## 87           87               23.350    TRUE
 \end{verbatim}
 \end{kframe}
 \end{knitrout}
@@ -559,12 +564,12 @@ I'm going to use a while loop to do this rather than copying and pasting the cod
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-10} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 316 removed. 3 factors remain. This is the 10 round"
+## [1] "Case 423 removed. 3 factors remain. This is the 10 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-11} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 423 removed. 3 factors remain. This is the 11 round"
+## [1] "Case 316 removed. 3 factors remain. This is the 11 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-12} 
@@ -574,37 +579,37 @@ I'm going to use a while loop to do this rather than copying and pasting the cod
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-13} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 420 removed. 3 factors remain. This is the 13 round"
+## [1] "Case 37 removed. 3 factors remain. This is the 13 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-14} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 37 removed. 3 factors remain. This is the 14 round"
+## [1] "Case 420 removed. 3 factors remain. This is the 14 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-15} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 245 removed. 3 factors remain. This is the 15 round"
+## [1] "Case 263 removed. 3 factors remain. This is the 15 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-16} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 263 removed. 3 factors remain. This is the 16 round"
+## [1] "Case 245 removed. 3 factors remain. This is the 16 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-17} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 239 removed. 3 factors remain. This is the 17 round"
+## [1] "Case 27 removed. 3 factors remain. This is the 17 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-18} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 27 removed. 3 factors remain. This is the 18 round"
+## [1] "Case 239 removed. 3 factors remain. This is the 18 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-19} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 87 removed. 3 factors remain. This is the 19 round"
+## [1] "Case 395 removed. 3 factors remain. This is the 19 round"
 \end{verbatim}
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-20} 
@@ -614,24 +619,47 @@ I'm going to use a while loop to do this rather than copying and pasting the cod
 \end{kframe}
 \includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-21} 
 \begin{kframe}\begin{verbatim}
-## [1] "Case 240 removed. 3 factors remain. This is the 21 round"
+## [1] "Case NA removed. 3 factors remain. This is the 21 round"
 \end{verbatim}
-\end{kframe}
-\includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-22} 
-\begin{kframe}\begin{verbatim}
-## [1] "Case 395 removed. 3 factors remain. This is the 22 round"
-\end{verbatim}
-\end{kframe}
-\includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-23} 
-\begin{kframe}\begin{verbatim}
-## [1] "Case NA removed. 3 factors remain. This is the 23 round"
-\end{verbatim}
+\begin{alltt}
+\hlstd{pca_final} \hlkwb{<-} \hlkwd{principal}\hlstd{(}
+    \hlstd{tmp}
+  \hlstd{,} \hlkwc{nfactors} \hlstd{= scree}\hlopt{$}\hlstd{ncomp}
+  \hlstd{,} \hlkwc{rotate} \hlstd{=} \hlstr{"none"}
+  \hlstd{,} \hlkwc{residuals} \hlstd{= T}
+  \hlstd{,} \hlkwc{scores} \hlstd{=} \hlnum{TRUE}\hlstd{)}
+\end{alltt}
 \end{kframe}
 \end{knitrout}
 
-In total, using the mardia test, it took 23 rounds to remove the following outliers: cases .
+In total, using the mardia test, it took 21 rounds to remove the following outliers: cases .
 
-Our conclusions do not change. We would still extract 3 components.
+Our conclusions do not change. We would still extract 3 components. However, the percentage of variance changes (see below):
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{pca_final}\hlopt{$}\hlstd{Vaccounted} \hlopt{%>%} \hlstd{data.frame} \hlopt{%>%} \hlkwd{mutate}\hlstd{(}\hlkwc{m} \hlstd{=} \hlkwd{rownames}\hlstd{(.))} \hlopt{%>%}
+  \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(PC1}\hlopt{:}\hlstd{PC3),} \hlkwd{funs}\hlstd{(}\hlkwd{round}\hlstd{(.,}\hlnum{2}\hlstd{)))} \hlopt{%>%}
+  \hlkwd{select}\hlstd{(m,} \hlkwd{everything}\hlstd{())} \hlopt{%>%}
+  \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{escape} \hlstd{= F)}
+\end{alltt}
+\end{kframe}
+\begin{tabular}{lrrr}
+\toprule
+m & PC1 & PC2 & PC3\\
+\midrule
+SS loadings & 4.18 & 1.75 & 1.57\\
+Proportion Var & 0.35 & 0.15 & 0.13\\
+Cumulative Var & 0.35 & 0.49 & 0.63\\
+Proportion Explained & 0.56 & 0.23 & 0.21\\
+Cumulative Proportion & 0.56 & 0.79 & 1.00\\
+\bottomrule
+\end{tabular}
+
+
+\end{knitrout}
+
 
 
 

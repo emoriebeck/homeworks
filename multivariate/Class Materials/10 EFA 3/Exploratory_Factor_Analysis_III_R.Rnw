@@ -1,0 +1,516 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Exploratory Factor Analysis III}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+\subsection{Packages}
+<<tidy=TRUE>>=
+library(psych)
+library(car)
+library(multcomp)
+library(ggplot2)
+library(MASS)
+library(parallel)
+library(ellipse)
+library(FactoMineR)
+library(PerformanceAnalytics)
+library(plotpc)
+library(sciplot)
+library(GPArotation)
+library(GGally)
+library(MVN)
+library(qqplotr)
+library(scatterplot3d)
+library(rgl)
+library(cowplot)
+@
+
+\subsection{Data File}
+\textbf{\large{\textit{
+The example data set comes from a sample of 538 university students who completed the Schwartz Values Inventory (1992). 
+Participants rated the importance of 46 values representing 10 basic groups of values: \newline
+\begin{addmargin}[3em]{0em}
+\begin{enumerate}[leftmargin=!,labelindent=5pt,itemindent=-3pt]
+\item
+Universalism
+\item
+Benevolence
+\item
+Tradition
+\item
+Conformity
+\item
+Security
+\item
+Power
+\item
+Achievement
+\item
+Hedonism
+\item
+Stimulation
+\item
+Self-Direction \newline
+\end{enumerate}
+\end{addmargin}
+Each value was rated using the following rating scale: \newline
+\begin{addmargin}[3em]{0em}
+1 = not at all important \newline
+\newline
+2 = slightly important \newline
+\newline
+3 = somewhat important \newline
+\newline
+4 = moderately important \newline
+\newline
+5 = very important \newline
+\newline
+6 = extremely important \newline
+\newline
+7 = completely important
+\end{addmargin}
+}}}
+
+<<tidy=TRUE>>=
+# Get the drug use data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+SVI <- read.table('values.csv',sep=',',header=TRUE)
+SVI <- as.data.frame(SVI)
+SVI <- na.omit(SVI)
+names(SVI) <- c("ID","Equality","World_Peace","Unity_With_Nature","Wisdom",
+                "World_Of_Beauty","Social_Justice","Broad_Minded","Protect_Enviroment",
+                "Loyal","Honest","Helpful","Responsible","Forgiving","Respect_For_Tradition",
+                "Moderate","Humble","Accept_My_Life","Devout","Self-Discipline",
+                "Respect_Elders","Obedient","Politeness","Social_Order","National_Security",
+                "Reciprocity","Family_Security","Clean","Social_Power","Wealth",
+                "Authority","Public_Image","Ambitious","Influential","Capable","Successful",
+                "Pleasure","Enjoy_Life","Self-Indulgent","Exciting_Life","Varied_Life",
+                "Daring","Freedom","Creativity","Independent","Choose_Own_Goals","Curious",
+                "Age_In_Months","Sex")
+@
+
+\section{Correlations}
+\textbf{\large{\textit{
+A heat map for the correlation matrix easily identifies the pattern of correlations in the simulated data.
+}}}
+<<tidy=TRUE>>=
+ggcorr(SVI[,2:47], label=FALSE, angle=90,hjust=.10,size=2.5,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Items")
+@
+
+\section{Rotated Solutions in the Values Study}
+\textbf{\large{\textit{
+Oblique rotation can be carried out in a number of ways. 
+The oblimin and promax solutions are the most common.
+Promax raises the loading to a power to better separate high loadings from low loadings. 
+Then when simple structure is found, the axes are rotated to the position of those loadings using least squares, which induces correlations among the factors. \newline
+\newline
+Oblimin seeks to minimize the covariance among squared loadings of separate columns. 
+This will also induce a correlations.  
+}}}
+\subsection{No Rotation}
+\textbf{\large{\textit{
+First, here is the unrotated solution.
+}}}
+<<tidy=TRUE>>=
+fit_FA_1 <- fa(SVI[,2:47],nfactors=4,rotate="none",fm="minres")
+fit_FA_1
+@
+
+\subsection{Varimax Rotation}
+\textbf{\large{\textit{
+Varimax rotation is the most common orthogonal approach.
+Note that some software performs "Kaiser normalization" as part of the rotation.
+The fa( ) function does not.
+This usually makes no practical difference.
+There is a kaiser( ) function that can be used if desired.
+This will make the output equivalent to what software such as SPSS produces.
+}}}
+<<tidy=TRUE>>=
+fit_FA_2 <- fa(SVI[,2:47],nfactors=4,rotate="varimax",fm="minres")
+fit_FA_2
+fa.sort(fit_FA_2,polar=FALSE)
+@
+
+\subsection{Oblimin Rotation}
+\textbf{\large{\textit{
+Direct oblimin seeks to minimize the covariance among squared loadings of separate columns. 
+This will also induce a correlations.
+}}}
+
+<<tidy=TRUE>>=
+fit_FA_3 <- fa(SVI[,2:47],nfactors=4,rotate="oblimin",fm="minres",scores="tenberge")
+fit_FA_3
+fa.sort(fit_FA_3,polar=FALSE)
+cor(fit_FA_3$scores)
+@
+
+\subsection{Promax Rotation}
+\textbf{\large{\textit{
+Promax raises the loading to a power to better separate high loadings from low loadings. 
+Then when simple structure is found, the axes are rotated to the position of those loadings using least squares, which induces correlations among the factors. 
+}}}
+<<tidy=TRUE>>=
+fit_FA_4 <- fa(SVI[,2:47],nfactors=4,rotate="promax",fm="minres")
+fit_FA_4
+fa.sort(fit_FA_4,polar=FALSE)
+@
+
+\section{Cross-Validation}
+\textbf{\large{\textit{
+Cross-validation in separate samples is highly recommended with factor analysis, which can capitalize on chance and lead to fragile interpretations, especially for minor factors.
+We do not have a second data set available for the values study, but given the size of the original sample, we can split it into two random halves and perform cross-validation with the two.
+}}}
+\subsection{Select the Samples}
+<<tidy=TRUE>>=
+SVI_1 <- SVI[sample(1:nrow(SVI), 269,replace=FALSE),] 
+SVI_1[,2:47] <- scale(SVI_1[,2:47])
+SVI_2 <- SVI[!(SVI$ID %in% SVI_1$ID),]
+SVI_2[,2:47] <- scale(SVI_2[,2:47])
+@
+\subsection{Sample 1}
+<<tidy=TRUE>>=
+fit_FA_5a <- fa(SVI_1[,2:47],nfactors=4,rotate="none",fm="minres",scores="tenberge")
+fit_FA_5a
+fa.sort(fit_FA_5a,polar=FALSE)
+fit_FA_5b <- fa(SVI_1[,2:47],nfactors=4,rotate="varimax",fm="minres",scores="tenberge")
+fit_FA_5b
+fa.sort(fit_FA_5b,polar=FALSE)
+fit_FA_5c <- fa(SVI_1[,2:47],nfactors=4,rotate="oblimin",fm="minres",scores="tenberge")
+fit_FA_5c
+fa.sort(fit_FA_5c,polar=FALSE)
+@
+
+\subsection{Sample 2}
+<<tidy=TRUE>>=
+fit_FA_6a <- fa(SVI_2[,2:47],nfactors=4,rotate="none",fm="minres",scores="tenberge")
+fit_FA_6a
+fa.sort(fit_FA_6a,polar=FALSE)
+fit_FA_6b <- fa(SVI_2[,2:47],nfactors=4,rotate="varimax",fm="minres",scores="tenberge")
+fit_FA_6b
+fa.sort(fit_FA_6b,polar=FALSE)
+fit_FA_6c <- fa(SVI_2[,2:47],nfactors=4,rotate="oblimin",fm="minres",scores="tenberge")
+fit_FA_6c
+fa.sort(fit_FA_6c,polar=FALSE)
+@
+
+\subsection{Factor Congruence}
+\textbf{\large{\textit{
+Three ways to determine factor replication are to (a) correlate the factor loadings across samples, (b) calculate Tucker's factor congruence coefficient for corresponding factors, and (c) estimate and correlate factor scores using weights from the other sample. \newline
+\newline
+Because the analyses with the full sample did not make a particularly compelling case for correlated factors, we'll focus on orthogonal rotation in the cross-validation.
+}}}
+\subsubsection{Loading Correlations}
+\textbf{\large{\textit{
+Loading correlations are intuitively appealing but they have some short-comings that are overcome by Tucker's approach.
+}}}
+<<tidy=TRUE>>=
+# cor(fit_FA_5a$loadings[,],fit_FA_6a$loadings)
+cor(fit_FA_5b$loadings[,],fit_FA_6b$loadings)
+# cor(fit_FA_5c$loadings[,],fit_FA_6c$loadings)
+@
+
+\subsubsection{Tucker's Factor Congruence}
+\textbf{\large{\textit{
+From the documentation for the factor.congruence( ) function: \newline
+\newline
+Factor congruences are the cosines of pairs of vectors defined by the loadings matrix and based at the origin. 
+Thus, for loadings that differ only by a scaler (e.g. the size of the eigen value), the factor congruences will be 1. 
+For factor loading vectors of $F_1$ and $F_2$ the measure of factor congruence, $\phi$, is \newline
+\begin{equation*}
+	\phi = \dfrac{\sum\limits_{j=1}^K((F_{1j}-a)(F_{2j}-b))}{\sqrt{\sum\limits_{j=1}^K(F_{1j}-a)^2\sum\limits_{j=1}^K(F_{2j}-b)^2}}
+\end{equation*}
+\newline
+Factor congruences are based upon the raw cross products, while correlations are based upon centered cross products. 
+That is, correlations of factor loadings are cosines of the vectors based at the mean loading for each factor. \newline
+\newline
+For congruence coefficients, a = b = 0. For correlations a = mean F\textsubscript{1}, b = mean F\textsubscript{2}." \newline
+\newline
+Tucker's approach has some distinct advantages: 
+First, the numerator is insensitive to scalar multiplication of the loadings. 
+This means that phi measures factor similarity independently of the mean absolute size of the loadings. 
+This is a desirable feature because factor interpretations should be independent of the amount of variance explained by the factor.
+Second, the numerator is sensitive to additive constants. 
+This is a desirable feature because factor interpretations are should also be sensitive to additive constants. 
+For example, the loadings (.6, .5, .1) would be interpreted differently than would the loadings (.1, .0, -.4). \newline
+\newline
+Tucker suggested the following guidelines for judging factor replication: \newline
+\begin{addmargin}[1em]{0em}
+.98 to 1.00 = excellent \newline
+.92 to .98 = good \newline
+.82 to .92 = borderline \newline
+.68 to .82 = poor \newline
+below .68 = terrible
+\end{addmargin}
+}}}
+
+<<tidy=TRUE>>=
+# factor.congruence(fit_FA_5a$loadings[,],fit_FA_6a$loadings)
+factor.congruence(fit_FA_5b$loadings[,],fit_FA_6b$loadings)
+# factor.congruence(fit_FA_5c$loadings[,],fit_FA_6c$loadings)
+@
+
+\subsubsection{Factor Score Correlations}
+<<tidy=TRUE>>=
+options(scipen = 999,digits=2)
+Sample_1_Actual <- as.data.frame(fit_FA_5b$scores)
+Sample_1_Estimated <- as.matrix(SVI_1[,2:47]) %*% fit_FA_6b$weights
+Sample_1 <- cbind(Sample_1_Actual,Sample_1_Estimated)
+names(Sample_1) <- c("FA1_Actual","FA2_Actual","FA3_Actual","FA4_Actual",
+                     "FA1_Estimate","FA2_Estimate","FA3_Estimate","FA4_Estimate")
+R_1 <- cor(Sample_1)
+
+Sample_2_Actual <- as.data.frame(fit_FA_6b$scores)
+Sample_2_Estimated <- as.matrix(SVI_2[,2:47]) %*% fit_FA_5b$weights
+Sample_2 <- cbind(Sample_2_Actual,Sample_2_Estimated)
+names(Sample_2) <- c("FA1_Actual","FA2_Actual","FA3_Actual","FA4_Actual",
+                     "FA1_Estimate","FA2_Estimate","FA3_Estimate","FA4_Estimate")
+R_2 <- cor(Sample_2)
+@
+
+\begin{tabular}{| L{2.5cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} |}
+\hline
+\multicolumn{9}{|c|}{Factor Score Correlations, Sample 1} \\
+\hline
+\textit{ }  & \multicolumn{4}{|c|}{\textit{Actual Factor Scores}} & \multicolumn{4}{|c|}{\textit{Estimated Factor Scores}} \\
+\hline
+\textit{Factor Score}  & \multicolumn{1}{|c|}{\textit{1}} & \multicolumn{1}{|c|}{\textit{2}} & \multicolumn{1}{|c|}{\textit{3}} & \multicolumn{1}{|c|}{\textit{4}} & \multicolumn{1}{|c|}{\textit{1}} & \multicolumn{1}{|c|}{\textit{2}} & \multicolumn{1}{|c|}{\textit{3}} & \multicolumn{1}{|c|}{\textit{4}} \\
+\hline
+Actual 1 & \Sexpr{round(R_1[1,1],2)} & \Sexpr{round(R_1[1,2],2)} & \Sexpr{round(R_1[1,3],2)} & \Sexpr{round(R_1[1,4],2)} & \Sexpr{round(R_1[1,5],2)} & \Sexpr{round(R_1[1,6],2)} & \Sexpr{round(R_1[1,7],2)} & \Sexpr{round(R_1[1,8],2)} \\ 
+\hline 
+Actual 2 & \Sexpr{round(R_1[2,1],2)} & \Sexpr{round(R_1[2,2],2)} & \Sexpr{round(R_1[2,3],2)} & \Sexpr{round(R_1[2,4],2)} & \Sexpr{round(R_1[2,5],2)} & \Sexpr{round(R_1[2,6],2)} & \Sexpr{round(R_1[2,7],2)} & \Sexpr{round(R_1[2,8],2)} \\ 
+\hline 
+Actual 3 & \Sexpr{round(R_1[3,1],2)} & \Sexpr{round(R_1[3,2],2)} & \Sexpr{round(R_1[3,3],2)} & \Sexpr{round(R_1[3,4],2)} & \Sexpr{round(R_1[3,5],2)} & \Sexpr{round(R_1[3,6],2)} & \Sexpr{round(R_1[3,7],2)} & \Sexpr{round(R_1[3,8],2)} \\ 
+\hline 
+Actual 4 & \Sexpr{round(R_1[4,1],2)} & \Sexpr{round(R_1[4,2],2)} & \Sexpr{round(R_1[4,3],2)} & \Sexpr{round(R_1[4,4],2)} & \Sexpr{round(R_1[4,5],2)} & \Sexpr{round(R_1[4,6],2)} & \Sexpr{round(R_1[4,7],2)} & \Sexpr{round(R_1[4,8],2)} \\ 
+\hline 
+Estimated 1 & \Sexpr{round(R_1[5,1],2)} & \Sexpr{round(R_1[5,2],2)} & \Sexpr{round(R_1[5,3],2)} & \Sexpr{round(R_1[5,4],2)} & \Sexpr{round(R_1[5,5],2)} & \Sexpr{round(R_1[5,6],2)} & \Sexpr{round(R_1[5,7],2)} & \Sexpr{round(R_1[5,8],2)} \\ 
+\hline 
+Estimated 2 & \Sexpr{round(R_1[6,1],2)} & \Sexpr{round(R_1[6,2],2)} & \Sexpr{round(R_1[6,3],2)} & \Sexpr{round(R_1[6,4],2)} & \Sexpr{round(R_1[6,5],2)} & \Sexpr{round(R_1[6,6],2)} & \Sexpr{round(R_1[6,7],2)} & \Sexpr{round(R_1[6,8],2)} \\ 
+\hline 
+Estimated 3 & \Sexpr{round(R_1[7,1],2)} & \Sexpr{round(R_1[7,2],2)} & \Sexpr{round(R_1[7,3],2)} & \Sexpr{round(R_1[7,4],2)} & \Sexpr{round(R_1[7,5],2)} & \Sexpr{round(R_1[7,6],2)} & \Sexpr{round(R_1[7,7],2)} & \Sexpr{round(R_1[7,8],2)} \\ 
+\hline 
+Estimated 4 & \Sexpr{round(R_1[8,1],2)} & \Sexpr{round(R_1[8,2],2)} & \Sexpr{round(R_1[8,3],2)} & \Sexpr{round(R_1[8,4],2)} & \Sexpr{round(R_1[8,5],2)} & \Sexpr{round(R_1[8,6],2)} & \Sexpr{round(R_1[8,7],2)} & \Sexpr{round(R_1[8,8],2)} \\ 
+\hline 
+\end{tabular}
+
+\textbf{\large{\textit{
+\newline
+\newline
+}}}
+
+\begin{tabular}{| L{2.5cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} |}
+\hline
+\multicolumn{9}{|c|}{Factor Score Correlations, Sample 2} \\
+\hline
+\textit{ }  & \multicolumn{4}{|c|}{\textit{Actual Factor Scores}} & \multicolumn{4}{|c|}{\textit{Estimated Factor Scores}} \\
+\hline
+\textit{Factor Score}  & \multicolumn{1}{|c|}{\textit{1}} & \multicolumn{1}{|c|}{\textit{2}} & \multicolumn{1}{|c|}{\textit{3}} & \multicolumn{1}{|c|}{\textit{4}} & \multicolumn{1}{|c|}{\textit{1}} & \multicolumn{1}{|c|}{\textit{2}} & \multicolumn{1}{|c|}{\textit{3}} & \multicolumn{1}{|c|}{\textit{4}} \\
+\hline
+Actual 1 & \Sexpr{round(R_2[1,1],2)} & \Sexpr{round(R_2[1,2],2)} & \Sexpr{round(R_2[1,3],2)} & \Sexpr{round(R_2[1,4],2)} & \Sexpr{round(R_2[1,5],2)} & \Sexpr{round(R_2[1,6],2)} & \Sexpr{round(R_2[1,7],2)} & \Sexpr{round(R_2[1,8],2)} \\ 
+\hline 
+Actual 2 & \Sexpr{round(R_2[2,1],2)} & \Sexpr{round(R_2[2,2],2)} & \Sexpr{round(R_2[2,3],2)} & \Sexpr{round(R_2[2,4],2)} & \Sexpr{round(R_2[2,5],2)} & \Sexpr{round(R_2[2,6],2)} & \Sexpr{round(R_2[2,7],2)} & \Sexpr{round(R_2[2,8],2)} \\ 
+\hline 
+Actual 3 & \Sexpr{round(R_2[3,1],2)} & \Sexpr{round(R_2[3,2],2)} & \Sexpr{round(R_2[3,3],2)} & \Sexpr{round(R_2[3,4],2)} & \Sexpr{round(R_2[3,5],2)} & \Sexpr{round(R_2[3,6],2)} & \Sexpr{round(R_2[3,7],2)} & \Sexpr{round(R_2[3,8],2)} \\ 
+\hline 
+Actual 4 & \Sexpr{round(R_2[4,1],2)} & \Sexpr{round(R_2[4,2],2)} & \Sexpr{round(R_2[4,3],2)} & \Sexpr{round(R_2[4,4],2)} & \Sexpr{round(R_2[4,5],2)} & \Sexpr{round(R_2[4,6],2)} & \Sexpr{round(R_2[4,7],2)} & \Sexpr{round(R_2[4,8],2)} \\ 
+\hline 
+Estimated 1 & \Sexpr{round(R_2[5,1],2)} & \Sexpr{round(R_2[5,2],2)} & \Sexpr{round(R_2[5,3],2)} & \Sexpr{round(R_2[5,4],2)} & \Sexpr{round(R_2[5,5],2)} & \Sexpr{round(R_2[5,6],2)} & \Sexpr{round(R_2[5,7],2)} & \Sexpr{round(R_2[5,8],2)} \\ 
+\hline 
+Estimated 2 & \Sexpr{round(R_2[6,1],2)} & \Sexpr{round(R_2[6,2],2)} & \Sexpr{round(R_2[6,3],2)} & \Sexpr{round(R_2[6,4],2)} & \Sexpr{round(R_2[6,5],2)} & \Sexpr{round(R_2[6,6],2)} & \Sexpr{round(R_2[6,7],2)} & \Sexpr{round(R_2[6,8],2)} \\ 
+\hline 
+Estimated 3 & \Sexpr{round(R_2[7,1],2)} & \Sexpr{round(R_2[7,2],2)} & \Sexpr{round(R_2[7,3],2)} & \Sexpr{round(R_2[7,4],2)} & \Sexpr{round(R_2[7,5],2)} & \Sexpr{round(R_2[7,6],2)} & \Sexpr{round(R_2[7,7],2)} & \Sexpr{round(R_2[7,8],2)} \\ 
+\hline 
+Estimated 4 & \Sexpr{round(R_2[8,1],2)} & \Sexpr{round(R_2[8,2],2)} & \Sexpr{round(R_2[8,3],2)} & \Sexpr{round(R_2[8,4],2)} & \Sexpr{round(R_2[8,5],2)} & \Sexpr{round(R_2[8,6],2)} & \Sexpr{round(R_2[8,7],2)} & \Sexpr{round(R_2[8,8],2)} \\ 
+\hline 
+\end{tabular}
+
+\section{Cross-Validation Example 2}
+\textbf{\large{\textit{
+Cross-validation is especially important when small or weak factors are extracted, perhaps those very close to the rubble in the scree plot or just barely outside the confidence intervals in a parallel analysis.
+Here we will extract 8 factors from the values data and examine how well the minor factors replicate.
+}}}
+\subsection{Select the Samples}
+<<tidy=TRUE>>=
+SVI_1 <- SVI[sample(1:nrow(SVI), 269,replace=FALSE),] 
+SVI_1[,2:47] <- scale(SVI_1[,2:47])
+SVI_2 <- SVI[!(SVI$ID %in% SVI_1$ID),]
+SVI_2[,2:47] <- scale(SVI_2[,2:47])
+@
+\subsection{Sample 1}
+<<tidy=TRUE>>=
+fit_FA_5b <- fa(SVI_1[,2:47],nfactors=8,rotate="varimax",fm="minres",scores="tenberge")
+fit_FA_5b
+fa.sort(fit_FA_5b,polar=FALSE)
+@
+
+\subsection{Sample 2}
+<<tidy=TRUE>>=
+fit_FA_6b <- fa(SVI_2[,2:47],nfactors=8,rotate="varimax",fm="minres",scores="tenberge")
+fit_FA_6b
+fa.sort(fit_FA_6b,polar=FALSE)
+@
+
+\subsection{Factor Congruence}
+\subsubsection{Loading Correlations}
+<<tidy=TRUE>>=
+cor(fit_FA_5b$loadings[,],fit_FA_6b$loadings)
+@
+
+\subsubsection{Tucker's Factor Congruence}
+
+<<tidy=TRUE>>=
+factor.congruence(fit_FA_5b$loadings[,],fit_FA_6b$loadings)
+@
+
+\subsubsection{Factor Score Correlations}
+<<tidy=TRUE>>=
+options(scipen = 999,digits=2)
+Sample_1_Actual <- as.data.frame(fit_FA_5b$scores)
+Sample_1_Estimated <- as.matrix(SVI_1[,2:47]) %*% fit_FA_6b$weights
+Sample_1 <- cbind(Sample_1_Actual,Sample_1_Estimated)
+names(Sample_1) <- c("FA1_Actual","FA2_Actual","FA3_Actual","FA4_Actual",
+                     "FA5_Actual","FA6_Actual","FA7_Actual","FA8_Actual",
+                     "FA1_Estimate","FA2_Estimate","FA3_Estimate","FA4_Estimate",
+                     "FA5_Estimate","FA6_Estimate","FA7_Estimate","FA8_Estimate")
+R_1 <- cor(Sample_1)
+
+Sample_2_Actual <- as.data.frame(fit_FA_6b$scores)
+Sample_2_Estimated <- as.matrix(SVI_2[,2:47]) %*% fit_FA_5b$weights
+Sample_2 <- cbind(Sample_2_Actual,Sample_2_Estimated)
+names(Sample_2) <- c("FA1_Actual","FA2_Actual","FA3_Actual","FA4_Actual",
+                     "FA5_Actual","FA6_Actual","FA7_Actual","FA8_Actual",
+                     "FA1_Estimate","FA2_Estimate","FA3_Estimate","FA4_Estimate",
+                     "FA5_Estimate","FA6_Estimate","FA7_Estimate","FA8_Estimate")
+R_2 <- cor(Sample_2)
+@
+
+\begin{tabular}{| L{2.5cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} |}
+\hline
+\multicolumn{9}{|c|}{Factor Score Correlations, Sample 1} \\
+\hline
+\textit{ }  & \multicolumn{8}{|c|}{\textit{Actual Factor Scores}} \\
+\hline
+\textit{Factor Score}  & \multicolumn{1}{|c|}{\textit{1}} & \multicolumn{1}{|c|}{\textit{2}} & \multicolumn{1}{|c|}{\textit{3}} & \multicolumn{1}{|c|}{\textit{4}} & \multicolumn{1}{|c|}{\textit{5}} & \multicolumn{1}{|c|}{\textit{6}} & \multicolumn{1}{|c|}{\textit{7}} & \multicolumn{1}{|c|}{\textit{8}} \\
+\hline
+Estimated 1 & \Sexpr{round(R_1[1,9],2)} & \Sexpr{round(R_1[1,10],2)} & \Sexpr{round(R_1[1,11],2)} & \Sexpr{round(R_1[1,12],2)} & \Sexpr{round(R_1[1,13],2)} & \Sexpr{round(R_1[1,14],2)} & \Sexpr{round(R_1[1,15],2)} & \Sexpr{round(R_1[1,16],2)} \\ 
+\hline 
+Estimated 2 & \Sexpr{round(R_1[2,9],2)} & \Sexpr{round(R_1[2,10],2)} & \Sexpr{round(R_1[2,11],2)} & \Sexpr{round(R_1[2,12],2)} & \Sexpr{round(R_1[2,13],2)} & \Sexpr{round(R_1[2,14],2)} & \Sexpr{round(R_1[2,15],2)} & \Sexpr{round(R_1[2,16],2)} \\ 
+\hline 
+Estimated 3 & \Sexpr{round(R_1[3,9],2)} & \Sexpr{round(R_1[3,10],2)} & \Sexpr{round(R_1[3,11],2)} & \Sexpr{round(R_1[3,12],2)} & \Sexpr{round(R_1[3,13],2)} & \Sexpr{round(R_1[3,14],2)} & \Sexpr{round(R_1[3,15],2)} & \Sexpr{round(R_1[3,16],2)} \\ 
+\hline 
+Estimated 4 & \Sexpr{round(R_1[4,9],2)} & \Sexpr{round(R_1[4,10],2)} & \Sexpr{round(R_1[4,11],2)} & \Sexpr{round(R_1[4,12],2)} & \Sexpr{round(R_1[4,13],2)} & \Sexpr{round(R_1[4,14],2)} & \Sexpr{round(R_1[4,15],2)} & \Sexpr{round(R_1[4,16],2)} \\ 
+\hline 
+Estimated 5 & \Sexpr{round(R_1[5,9],2)} & \Sexpr{round(R_1[5,10],2)} & \Sexpr{round(R_1[5,11],2)} & \Sexpr{round(R_1[5,12],2)} & \Sexpr{round(R_1[5,13],2)} & \Sexpr{round(R_1[5,14],2)} & \Sexpr{round(R_1[5,15],2)} & \Sexpr{round(R_1[5,16],2)} \\ 
+\hline 
+Estimated 6 & \Sexpr{round(R_1[6,9],2)} & \Sexpr{round(R_1[6,10],2)} & \Sexpr{round(R_1[6,11],2)} & \Sexpr{round(R_1[6,12],2)} & \Sexpr{round(R_1[6,13],2)} & \Sexpr{round(R_1[6,14],2)} & \Sexpr{round(R_1[6,15],2)} & \Sexpr{round(R_1[6,16],2)} \\ 
+\hline 
+Estimated 7 & \Sexpr{round(R_1[7,9],2)} & \Sexpr{round(R_1[7,10],2)} & \Sexpr{round(R_1[7,11],2)} & \Sexpr{round(R_1[7,12],2)} & \Sexpr{round(R_1[7,13],2)} & \Sexpr{round(R_1[7,14],2)} & \Sexpr{round(R_1[7,15],2)} & \Sexpr{round(R_1[7,16],2)} \\ 
+\hline 
+Estimated 8 & \Sexpr{round(R_1[8,9],2)} & \Sexpr{round(R_1[8,10],2)} & \Sexpr{round(R_1[8,11],2)} & \Sexpr{round(R_1[8,12],2)} & \Sexpr{round(R_1[8,13],2)} & \Sexpr{round(R_1[8,14],2)} & \Sexpr{round(R_1[8,15],2)} & \Sexpr{round(R_1[8,16],2)} \\ 
+\hline 
+\end{tabular}
+
+\textbf{\large{\textit{
+\newline
+\newline
+}}}
+
+\begin{tabular}{| L{2.5cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} | R{1cm} |}
+\hline
+\multicolumn{9}{|c|}{Factor Score Correlations, Sample 2} \\
+\hline
+\textit{ }  & \multicolumn{8}{|c|}{\textit{Actual Factor Scores}} \\
+\hline
+\textit{Factor Score}  & \multicolumn{1}{|c|}{\textit{1}} & \multicolumn{1}{|c|}{\textit{2}} & \multicolumn{1}{|c|}{\textit{3}} & \multicolumn{1}{|c|}{\textit{4}} & \multicolumn{1}{|c|}{\textit{5}} & \multicolumn{1}{|c|}{\textit{6}} & \multicolumn{1}{|c|}{\textit{7}} & \multicolumn{1}{|c|}{\textit{8}} \\
+\hline
+Estimated 1 & \Sexpr{round(R_2[1,9],2)} & \Sexpr{round(R_2[1,10],2)} & \Sexpr{round(R_2[1,11],2)} & \Sexpr{round(R_2[1,12],2)} & \Sexpr{round(R_2[1,13],2)} & \Sexpr{round(R_2[1,14],2)} & \Sexpr{round(R_2[1,15],2)} & \Sexpr{round(R_2[1,16],2)} \\ 
+\hline 
+Estimated 2 & \Sexpr{round(R_2[2,9],2)} & \Sexpr{round(R_2[2,10],2)} & \Sexpr{round(R_2[2,11],2)} & \Sexpr{round(R_2[2,12],2)} & \Sexpr{round(R_2[2,13],2)} & \Sexpr{round(R_2[2,14],2)} & \Sexpr{round(R_2[2,15],2)} & \Sexpr{round(R_2[2,16],2)} \\ 
+\hline 
+Estimated 3 & \Sexpr{round(R_2[3,9],2)} & \Sexpr{round(R_2[3,10],2)} & \Sexpr{round(R_2[3,11],2)} & \Sexpr{round(R_2[3,12],2)} & \Sexpr{round(R_2[3,13],2)} & \Sexpr{round(R_2[3,14],2)} & \Sexpr{round(R_2[3,15],2)} & \Sexpr{round(R_2[3,16],2)} \\ 
+\hline 
+Estimated 4 & \Sexpr{round(R_2[4,9],2)} & \Sexpr{round(R_2[4,10],2)} & \Sexpr{round(R_2[4,11],2)} & \Sexpr{round(R_2[4,12],2)} & \Sexpr{round(R_2[4,13],2)} & \Sexpr{round(R_2[4,14],2)} & \Sexpr{round(R_2[4,15],2)} & \Sexpr{round(R_2[4,16],2)} \\ 
+\hline 
+Estimated 5 & \Sexpr{round(R_2[5,9],2)} & \Sexpr{round(R_2[5,10],2)} & \Sexpr{round(R_2[5,11],2)} & \Sexpr{round(R_2[5,12],2)} & \Sexpr{round(R_2[5,13],2)} & \Sexpr{round(R_2[5,14],2)} & \Sexpr{round(R_2[5,15],2)} & \Sexpr{round(R_2[5,16],2)} \\ 
+\hline 
+Estimated 6 & \Sexpr{round(R_2[6,9],2)} & \Sexpr{round(R_2[6,10],2)} & \Sexpr{round(R_2[6,11],2)} & \Sexpr{round(R_2[6,12],2)} & \Sexpr{round(R_2[6,13],2)} & \Sexpr{round(R_2[6,14],2)} & \Sexpr{round(R_2[6,15],2)} & \Sexpr{round(R_2[6,16],2)} \\ 
+\hline 
+Estimated 7 & \Sexpr{round(R_2[7,9],2)} & \Sexpr{round(R_2[7,10],2)} & \Sexpr{round(R_2[7,11],2)} & \Sexpr{round(R_2[7,12],2)} & \Sexpr{round(R_2[7,13],2)} & \Sexpr{round(R_2[7,14],2)} & \Sexpr{round(R_2[7,15],2)} & \Sexpr{round(R_2[7,16],2)} \\ 
+\hline 
+Estimated 8 & \Sexpr{round(R_2[8,9],2)} & \Sexpr{round(R_2[8,10],2)} & \Sexpr{round(R_2[8,11],2)} & \Sexpr{round(R_2[8,12],2)} & \Sexpr{round(R_2[8,13],2)} & \Sexpr{round(R_2[8,14],2)} & \Sexpr{round(R_2[8,15],2)} & \Sexpr{round(R_2[8,16],2)} \\ 
+\hline 
+\end{tabular}
+
+\end{document}

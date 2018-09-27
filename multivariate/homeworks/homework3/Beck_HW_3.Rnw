@@ -149,7 +149,7 @@ scores_2 <- pca_2$scores %>% data.frame
 describe(scores_2)
 @
 
-Checking the PCA suggests that there is a multivariate outlier in PCA 4 (Sentence\_Completion)
+Checking the PCA suggests that there is a multivariate outlier in PCA 4 
 
 But let's check multivariate normality
 <<>>=
@@ -162,7 +162,7 @@ Based on the test of multivariate normality, there are 16(!) outliers. Let's rem
 
 I'm going to use a while loop to do this rather than copying and pasting the code. 
 
-<<>>=
+<<fig.height=4>>=
 k <- 1
 remove <- c()
 par(mfrow = c(1,2))
@@ -178,11 +178,27 @@ while(nrow(mv$multivariateOutliers) > 0){
   if(nrow(mv$multivariateOutliers) == 0){break}
   k <- k + 1
 }
+
+pca_final <- principal(
+    tmp
+  , nfactors = scree$ncomp
+  , rotate = "none"
+  , residuals = T
+  , scores = TRUE)
+ 
 @
 
 In total, using the mardia test, it took \Sexpr{k} rounds to remove the following outliers: cases \Sexpr{cat(remove, sep = ", ")}.
 
-Our conclusions do not change. We would still extract 3 components.
+Our conclusions do not change. We would still extract 3 components. However, the percentage of variance changes (see below):
+
+<<>>=
+pca_final$Vaccounted %>% data.frame %>% mutate(m = rownames(.)) %>%
+  mutate_at(vars(PC1:PC3), funs(round(.,2))) %>%
+  select(m, everything()) %>%
+  kable(., "latex", booktabs = T, escape = F)
+@
+
 
 
 
