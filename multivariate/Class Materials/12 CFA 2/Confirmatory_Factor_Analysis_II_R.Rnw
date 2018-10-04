@@ -1,0 +1,303 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Confirmatory Factor Analysis}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(car)
+library(multcomp)
+library(ggplot2)
+library(MASS)
+library(parallel)
+library(ellipse)
+library(FactoMineR)
+library(PerformanceAnalytics)
+library(plotpc)
+library(sciplot)
+library(GPArotation)
+library(GGally)
+library(MVN)
+library(qqplotr)
+library(scatterplot3d)
+library(rgl)
+library(cowplot)
+library(lavaan)
+library(semPlot)
+library(semTools)
+library(MVN)
+@
+
+\subsection{Data Files}
+\textbf{\large{\textit{
+We will use the full mental abilities data set for the example analyses.
+}}}
+<<tidy=TRUE>>=
+# Get the drug use data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+Mental <- read.table('mental.csv',sep=',',header=TRUE)
+Mental <- as.data.frame(Mental)
+Mental <- na.omit(Mental)
+names(Mental) <- c("Grammar","Paragraph_Comprehension","Vocabulary","Sentence_Completion","Geometry",
+                     "Algebra","Numerical_Puzzles","Series_Completion","Practical_Problem_Solving",
+                     "Symbol_Manipulation","Analytical_Ability","Formal_Logic")
+describe(Mental)
+@
+
+\section{Screen the Data}
+\textbf{\large{\textit{
+First we will do a quick screen of the data to make sure there are no severe multivariate outliers.
+}}}
+\subsection{Mahalanobis Distance}
+<<tidy=TRUE>>=
+CV <- cov(Mental)
+D2 <- mahalanobis(Mental,center=colMeans(Mental),cov=CV)
+D2 <- as.data.frame(D2)
+describe(D2)
+ggplot(D2, aes(sample=D2)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=12)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=12)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=12)) +
+    scale_y_continuous(breaks=seq(0,35,5)) +
+    scale_x_continuous(breaks=seq(0,35,5)) +
+    coord_cartesian(xlim = c(0,35), ylim =c(0,35)) +
+    xlab(expression("Expected Values from" * ~ chi[12]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[12]^2))
+@
+
+\textbf{\large{\textit{
+The squared Mahalanobis distances suggest the data are well behaved.
+}}}
+
+\textbf{\large{\textit{
+We can also test for multivariate normality.
+}}}
+<<tidy=TRUE>>=
+mvn(Mental,mvnTest="mardia")
+@
+
+\textbf{\large{\textit{
+The data are multivariate normal, which is of course not surprising given that they were generated from a multivariate normal distribution.
+}}}
+
+\section{Correlations}
+\textbf{\large{\textit{
+A heat map for the correlation matrix easily identifies the pattern of correlations in the simulated data.
+}}}
+<<tidy=TRUE>>=
+ggcorr(Mental, label=FALSE, angle=90,hjust=.10,size=2.5,digits=2) +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+            axis.text.y = element_text(colour = "black",size=12,face="bold"),
+            axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+            axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+            axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+            axis.line.x = element_blank(),
+            axis.line.y = element_blank(),
+            plot.title = element_text(size=16, face="bold", 
+                                      margin = margin(0, 0, 20, 0),hjust=.5),
+            panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),  
+            plot.background = element_rect(fill = "white"),
+            plot.margin = unit(c(1, 1, 1, 1), "cm"),
+            legend.position = "bottom", 
+            legend.title = element_blank())+
+    ggtitle("Intercorrelations Among Items")
+@
+
+\section{Confirmatory Factor Analysis}
+\textbf{\large{\textit{
+In the following sections, we will examine several confirmatory factor analysis models that range in their complexity, some of which are nested and so can be compared statistically for goodness of fit.
+}}}
+\subsection{Model 1}
+<<tidy=TRUE>>=
+mental.model.1 <- '
+# Latent variable definitions.
+# Scale of the latent variables is set by the first listed manifest variable.
+Verbal =~ Grammar+Paragraph_Comprehension+Vocabulary+Sentence_Completion
+Math =~ Geometry+Algebra+Numerical_Puzzles+Series_Completion
+Reasoning =~ Practical_Problem_Solving+Symbol_Manipulation+Analytical_Ability+Formal_Logic
+# Latent variable covariances.
+Verbal ~~ Math
+Verbal ~~ Reasoning
+Math ~~ Reasoning
+'
+CFA_Fit_1 <- cfa(mental.model.1, data = Mental,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_1, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+semPaths(CFA_Fit_1,title = FALSE, "std", edge.label.cex = 0.5, curvePivot = TRUE,layout="tree2",
+         style="lisrel",residuals=FALSE,sizeLat=5,sizeMan = 5,intercepts=FALSE,what="path",edge.color="black")
+@
+
+\subsection{Model 2}
+<<tidy=TRUE>>=
+mental.model.2 <- '
+# Latent variable definitions.
+# Scale of the latent variables is set by the first listed manifest variable.
+Verbal =~ Grammar+Paragraph_Comprehension+Vocabulary+Sentence_Completion
+Math =~ Geometry+Algebra+Numerical_Puzzles+Series_Completion
+Reasoning =~ Practical_Problem_Solving+Symbol_Manipulation+Analytical_Ability+Formal_Logic
+# Latent variable covariances are set to 0.
+Verbal ~~ 0*Math
+Verbal ~~ 0*Reasoning
+Math ~~ 0*Reasoning
+'
+CFA_Fit_2 <- cfa(mental.model.2, data = Mental,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_2, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+semPaths(CFA_Fit_2,title = FALSE, "std", edge.label.cex = 0.5, curvePivot = TRUE,layout="tree2",
+         style="lisrel",residuals=FALSE,sizeLat=5,sizeMan = 5,intercepts=FALSE,what="path",edge.color="black")
+@
+
+\subsection{Model 3}
+<<tidy=TRUE>>=
+mental.model.3 <- '
+# Latent variable definition
+# Scale of the latent variable is set by the first listed manifest variable.
+Ability =~ Grammar+Paragraph_Comprehension+Vocabulary+Sentence_Completion+
+ Geometry+Algebra+Numerical_Puzzles+Series_Completion+
+ Practical_Problem_Solving+Symbol_Manipulation+Analytical_Ability+Formal_Logic
+'
+CFA_Fit_3 <- cfa(mental.model.3, data = Mental,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_3, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+semPaths(CFA_Fit_3,title = FALSE, "std", edge.label.cex = 0.5, curvePivot = TRUE,layout="tree2",
+         style="lisrel",residuals=FALSE,sizeLat=5,sizeMan = 5,intercepts=FALSE,what="path",edge.color="black")
+@
+
+\subsection{Model 3 Alternative}
+<<tidy=TRUE>>=
+mental.model.3b <- '
+# Latent variable definitions.
+# Scale of the latent variables is not set by the first listed manifest variable.
+Verbal =~ NA*Grammar+Paragraph_Comprehension+Vocabulary+Sentence_Completion
+Math =~ NA*Geometry+Algebra+Numerical_Puzzles+Series_Completion
+Reasoning =~ NA*Practical_Problem_Solving+Symbol_Manipulation+Analytical_Ability+Formal_Logic
+# Latent variable covariances are set equal and to 1. Along with the standardization,
+# this forces all three latent variables to be perfectly correlated, equivalent to
+# a single latent variable, as in the previous model.
+Verbal ~~ 1*Math
+Verbal ~~ 1*Reasoning
+Math ~~ 1*Reasoning
+# Scale of the latent variables is set to 1 (standardized).
+Verbal ~~ 1*Verbal
+Math ~~ 1*Math
+Reasoning ~~ 1*Reasoning
+'
+CFA_Fit_3b <- cfa(mental.model.3b, data = Mental,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_3b, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+semPaths(CFA_Fit_3b,title = FALSE, "std", edge.label.cex = 0.5, curvePivot = TRUE,layout="tree2",
+         style="lisrel",residuals=FALSE,sizeLat=5,sizeMan = 5,intercepts=FALSE,what="path",edge.color="black")
+@
+
+\subsection{Model 4}
+<<tidy=TRUE>>=
+mental.model.4 <- '
+# Latent variable definitions.
+# Scale of the latent variables is not set by the first listed manifest variable.
+# This allows each loading to be estimated and all set equal.
+Verbal =~ NA*Grammar+Grammar+Paragraph_Comprehension+Vocabulary+Sentence_Completion
+Math =~ NA*Geometry+Geometry+Algebra+Numerical_Puzzles+Series_Completion
+Reasoning =~ NA*Practical_Problem_Solving+Practical_Problem_Solving+Symbol_Manipulation+Analytical_Ability+Formal_Logic
+# Latent variable covariances are set equal.
+Verbal ~~ a*Math
+Verbal ~~ a*Reasoning
+Math ~~ a*Reasoning
+# Scale of the latent variables is set to 1 (standardized).
+Verbal ~~ 1*Verbal
+Math ~~ 1*Math
+Reasoning ~~ 1*Reasoning
+'
+CFA_Fit_4 <- cfa(mental.model.4, data = Mental,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_4, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+semPaths(CFA_Fit_4,title = FALSE, "std", edge.label.cex = 0.5, curvePivot = TRUE,layout="tree2",
+         style="lisrel",residuals=FALSE,sizeLat=5,sizeMan = 5,intercepts=FALSE,what="path",edge.color="black")
+@
+
+\section{Model Comparisons}
+\textbf{\large{\textit{
+Nested models can be compared. The difference between -2*log likelihood for each model is chi-square distributed, with degrees of freedom equal to the difference between the degrees of freedom for each model.
+}}}
+
+<<tidy=TRUE>>=
+anova(CFA_Fit_1,CFA_Fit_2)
+anova(CFA_Fit_1,CFA_Fit_3)
+anova(CFA_Fit_1,CFA_Fit_4)
+@
+\end{document}
