@@ -1,0 +1,206 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 3\\
+\large Applied Mutlivariate Analysis}
+\date{September 22, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(kableExtra)
+library(multcomp)
+library(lme4)
+library(plyr)
+library(tidyverse)
+library(MVN)
+@
+
+\subsection{data}
+The file, Set\_3.csv, contains the data from a study in which 500 high school students completed a measure of scholastic aptitude: Grammar, Paragraph Comprehension, Vocabulary, Sentence Completion, Geometry, Algebra, Numerical Puzzles, Series Completion, Practical Problem Solving, Symbol Manipulation, Analytical Ability, and Formal Logic. 
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework3"
+
+dat <- sprintf("%s/Set_3.csv", wd) %>% 
+  read.csv(., stringsAsFactors = F) 
+
+head(dat)
+@
+
+Answer the following questions about these data:
+
+\section{Question 1}
+What evidence do you have that these data should be subjected to a principal components analysis? 
+
+<<>>=
+R <- dat %>% select(-ID) %>% cor
+
+(KMO1 <- KMO(R))
+
+(CB_1 <- cortest.bartlett(R=R,n=nrow(dat)))
+@
+The overall MSA is .82, and all but one of the MSA values are .8 (1 (Numerical Puzzles) is .77), which indicates very strong evidence for conducting a PCA.  
+
+In addition, the $\chi^2$ value of the Bartlett test ($\chi^2$(\Sexpr{CB_1$df}) = \Sexpr{round(CB_1$chisq,2)}), which indicates that the correlation matrix departs significantly from from an identity matrix (independence among indicators).  
+
+\section{Question 2}
+How many principal components should be extracted?
+<<>>=
+par(mfrow=c(1,2))
+scree_1 <- fa.parallel(dat %>% select(-ID), fa="pc")
+scree_2 <- fa.parallel(R, fa = "pc", n.obs = nrow(dat))
+@
+
+Parallel analysis suggests that 3 factors should be extracted from the data. 
+
+\section{Question 3}
+How much variance do these extracted components account for in the original data?
+<<>>=
+pca_1 <- principal(R, nfactors = 3, rotate = "none", n.obs = nrow(dat), residuals = T)
+
+pca_1$Vaccounted %>% data.frame %>% mutate(m = rownames(.)) %>%
+  mutate_at(vars(PC1:PC3), funs(round(.,2))) %>%
+  select(m, everything()) %>%
+  kable(., "latex", booktabs = T, escape = F)
+@
+
+The three extracted components account for 60\% of the variance. 
+
+\section{Question 4}
+How much variance in the original Geometry variable is accounted for by these extracted components?  
+The extracted components account for \Sexpr{round(pca_1$communality["Geometry"], 4)*100}\% of the variance in the original Geometry variable.  
+
+
+\section{Question 5}
+Now screen the data for unusual cases and determine if your conclusions change when
+any such cases are excluded from the analysis.  
+
+If you believe there is more than one outlier in the data, follow a sequential approach to determining how many to exclude. This means that you will identify the worst offender, exclude that case, and then repeat your diagnostics to determine if other outliers are present. If so, again exclude the worst one, and repeat the diagnostics to determine if an additional outlier is present. Keep cycling through these steps until you are satisfied you have all outliers identified and excluded. Then conduct the principal components analysis. This iterative approach is necessary for multivariate diagnostics such as Mahalanobis distance because the presence of one outlier can influence the apparent presence of others via their joint influence on the covariance matrix. Removing them one at a time insures you don’t miss any or mistakenly remove cases that are not really outliers.  
+
+<<>>=
+dat %>%
+  gather(indicator, value, -ID) %>%
+  ggplot(aes(x = indicator, y = value, fill = indicator)) + 
+    geom_boxplot() + 
+    coord_flip() + 
+    theme_classic() + 
+    theme(legend.position = "none")
+@
+
+Visual inspection of the boxplot suggests there is one outlier in the algebra indicator, but let's check multivariate normality before making a decision.
+
+<<>>=
+(pca_2 <- principal(
+    dat %>% select(-ID)
+  , nfactors = ncol(dat)-1
+  , rotate = "none"
+  , residuals = T
+  , scores = TRUE)
+ )
+
+scores_2 <- pca_2$scores %>% data.frame
+
+describe(scores_2)
+@
+
+Checking the PCA suggests that there is a multivariate outlier in PCA 4 
+
+But let's check multivariate normality
+<<>>=
+dat2 <- dat %>% select(-ID) %>% data.frame
+rownames(dat2) <- 1:nrow(dat2)
+(mv <- mvn(dat2,mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE))
+@
+
+Based on the test of multivariate normality, there are 16(!) outliers. Let's remove the outlier and check again.
+
+I'm going to use a while loop to do this rather than copying and pasting the code. 
+
+<<fig.height=4>>=
+k <- 1
+remove <- c()
+par(mfrow = c(1,2))
+while(nrow(mv$multivariateOutliers) > 0){
+  if(k!=1){tmp <- dat2[-remove,]} else{tmp <- dat2}
+  mv <- mvn(tmp, mvnTest="mardia", multivariatePlot="none",multivariateOutlierMethod="quan",showOutliers=TRUE, univariatePlot = "none")
+  mv$multivariateOutliers
+  remove <- c(remove, as.numeric(as.character(mv$multivariateOutliers$Observation[1])))
+  sink("/dev/null")
+  scree <- fa.parallel(tmp, fa="pc")
+  sink()
+  print(sprintf("Case %s removed. %s factors remain. This is the %s round", remove[k], scree$ncomp, k))
+  if(nrow(mv$multivariateOutliers) == 0){break}
+  k <- k + 1
+}
+
+pca_final <- principal(
+    tmp
+  , nfactors = scree$ncomp
+  , rotate = "none"
+  , residuals = T
+  , scores = TRUE)
+ 
+@
+
+In total, using the mardia test, it took \Sexpr{k} rounds to remove the following outliers: cases \Sexpr{cat(remove, sep = ", ")}.
+
+Our conclusions do not change. We would still extract 3 components. However, the percentage of variance changes (see below):
+
+<<>>=
+pca_final$Vaccounted %>% data.frame %>% mutate(m = rownames(.)) %>%
+  mutate_at(vars(PC1:PC3), funs(round(.,2))) %>%
+  select(m, everything()) %>%
+  kable(., "latex", booktabs = T, escape = F)
+@
+
+
+The extracted components account for \Sexpr{round(pca_final$communality["Geometry"], 4)*100}\% of the variance in the original Geometry variable, while it accounted for \Sexpr{round(pca_final$communality["Geometry"], 4)*100}\% in the original model.  
+
+
+\end{document}

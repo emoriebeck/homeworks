@@ -1,0 +1,289 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 3\\
+\large Applied Mutlivariate Analysis}
+\date{September 22, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(kableExtra)
+library(multcomp)
+library(lme4)
+library(plyr)
+library(tidyverse)
+library(MVN)
+@
+
+
+
+\subsection{data}
+The file, Set\_5.csv, contains data from a study in which college students completed the NEO-PI Personality Inventory. This 240-item scale purportedly measures the Big Five personality dimensions, assumed to be fairly independent. The inventory is scored on 6 subscales per dimension, listed below. The file contains the subscale scores, rather than the individual items, which should help reduce the impact of the small sample size.\\
+
+Neuroticism: Anxiety
+Neuroticism: Angry\_Hostility
+Neuroticism: Depression
+Neuroticism: Self\_Consciousness
+Neuroticism: Impulsiveness
+Neuroticism: Vulnerability
+Extraversion: Warmth
+Extraversion: Gregariousness
+Extraversion: Assertiveness
+Extraversion: Activity
+Extraversion: Excitement\_Seeking
+Extraversion: Positive\_Emotions
+Openness: Fantasy
+Openness: Aesthetics
+Openness: Feelings
+Openness: Actions
+Openness: Ideas
+Openness: Values
+Agreeableness: Trust
+Agreeableness: Straightforwardness 
+Agreeableness: Altruism
+Agreeableness: Compliance
+Agreeableness: Modesty
+Agreeableness: Tender\_Mindedness
+Conscientiousness: Competence
+Conscientiousness: Order
+Conscientiousness: Dutifulness
+Conscientiousness: Achievement\_Striving: 
+Conscientiousness: Self\_Discipline
+Conscientiousness: Deliberation
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework5"
+
+dat <- sprintf("%s/Set_5(2).csv", wd) %>% 
+  read.csv(., stringsAsFactors = F) 
+
+head(dat)
+@
+
+<<>>=
+source <- tribble(
+~Factor, ~Facet,
+"Neuroticism", "Anxiety",
+"Neuroticism", "Angry_Hostility",
+"Neuroticism", "Depression",
+"Neuroticism", "Self_Consciousness",
+"Neuroticism", "Impulsiveness",
+"Neuroticism", "Vulnerability",
+"Extraversion", "Warmth",
+"Extraversion", "Gregariousness",
+"Extraversion", "Assertiveness",
+"Extraversion", "Activity",
+"Extraversion", "Excitement_Seeking",
+"Extraversion", "Positive_Emotions",
+"Openness", "Fantasy",
+"Openness", "Aesthetics",
+"Openness", "Feelings",
+"Openness", "Actions",
+"Openness", "Ideas",
+"Openness", "Values",
+"Agreeableness", "Trust",
+"Agreeableness", "Straightforwardness" ,
+"Agreeableness", "Altruism",
+"Agreeableness", "Compliance",
+"Agreeableness", "Modesty",
+"Agreeableness", "Tender_Mindedness",
+"Conscientiousness", "Competence",
+"Conscientiousness", "Order",
+"Conscientiousness", "Dutifulness",
+"Conscientiousness", "Achievement_Striving", 
+"Conscientiousness", "Self_Discipline",
+"Conscientiousness", "Deliberation"
+)
+
+dat <- dat %>% select(ID, source$Facet)
+@
+
+
+
+\section{The Question}
+Given what you have learned up through exploratory factor analysis, analyze the data in the way you think is appropriate and form conclusions about the claimed number of dimensions and their independence.
+
+
+
+\subsection{Do we need FA?}
+
+\subsubsection{Correlations}
+<<>>=
+r <- r_long <- dat %>% select(-ID) %>% cor()
+r_long[upper.tri(r_long, diag = T)] <- NA
+order <- colnames(dat)[-1]
+
+r_long <- r_long %>% data.frame %>% 
+  mutate(V1 = rownames(.)) %>%
+  gather(key = V2, value = r, -V1, na.rm = T) %>%
+  mutate(V1 = factor(V1, levels = order),
+         V2 = factor(V2, levels = order))
+
+r_long %>%
+  ggplot(aes(x = V1, y = V2, fill = r)) + 
+    geom_raster() + 
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+       midpoint = 0, limit = c(-1,1), space = "Lab", 
+       name="Profile\nCorrelation") +
+    theme_classic() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "bottom",
+          axis.title = element_blank())
+@
+
+There appear to be intercorrelations among the variables.  
+
+\subsubsection{KMO}
+<<>>=
+(KMO1 <- KMO(r))
+@
+
+The MSA for each item range from \Sexpr{round(min(KMO1$MSAi))} to \Sexpr{round(max(min(KMO1$MSAi)))}, with a mean of \Sexpr{round(mean(min(KMO1$MSAi)))}, indicating strong evidence for using a data reduction technique. 
+
+\subsubsection{Bartlett's Test}
+<<>>=
+(CB_1 <- cortest.bartlett(R=r,n=nrow(dat)))
+@
+
+In addition, the $\chi^2$ value of the Bartlett test ($\chi^2$(\Sexpr{CB_1$df}) = \Sexpr{round(CB_1$chisq,2)}), which indicates that the correlation matrix departs significantly from from an identity matrix (independence among indicators).  
+
+
+
+\subsection{How Many Factors?}
+Now that we have seen evidence suggesting that we should conduct a CFA or PCA, we need to determine how many factors we should extract. 
+\subsubsection{Parallel Analysis (Scree Test)}
+<<>>=
+par(mfrow=c(1,2))
+scree_1 <- fa.parallel(dat %>% select(-ID), fa="both")
+scree_2 <- fa.parallel(r, fa = "both", n.obs = nrow(dat))
+@
+
+Parallel analysis suggests 5 principal components and 5 factors. 
+
+\subsubsection{VSS}
+<<>>=
+par(mfrow = c(1,1))
+vss_1 <- vss(dat %>% select(-ID), n = 25, rotate = "none", fm = "pc")
+@
+
+VSS also suggests 5 factors.  
+
+\subsection{Exploratory Factor Analysis}
+<<>>=
+fa_1 <- fa(dat %>% select(-ID), nfactors = 5, rotate = "none", scores = T)
+fa_2 <- fa(dat %>% select(-ID), nfactors = 5, rotate = "varimax", scores = T)
+fa_3 <- fa(dat %>% select(-ID), nfactors = 5, rotate = "oblimin", scores = T)
+
+scores_1 <- fa_1$scores
+scores_2 <- fa_2$scores
+scores_3 <- fa_3$scores
+
+# unrotated
+cor(scores_1) %>% round(., 2)
+# varimax rotation
+cor(scores_2) %>% round(., 2)
+# oblimin rotation
+cor(scores_3) %>% round(., 2)
+@
+
+
+The two models fit the data relatively well ($RMSEA_{unrotated} = \Sexpr{fa_1$RMSEA[1]}$, $RMSEA_{varimax} = \Sexpr{fa_2$RMSEA[1]}$, $RMSEA_{oblimin} = \Sexpr{fa_3$RMSEA[1]}$, $TLI_{unrotated} = \Sexpr{fa_1$TLI}$; $TLI_{varimax} = \Sexpr{fa_2$TLI}$; $TLI_{oblimin} = \Sexpr{fa_3$TLI}$). 
+
+But we aren't just concerned with model fit. We are also generally interested in naming the factors. 
+
+There's no way for me to pretend I don't have expectations for how the data should come out. So let's look at the rotated and unrotated solutions and see if we managed to recover the Big 5. 
+<<results='asis'>>=
+fa_1$Structure %>% unclass %>%
+  data.frame %>%
+  mutate(Facet = rownames(.)) %>%
+  full_join(source) %>%
+  select(Factor, Facet, MR1, MR2, MR3, MR4, MR5) %>%
+  mutate_at(vars(MR1:MR5), funs(round(., 2))) %>%
+  mutate_at(vars(MR1:MR5), funs(cell_spec(., "latex", 
+        background = ifelse((.) > .5, "yellow", "white")))) %>%
+  mutate(Facet = str_remove_all(Facet, "_")) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        caption = "Unrotated Solution") %>%
+  kable_styling(full_width = F)
+
+fa_2$Structure %>% unclass %>%
+  data.frame %>%
+  mutate(Facet = rownames(.)) %>%
+  full_join(source) %>%
+  select(Factor, Facet, MR1, MR2, MR3, MR4, MR5) %>%
+  mutate_at(vars(MR1:MR5), funs(round(., 2))) %>%
+  mutate_at(vars(MR1:MR5), funs(cell_spec(., "latex", 
+        background = ifelse(abs(.) > .5, "yellow", "white")))) %>%
+  mutate(Facet = str_remove_all(Facet, "_")) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        caption = "Varimax Rotated Solution") %>%
+  kable_styling(full_width = F)
+
+fa_3$Structure %>% unclass %>%
+  data.frame %>%
+  mutate(Facet = rownames(.)) %>%
+  full_join(source) %>%
+  select(Factor, Facet, MR1, MR2, MR3, MR4, MR5) %>%
+  mutate_at(vars(MR1:MR5), funs(round(., 2))) %>%
+  mutate_at(vars(MR1:MR5), funs(cell_spec(., "latex", 
+        background = ifelse(abs(.) > .5, "yellow", "white")))) %>%
+  mutate(Facet = str_remove_all(Facet, "_")) %>%
+  kable(., "latex", escape = F, booktabs = T,
+        caption = "Oblimin Rotated Solution") %>%
+  kable_styling(full_width = F)
+@
+
+With the exception of the 2nd and 3rd factors, the unrotated solution doesn't resemble the expected solution. However, the indicators for each factor in the varimax rotated solution can clearly be identified as the Big 5 by content. Finally, in the oblimin rotated solution, we see that the factors can be fairly readily identified by content.  
+
+Another fun test is the order of extraction, which is typically Extraversion, Agreeableness, Conscientiousness, Neuroticism, and Openness to Experience.  
+
+In this case, the order of extraction for the rotated solutions appears to be Extraversion, Neuroticism, Conscientiousness, Agreeableness, Openness. 
+
+\end{document}
