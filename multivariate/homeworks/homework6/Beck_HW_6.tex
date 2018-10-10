@@ -1,0 +1,503 @@
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 3\\
+\large Applied Mutlivariate Analysis}
+\date{September 22, 2018}
+\author{Emorie Beck}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(car)}
+\hlkwd{library}\hlstd{(knitr)}
+\hlkwd{library}\hlstd{(psych)}
+\hlkwd{library}\hlstd{(lavaan)}
+\hlkwd{library}\hlstd{(semPlot)}
+\hlkwd{library}\hlstd{(kableExtra)}
+\hlkwd{library}\hlstd{(multcomp)}
+\hlkwd{library}\hlstd{(lme4)}
+\hlkwd{library}\hlstd{(plyr)}
+\hlkwd{library}\hlstd{(tidyverse)}
+\hlkwd{library}\hlstd{(MVN)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+
+\subsection{data}
+The file, Set\_5.csv, contains data from a study in which college students completed the NEO-PI Personality Inventory. This 240-item scale purportedly measures the Big Five personality dimensions, assumed to be fairly independent. The inventory is scored on 6 subscales per dimension, listed below. The file contains the subscale scores, rather than the individual items, which should help reduce the impact of the small sample size.\\
+
+Neuroticism: Anxiety
+Neuroticism: Angry\_Hostility
+Neuroticism: Depression
+Neuroticism: Self\_Consciousness
+Neuroticism: Impulsiveness
+Neuroticism: Vulnerability
+Extraversion: Warmth
+Extraversion: Gregariousness
+Extraversion: Assertiveness
+Extraversion: Activity
+Extraversion: Excitement\_Seeking
+Extraversion: Positive\_Emotions
+Openness: Fantasy
+Openness: Aesthetics
+Openness: Feelings
+Openness: Actions
+Openness: Ideas
+Openness: Values
+Agreeableness: Trust
+Agreeableness: Straightforwardness 
+Agreeableness: Altruism
+Agreeableness: Compliance
+Agreeableness: Modesty
+Agreeableness: Tender\_Mindedness
+Conscientiousness: Competence
+Conscientiousness: Order
+Conscientiousness: Dutifulness
+Conscientiousness: Achievement\_Striving: 
+Conscientiousness: Self\_Discipline
+Conscientiousness: Deliberation
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{wd} \hlkwb{<-} \hlstr{"https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework6"}
+
+\hlstd{dat} \hlkwb{<-} \hlkwd{sprintf}\hlstd{(}\hlstr{"%s/Set_5(1).csv"}\hlstd{, wd)} \hlopt{%>%}
+  \hlkwd{read.csv}\hlstd{(.,} \hlkwc{stringsAsFactors} \hlstd{= F)}
+
+\hlkwd{head}\hlstd{(dat)}
+\end{alltt}
+\begin{verbatim}
+##   ID Anxiety Angry_Hostility Depression Self_Consciousness Impulsiveness
+## 1  2   2.625           2.000      1.750           2.250000         2.625
+## 2  3   3.625           2.875      3.000           3.500000         4.250
+## 3  4   3.000           2.750      2.625           2.875000         3.000
+## 4  5   4.375           3.125      4.500           4.000000         3.875
+## 5  6   3.500           2.875      3.000           2.571429         3.625
+## 6  7   4.000           4.125      2.875           2.375000         4.000
+##   Vulnerability   Warmth Gregariousness Assertiveness Activity
+## 1      2.166667 4.666667          4.000      3.000000 4.833333
+## 2      2.125000 4.500000          2.750      2.625000 3.000000
+## 3      2.875000 3.750000          3.125      2.375000 3.250000
+## 4      3.750000 3.250000          2.250      2.500000 1.875000
+## 5      2.750000 3.750000          3.125      3.285714 3.500000
+## 6      3.125000 3.500000          2.625      3.375000 3.125000
+##   Excitement_Seeking Positive_Emotions  Fantasy Aesthetics Feelings
+## 1              3.500             4.750 3.857143   3.571429 4.666667
+## 2              2.875             3.500 3.500000   4.125000 3.625000
+## 3              3.875             3.375 3.375000   3.500000 3.250000
+## 4              2.750             2.625 3.000000   3.750000 4.250000
+## 5              3.750             3.625 3.125000   1.625000 3.125000
+## 6              2.000             3.375 3.500000   2.000000 3.250000
+##    Actions Ideas Values Trust Straightforwardness Altruism Compliance
+## 1 2.571429 4.400  4.600 5.000            2.166667 4.833333      2.750
+## 2 3.000000 3.875  3.125 3.250            3.750000 3.625000      3.125
+## 3 2.375000 4.125  3.500 3.250            3.125000 4.000000      3.750
+## 4 3.375000 2.750  4.125 3.000            3.428571 3.875000      4.000
+## 5 2.750000 2.500  3.625 3.375            3.250000 4.125000      3.625
+## 6 2.625000 1.125  3.625 2.500            2.875000 3.000000      2.250
+##   Modesty Tender_Mindedness Competence Order Dutifulness
+## 1   4.000          3.833333       4.50 3.625    3.285714
+## 2   2.625          3.250000       3.00 2.250    3.875000
+## 3   2.750          3.250000       3.75 3.250    3.750000
+## 4   4.125          3.750000       2.75 3.000    2.875000
+## 5   3.375          3.375000       3.75 4.000    3.750000
+## 6   2.625          3.375000       3.00 3.625    2.625000
+##   Achievement_Striving Self_Discipline Deliberation
+## 1             4.333333           4.250        2.875
+## 2             2.750000           3.750        3.500
+## 3             3.375000           3.375        3.125
+## 4             2.875000           2.625        3.250
+## 5             3.375000           2.875        3.375
+## 6             3.000000           2.625        2.625
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{source} \hlkwb{<-} \hlkwd{tribble}\hlstd{(}
+\hlopt{~}\hlstd{Factor,} \hlopt{~}\hlstd{Facet,}
+\hlstr{"Neuroticism"}\hlstd{,} \hlstr{"Anxiety"}\hlstd{,}
+\hlstr{"Neuroticism"}\hlstd{,} \hlstr{"Angry_Hostility"}\hlstd{,}
+\hlstr{"Neuroticism"}\hlstd{,} \hlstr{"Depression"}\hlstd{,}
+\hlstr{"Neuroticism"}\hlstd{,} \hlstr{"Self_Consciousness"}\hlstd{,}
+\hlstr{"Neuroticism"}\hlstd{,} \hlstr{"Impulsiveness"}\hlstd{,}
+\hlstr{"Neuroticism"}\hlstd{,} \hlstr{"Vulnerability"}\hlstd{,}
+\hlstr{"Extraversion"}\hlstd{,} \hlstr{"Warmth"}\hlstd{,}
+\hlstr{"Extraversion"}\hlstd{,} \hlstr{"Gregariousness"}\hlstd{,}
+\hlstr{"Extraversion"}\hlstd{,} \hlstr{"Assertiveness"}\hlstd{,}
+\hlstr{"Extraversion"}\hlstd{,} \hlstr{"Activity"}\hlstd{,}
+\hlstr{"Extraversion"}\hlstd{,} \hlstr{"Excitement_Seeking"}\hlstd{,}
+\hlstr{"Extraversion"}\hlstd{,} \hlstr{"Positive_Emotions"}\hlstd{,}
+\hlstr{"Openness"}\hlstd{,} \hlstr{"Fantasy"}\hlstd{,}
+\hlstr{"Openness"}\hlstd{,} \hlstr{"Aesthetics"}\hlstd{,}
+\hlstr{"Openness"}\hlstd{,} \hlstr{"Feelings"}\hlstd{,}
+\hlstr{"Openness"}\hlstd{,} \hlstr{"Actions"}\hlstd{,}
+\hlstr{"Openness"}\hlstd{,} \hlstr{"Ideas"}\hlstd{,}
+\hlstr{"Openness"}\hlstd{,} \hlstr{"Values"}\hlstd{,}
+\hlstr{"Agreeableness"}\hlstd{,} \hlstr{"Trust"}\hlstd{,}
+\hlstr{"Agreeableness"}\hlstd{,} \hlstr{"Straightforwardness"} \hlstd{,}
+\hlstr{"Agreeableness"}\hlstd{,} \hlstr{"Altruism"}\hlstd{,}
+\hlstr{"Agreeableness"}\hlstd{,} \hlstr{"Compliance"}\hlstd{,}
+\hlstr{"Agreeableness"}\hlstd{,} \hlstr{"Modesty"}\hlstd{,}
+\hlstr{"Agreeableness"}\hlstd{,} \hlstr{"Tender_Mindedness"}\hlstd{,}
+\hlstr{"Conscientiousness"}\hlstd{,} \hlstr{"Competence"}\hlstd{,}
+\hlstr{"Conscientiousness"}\hlstd{,} \hlstr{"Order"}\hlstd{,}
+\hlstr{"Conscientiousness"}\hlstd{,} \hlstr{"Dutifulness"}\hlstd{,}
+\hlstr{"Conscientiousness"}\hlstd{,} \hlstr{"Achievement_Striving"}\hlstd{,}
+\hlstr{"Conscientiousness"}\hlstd{,} \hlstr{"Self_Discipline"}\hlstd{,}
+\hlstr{"Conscientiousness"}\hlstd{,} \hlstr{"Deliberation"}
+\hlstd{)}
+
+\hlstd{dat} \hlkwb{<-} \hlstd{dat} \hlopt{%>%} \hlkwd{select}\hlstd{(ID, source}\hlopt{$}\hlstd{Facet)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+
+Use confirmatory factor analysis to answer the following questions.  
+
+\section{Question 1}
+First, test the hypothesis that the structure of personality is best described by five independent factors. How well does this model fit the data? Base your decision on the $\chi^2$ goodness of fit test along with the goodness-of-fit index of your choice.  
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{b5.base} \hlkwb{<-} \hlstr{'
+# define the measurement model
+E =~ Warmth + Gregariousness + Assertiveness + Activity + Excitement_Seeking + Positive_Emotions
+A =~ Trust + Straightforwardness + Altruism + Compliance + Modesty + Tender_Mindedness
+C =~ Competence + Order + Dutifulness + Competence + Order + Dutifulness
+N =~ Anxiety + Angry_Hostility + Depression + Self_Consciousness + Impulsiveness + Vulnerability
+O =~ Fantasy + Aesthetics + Feelings + Actions + Ideas + Values
+'}
+\hlstd{b5.uncorr} \hlkwb{<-}
+\hlstr{'
+# uncorrelated factors
+E ~~ 0*A
+E ~~ 0*C
+E ~~ 0*N
+E ~~ 0*O
+
+A ~~ 0*C
+A ~~ 0*N
+A ~~ 0*O
+
+C ~~ 0*N
+C ~~ 0*O
+'}
+
+\hlstd{b5.mod} \hlkwb{<-} \hlkwd{paste}\hlstd{(b5.base,} \hlstr{'\textbackslash{}n\textbackslash{}n'}\hlstd{, b5.uncorr,} \hlkwc{sep} \hlstd{=} \hlstr{''}\hlstd{,} \hlkwc{collapse} \hlstd{=} \hlstr{''}\hlstd{)}
+
+\hlstd{fit1} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.mod, dat,} \hlkwc{orthogonal} \hlstd{= T)}
+
+\hlkwd{semPaths}\hlstd{(fit1,} \hlkwc{layout} \hlstd{=} \hlstr{"circle2"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-5-1} 
+\begin{kframe}\begin{alltt}
+\hlkwd{summary}\hlstd{(fit1)}
+\end{alltt}
+\begin{verbatim}
+## lavaan 0.6-3 ended normally after 49 iterations
+## 
+##   Optimization method                           NLMINB
+##   Number of free parameters                         54
+## 
+##   Number of observations                           201
+## 
+##   Estimator                                         ML
+##   Model Fit Test Statistic                    1467.470
+##   Degrees of freedom                               324
+##   P-value (Chi-square)                           0.000
+## 
+## Parameter Estimates:
+## 
+##   Information                                 Expected
+##   Information saturated (h1) model          Structured
+##   Standard Errors                             Standard
+## 
+## Latent Variables:
+##                    Estimate  Std.Err  z-value  P(>|z|)
+##   E =~                                                
+##     Warmth            1.000                           
+##     Gregariousness    1.054    0.098   10.751    0.000
+##     Assertiveness     0.789    0.096    8.242    0.000
+##     Activity          0.691    0.076    9.029    0.000
+##     Excitemnt_Skng    0.635    0.085    7.484    0.000
+##     Positive_Emtns    1.096    0.095   11.494    0.000
+##   A =~                                                
+##     Trust             1.000                           
+##     Strghtfrwrdnss    0.917    0.128    7.149    0.000
+##     Altruism          0.962    0.115    8.400    0.000
+##     Compliance        0.903    0.119    7.591    0.000
+##     Modesty           0.736    0.117    6.295    0.000
+##     Tender_Mnddnss    0.744    0.100    7.429    0.000
+##   C =~                                                
+##     Competence        1.000                           
+##     Order             1.080    0.130    8.281    0.000
+##     Dutifulness       1.145    0.133    8.585    0.000
+##   N =~                                                
+##     Anxiety           1.000                           
+##     Angry_Hostilty    0.566    0.071    7.998    0.000
+##     Depression        1.091    0.074   14.773    0.000
+##     Self_Conscsnss    0.785    0.061   12.795    0.000
+##     Impulsiveness     0.424    0.063    6.783    0.000
+##     Vulnerability     0.829    0.061   13.530    0.000
+##   O =~                                                
+##     Fantasy           1.000                           
+##     Aesthetics        1.096    0.137    7.973    0.000
+##     Feelings          0.745    0.102    7.269    0.000
+##     Actions           0.718    0.093    7.698    0.000
+##     Ideas             0.824    0.121    6.818    0.000
+##     Values            0.752    0.091    8.221    0.000
+## 
+## Covariances:
+##                    Estimate  Std.Err  z-value  P(>|z|)
+##   E ~~                                                
+##     A                 0.000                           
+##     C                 0.000                           
+##     N                 0.000                           
+##     O                 0.000                           
+##   A ~~                                                
+##     C                 0.000                           
+##     N                 0.000                           
+##     O                 0.000                           
+##   C ~~                                                
+##     N                 0.000                           
+##     O                 0.000                           
+##   N ~~                                                
+##     O                 0.000                           
+## 
+## Variances:
+##                    Estimate  Std.Err  z-value  P(>|z|)
+##    .Warmth            0.151    0.022    6.979    0.000
+##    .Gregariousness    0.254    0.032    8.028    0.000
+##    .Assertiveness     0.332    0.036    9.187    0.000
+##    .Activity          0.196    0.022    8.934    0.000
+##    .Excitemnt_Skng    0.277    0.030    9.377    0.000
+##    .Positive_Emtns    0.202    0.028    7.299    0.000
+##    .Trust             0.273    0.033    8.247    0.000
+##    .Strghtfrwrdnss    0.306    0.035    8.703    0.000
+##    .Altruism          0.147    0.021    6.964    0.000
+##    .Compliance        0.232    0.028    8.320    0.000
+##    .Modesty           0.306    0.033    9.179    0.000
+##    .Tender_Mnddnss    0.172    0.020    8.476    0.000
+##    .Competence        0.153    0.026    5.971    0.000
+##    .Order             0.306    0.039    7.878    0.000
+##    .Dutifulness       0.142    0.031    4.665    0.000
+##    .Anxiety           0.168    0.023    7.175    0.000
+##    .Angry_Hostilty    0.333    0.035    9.582    0.000
+##    .Depression        0.183    0.026    6.925    0.000
+##    .Self_Conscsnss    0.175    0.021    8.366    0.000
+##    .Impulsiveness     0.274    0.028    9.723    0.000
+##    .Vulnerability     0.159    0.020    7.972    0.000
+##    .Fantasy           0.260    0.034    7.605    0.000
+##    .Aesthetics        0.412    0.050    8.200    0.000
+##    .Feelings          0.270    0.031    8.747    0.000
+##    .Actions           0.204    0.024    8.445    0.000
+##    .Ideas             0.409    0.045    8.993    0.000
+##    .Values            0.169    0.021    7.928    0.000
+##     E                 0.283    0.043    6.517    0.000
+##     A                 0.213    0.044    4.811    0.000
+##     C                 0.214    0.039    5.464    0.000
+##     N                 0.434    0.060    7.245    0.000
+##     O                 0.265    0.051    5.236    0.000
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+
+\section{Question 2}
+Now allow the factors to correlate.  
+
+\subsection{Part A}
+Does this model fit the data significantly better? Use a $\chi^2$ difference test to answer the question.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{fit2} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.base, dat)}
+\hlkwd{semPaths}\hlstd{(fit2,} \hlkwc{layout} \hlstd{=} \hlstr{"circle2"}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-6-1} 
+\begin{kframe}\begin{alltt}
+\hlstd{(c1} \hlkwb{<-} \hlkwd{anova}\hlstd{(fit1, fit2))}
+\end{alltt}
+\begin{verbatim}
+## Chi Square Difference Test
+## 
+##       Df    AIC    BIC  Chisq Chisq diff Df diff Pr(>Chisq)    
+## fit2 314 9142.4 9353.8 1224.6                                  
+## fit1 324 9365.2 9543.6 1467.5     242.88      10  < 2.2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+The orthogonal factor model fits the data better, $\chi^2_{diff}(10) = 242.88$. 
+
+\subsection{Part B}
+Which of the factor correlations are statistically significant?  
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{res2} \hlkwb{<-} \hlkwd{parameterestimates}\hlstd{(fit2,} \hlkwc{standardized} \hlstd{= T)}
+
+\hlstd{res2} \hlopt{%>%} \hlstd{tbl_df} \hlopt{%>%}
+  \hlkwd{filter}\hlstd{(op} \hlopt{==} \hlstr{"~~"} \hlopt{&} \hlstd{lhs} \hlopt{%in%} \hlkwd{c}\hlstd{(}\hlstr{"E"}\hlstd{,} \hlstr{"A"}\hlstd{,} \hlstr{"C"}\hlstd{,} \hlstr{"N"}\hlstd{,} \hlstr{"O"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{full_join}\hlstd{(}\hlkwd{crossing}\hlstd{(}\hlkwc{lhs} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"E"}\hlstd{,} \hlstr{"A"}\hlstd{,} \hlstr{"C"}\hlstd{,} \hlstr{"N"}\hlstd{,} \hlstr{"O"}\hlstd{),} \hlkwc{rhs} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"E"}\hlstd{,} \hlstr{"A"}\hlstd{,} \hlstr{"C"}\hlstd{,} \hlstr{"N"}\hlstd{,} \hlstr{"O"}\hlstd{)))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{sig} \hlstd{=} \hlkwd{ifelse}\hlstd{(pvalue} \hlopt{<} \hlnum{.05}\hlstd{,} \hlstr{"sig"}\hlstd{,} \hlstr{"ns"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{select}\hlstd{(lhs, rhs, est, ci.lower, ci.upper, sig)} \hlopt{%>%}
+  \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(est}\hlopt{:}\hlstd{ci.upper),} \hlkwd{funs}\hlstd{(}\hlkwd{sprintf}\hlstd{(}\hlstr{"%.2f"}\hlstd{, .)))} \hlopt{%>%}
+  \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(lhs, rhs),} \hlkwd{funs}\hlstd{(}\hlkwd{factor}\hlstd{(.,} \hlkwc{levels} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"E"}\hlstd{,} \hlstr{"A"}\hlstd{,} \hlstr{"C"}\hlstd{,} \hlstr{"N"}\hlstd{,} \hlstr{"O"}\hlstd{))))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{value} \hlstd{=} \hlkwd{sprintf}\hlstd{(}\hlstr{"%s [%s, %s]"}\hlstd{, est, ci.lower, ci.upper),}
+         \hlkwc{value} \hlstd{=} \hlkwd{ifelse}\hlstd{(sig} \hlopt{==} \hlstr{"sig"}\hlstd{,} \hlkwd{sprintf}\hlstd{(}\hlstr{"\textbackslash{}\textbackslash{}textbf\{%s\}"}\hlstd{, value), value),}
+         \hlkwc{value} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{is.na}\hlstd{(value),} \hlstr{""}\hlstd{, value))} \hlopt{%>%}
+  \hlkwd{select}\hlstd{(lhs, rhs, value)} \hlopt{%>%}
+  \hlkwd{spread}\hlstd{(}\hlkwc{key} \hlstd{= rhs,} \hlkwc{value} \hlstd{= value)} \hlopt{%>%}
+  \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{escape} \hlstd{= F,}
+        \hlkwc{caption} \hlstd{=} \hlstr{"Question 2B"}\hlstd{)} \hlopt{%>%}
+  \hlkwd{kable_styling}\hlstd{(}\hlkwc{full_width} \hlstd{= F)}
+\end{alltt}
+\end{kframe}\begin{table}
+
+\caption{\label{tab:unnamed-chunk-7}Question 2B}
+\centering
+\begin{tabular}[t]{llllll}
+\toprule
+lhs & E & A & C & N & O\\
+\midrule
+E & \textbf{0.29 [0.20, 0.37]} & \textbf{0.16 [0.11, 0.22]} & \textbf{0.12 [0.07, 0.17]} & -0.05 [-0.11, 0.00] & \textbf{0.17 [0.11, 0.23]}\\
+A &  & \textbf{0.20 [0.12, 0.29]} & \textbf{0.11 [0.06, 0.15]} & \textbf{0.07 [0.02, 0.12]} & \textbf{0.13 [0.08, 0.18]}\\
+C &  &  & \textbf{0.21 [0.14, 0.29]} & -0.01 [-0.05, 0.04] & 0.03 [-0.01, 0.07]\\
+N &  &  &  & \textbf{0.43 [0.32, 0.55]} & \textbf{0.07 [0.01, 0.13]}\\
+O &  &  &  &  & \textbf{0.27 [0.17, 0.37]}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\end{knitrout}
+
+\section{Question 3}
+Test a model that constrains all factor correlations to be equal.  
+
+\subsection{Part A}
+Is this constraint acceptable (i.e., is it statistically different from the model tested in Question 2)?
+
+
+\subsection{Part B}
+Is the estimated latent variable correlation significant?
+
+
+
+\section{Question 4}
+Use the most parsimonious model from the first three steps. Constrain the loadings within each dimension to be equal. Is this simplification acceptable?
+
+
+
+\section{Question 5}
+Use the modification indices to diagnose the major problem with the model in Question 2. What change to that model would produce the biggest improvement in model fit?
+
+
+\end{document}

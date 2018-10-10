@@ -54,6 +54,8 @@ knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 library(car)
 library(knitr)
 library(psych)
+library(lavaan)
+library(semPlot)
 library(kableExtra)
 library(multcomp)
 library(lme4)
@@ -152,8 +154,39 @@ Use confirmatory factor analysis to answer the following questions.
 \section{Question 1}
 First, test the hypothesis that the structure of personality is best described by five independent factors. How well does this model fit the data? Base your decision on the $\chi^2$ goodness of fit test along with the goodness-of-fit index of your choice.  
 <<>>=
+b5.base <- '
+# define the measurement model
+E =~ Warmth + Gregariousness + Assertiveness + Activity + Excitement_Seeking + Positive_Emotions
+A =~ Trust + Straightforwardness + Altruism + Compliance + Modesty + Tender_Mindedness
+C =~ Competence + Order + Dutifulness + Competence + Order + Dutifulness
+N =~ Anxiety + Angry_Hostility + Depression + Self_Consciousness + Impulsiveness + Vulnerability
+O =~ Fantasy + Aesthetics + Feelings + Actions + Ideas + Values
+'
+b5.uncorr <- 
+'
+# uncorrelated factors
+E ~~ 0*A
+E ~~ 0*C
+E ~~ 0*N
+E ~~ 0*O
 
+A ~~ 0*C
+A ~~ 0*N
+A ~~ 0*O
+
+C ~~ 0*N
+C ~~ 0*O
+'
+
+b5.mod <- paste(b5.base, '\n\n', b5.uncorr, sep = '', collapse = '')
+
+fit1 <- cfa(b5.mod, dat, orthogonal = T, missing = 'ML', std.lv = T)
+
+semPaths(fit1, layout = "circle2")
+
+summary(fit1)
 @
+
 
 \section{Question 2}
 Now allow the factors to correlate.  
@@ -162,17 +195,58 @@ Now allow the factors to correlate.
 Does this model fit the data significantly better? Use a $\chi^2$ difference test to answer the question.
 
 <<>>=
+fit2 <- cfa(b5.base, dat, missing = 'ML', std.lv = T)
+semPaths(fit2, layout = "circle2")
 
+(c1 <- anova(fit1, fit2))
 @
+
+The orthogonal factor model fits the data better, $\chi^2_{diff}(\Sexpr{c1$`Df diff`[2]}) = \Sexpr{round(c1$`Chisq diff`[2],2)}$. 
 
 \subsection{Part B}
 Which of the factor correlations are statistically significant?  
 <<>>=
+res2 <- parameterestimates(fit2, standardized = T)
 
+res2 %>% tbl_df %>%
+  filter(op == "~~" & lhs %in% c("E", "A", "C", "N", "O")) %>%
+  full_join(crossing(lhs = c("E", "A", "C", "N", "O"), rhs = c("E", "A", "C", "N", "O"))) %>%
+  mutate(sig = ifelse(pvalue < .05, "sig", "ns")) %>%
+  select(lhs, rhs, est, ci.lower, ci.upper, sig) %>%
+  mutate_at(vars(est:ci.upper), funs(sprintf("%.2f", .))) %>%
+  mutate_at(vars(lhs, rhs), funs(factor(., levels = c("E", "A", "C", "N", "O")))) %>%
+  mutate(value = sprintf("%s [%s, %s]", est, ci.lower, ci.upper),
+         value = ifelse(sig == "sig", sprintf("\\textbf{%s}", value), value),
+         value = ifelse(is.na(value), "", value)) %>%
+  select(lhs, rhs, value) %>%
+  spread(key = rhs, value = value) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        caption = "Question 2B") %>%
+  kable_styling(full_width = F)
 @
 
 \section{Question 3}
 Test a model that constrains all factor correlations to be equal.  
+<<>>=
+b5.corr <- '
+# equally correlated factors
+E ~~ lambda*A
+E ~~ lambda*C
+E ~~ lambda*N
+E ~~ lambda*O
+
+A ~~ lambda*C
+A ~~ lambda*N
+A ~~ lambda*O
+
+C ~~ lambda*N
+C ~~ lambda*O
+'
+
+b5.mod <- paste(b5.base, '\n\n', b5.corr, sep = '', collapse = '')
+fit3 <- cfa(b5.mod, dat, missing = 'ML', std.lv = T)
+semPaths(fit3, layout = "circle2")
+@
 
 \subsection{Part A}
 Is this constraint acceptable (i.e., is it statistically different from the model tested in Question 2)?
@@ -184,15 +258,39 @@ Is this constraint acceptable (i.e., is it statistically different from the mode
 Is the estimated latent variable correlation significant?
 
 <<>>=
+res3 <- parameterestimates(fit3, standardized = T)
 
+res3 %>% tbl_df %>% filter(label == "lambda") %>%
+  select(label, est, ci.lower, ci.upper) %>%
+  filter(row_number() == 1)
 @
+
+Yes, the estimated latent variable correlation is significant. 
 
 \section{Question 4}
-Use the most parsimonious model from the first three steps. Constrain the loadings within each dimension to be equal. Is this simplification acceptable?
-<<>>=
+Use the most parsimonious model from the first three steps. Constrain the loadings within each dimension to be equal. Is this simplification acceptable?  
 
+Fit 1 is the most parsimonious model because it estimates the fewest parameters.  
+
+<<>>=
+b5.lc <- '
+# define the measurement model
+E =~ lambdaE*Warmth + lambdaE*Gregariousness + lambdaE*Assertiveness + lambdaE*Activity + lambdaE*Excitement_Seeking + lambdaE*Positive_Emotions
+A =~ lambdaA*Trust + lambdaA*Straightforwardness + lambdaA*Altruism + lambdaA*Compliance + lambdaA*Modesty + lambdaA*Tender_Mindedness
+C =~ lambdaC*Competence + lambdaC*Order + lambdaC*Dutifulness + lambdaC*Competence + lambdaC*Order + lambdaC*Dutifulness
+N =~ lambdaN*Anxiety + lambdaN*Angry_Hostility + lambdaN*Depression + lambdaN*Self_Consciousness + lambdaN*Impulsiveness + lambdaN*Vulnerability
+O =~ lambdaO*Fantasy + lambdaO*Aesthetics + lambdaO*Feelings + lambdaO*Actions + lambdaO*Ideas + lambdaO*Values
+'
+
+b5.mod <- paste(b5.lc, '\n\n', b5.uncorr, sep = '', collapse = '')
+fit4 <- cfa(b5.mod, dat, missing = 'ML', std.lv = T)
+semPaths(fit4, layout = "circle2")
+summary(fit4)
+
+(c4 <- anova(fit1, fit4))
 @
 
+A likelihood ratio test suggests that constraining the loadings is not justified. $\chi^2_{diff}(\Sexpr{c4$`Df diff`[2]}) = \Sexpr{round(c4$`Chisq diff`[2],2)}$
 
 \section{Question 5}
 Use the modification indices to diagnose the major problem with the model in Question 2. What change to that model would produce the biggest improvement in model fit?
