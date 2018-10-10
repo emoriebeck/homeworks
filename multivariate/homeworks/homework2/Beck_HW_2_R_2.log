@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  9 OCT 2018 16:56
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  10 OCT 2018 11:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**Beck_HW_5.tex
-(./Beck_HW_5.tex
+**Beck_HW_2_R_2.tex
+(./Beck_HW_2_R_2.tex
 LaTeX2e <2017-04-15>
 Babel <3.10> and hyphenation patterns for 84 language(s) loaded.
 (/usr/local/texlive/2017/texmf-dist/tex/latex/base/article.cls
@@ -388,8 +388,8 @@ Package: varwidth 2009/03/30 ver 0.92;  Variable-width minipages
 Package: upquote 2012/04/19 v1.3 upright-quote and grave-accent glyphs in verba
 tim
 )
-(./Beck_HW_5.aux)
-\openout1 = `Beck_HW_5.aux'.
+(./Beck_HW_2_R_2.aux)
+\openout1 = `Beck_HW_2_R_2.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 92.
 LaTeX Font Info:    ... okay on input line 92.
@@ -500,132 +500,131 @@ e
 Package color Info: Redefining color shadecolor on input line 102.
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
 (Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 104.
+Package color Info: Redefining color shadecolor on input line 118.
 
-Underfull \hbox (badness 10000) in paragraph at lines 120--121
-
- []
-
-
-Overfull \hbox (19.7514pt too wide) in paragraph at lines 122--152
-[]\OT1/cmr/m/n/10 Neuroticism: Anx-i-ety Neu-roti-cism: An-gry[]Hostility Neu-r
-oti-cism: De-pres-sion Neu-roti-cism: Self[]Consciousness
- []
-
-Package color Info: Redefining color shadecolor on input line 154.
-
-Overfull \hbox (7.99081pt too wide) in paragraph at lines 156--156
+Overfull \hbox (7.99081pt too wide) in paragraph at lines 120--120
 [][]\OT1/cmtt/m/n/10 wd[] []<-[] []"https://github.com/emoriebeck/homeworks/raw
-/master/multivariate/homeworks/homework5"[][] 
+/master/multivariate/homeworks/homework2"[][] 
  []
 
+Package color Info: Redefining color shadecolor on input line 151.
 [1
 
 {/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Package color Info: Redefining color shadecolor on input line 211.
-
-[2]
-Package color Info: Redefining color shadecolor on input line 263.
-LaTeX Font Info:    Try loading font information for OMS+cmtt on input line 280
+Package color Info: Redefining color shadecolor on input line 176.
+LaTeX Font Info:    Try loading font information for OMS+cmtt on input line 189
 .
- (/Library/Frameworks/R.framework/Resources/share/texmf/tex/latex/omscmtt.fd
+
+(/Library/Frameworks/R.framework/Resources/share/texmf/tex/latex/omscmtt.fd
 File: omscmtt.fd 
 )
 LaTeX Font Info:    Font shape `OMS/cmtt/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 280.
- [3] <figure/unnamed-chunk-5-1.pdf, id=19, 505.89pt x 505.89pt>
-File: figure/unnamed-chunk-5-1.pdf Graphic file (type pdf)
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 189.
 
-<use figure/unnamed-chunk-5-1.pdf>
-Package pdftex.def Info: figure/unnamed-chunk-5-1.pdf used on input line 287.
-(pdftex.def)             Requested size: 469.75502pt x 469.76265pt.
-
-Overfull \hbox (15.0pt too wide) in paragraph at lines 287--288
-[][] 
+Overfull \hbox (27.99088pt too wide) in paragraph at lines 204--204
+[]  []\OT1/cmtt/m/n/10 mutate_at[][]([][]vars[][](Estimate, CI),[] []funs[][]([
+][]ifelse[][](sign[] []==[] []"sig"[][],[] []sprintf[][]([][]"\OMS/cmsy/m/n/10 
+nn\OT1/cmtt/m/n/10 textbf\OMS/cmsy/m/n/10 f\OT1/cmtt/m/n/10 %s\OMS/cmsy/m/n/10 
+g\OT1/cmtt/m/n/10 "[][], .), .)))[] []%>%[][] 
  []
 
-Package color Info: Redefining color shadecolor on input line 295.
-[4 <./figure/unnamed-chunk-5-1.pdf>]
-Package color Info: Redefining color shadecolor on input line 332.
-Package color Info: Redefining color shadecolor on input line 357.
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 240--241
 
-Overfull \hbox (34.24059pt too wide) in paragraph at lines 364--364
-[]\OT1/cmtt/m/n/10 ## Parallel analysis suggests that the number of factors =  
-5  and the number of components =  5[] 
  []
 
-<figure/unnamed-chunk-8-1.pdf, id=32, 505.89pt x 505.89pt>
-File: figure/unnamed-chunk-8-1.pdf Graphic file (type pdf)
+[3]
+Package color Info: Redefining color shadecolor on input line 306.
+Package color Info: Redefining color shadecolor on input line 317.
+Package color Info: Redefining color shadecolor on input line 329.
+Package color Info: Redefining color shadecolor on input line 338.
+LaTeX Font Info:    Font shape `OMS/cmtt/m/it' in size <10> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 357.
 
-<use figure/unnamed-chunk-8-1.pdf>
-Package pdftex.def Info: figure/unnamed-chunk-8-1.pdf used on input line 369.
-(pdftex.def)             Requested size: 469.75502pt x 469.76265pt.
-
-Overfull \hbox (15.0pt too wide) in paragraph at lines 369--370
-[][] 
+Overfull \hbox (40.2269pt too wide) in paragraph at lines 357--357
+[]  []\OT1/cmtt/m/it/10 # mutate_at(vars(Estimate, CI), funs(ifelse(sign == "si
+g", sprintf("\OMS/cmsy/m/n/10 nn\OT1/cmtt/m/it/10 textbf\OMS/cmsy/m/n/10 f\OT1/
+cmtt/m/it/10 %s\OMS/cmsy/m/n/10 g\OT1/cmtt/m/it/10 ", .), .))) %>%[][] 
  []
 
-[5]
-Overfull \hbox (34.24059pt too wide) in paragraph at lines 372--372
-[]\OT1/cmtt/m/n/10 ## Parallel analysis suggests that the number of factors =  
-5  and the number of components =  5[] 
+[4]
+Package color Info: Redefining color shadecolor on input line 395.
+Package color Info: Redefining color shadecolor on input line 405.
+Package color Info: Redefining color shadecolor on input line 415.
+ [5]
+Package color Info: Redefining color shadecolor on input line 423.
+
+Overfull \hbox (27.99088pt too wide) in paragraph at lines 437--437
+[]  []\OT1/cmtt/m/n/10 mutate_at[][]([][]vars[][](Estimate, CI),[] []funs[][]([
+][]ifelse[][](sign[] []==[] []"sig"[][],[] []sprintf[][]([][]"\OMS/cmsy/m/n/10 
+nn\OT1/cmtt/m/n/10 textbf\OMS/cmsy/m/n/10 f\OT1/cmtt/m/n/10 %s\OMS/cmsy/m/n/10 
+g\OT1/cmtt/m/n/10 "[][], .), .)))[] []%>%[][] 
  []
 
-Package color Info: Redefining color shadecolor on input line 380.
-<figure/unnamed-chunk-9-1.pdf, id=38, 505.89pt x 505.89pt>
-File: figure/unnamed-chunk-9-1.pdf Graphic file (type pdf)
+Package color Info: Redefining color shadecolor on input line 469.
+Package color Info: Redefining color shadecolor on input line 484.
+[6]
+Package color Info: Redefining color shadecolor on input line 508.
 
-<use figure/unnamed-chunk-9-1.pdf>
-Package pdftex.def Info: figure/unnamed-chunk-9-1.pdf used on input line 386.
-(pdftex.def)             Requested size: 469.75502pt x 469.76265pt.
-
-Overfull \hbox (15.0pt too wide) in paragraph at lines 386--387
-[][] 
+Overfull \hbox (324.72418pt too wide) in paragraph at lines 517--517
+[]  []\OT1/cmtt/m/it/10 # ((DV1:G1 + DV2:G1 - DV3:G1 - DV4:G1)) - DV1:G2 - DV1:
+G3 - DV1:G4 - DV2:G2 - DV2:G3 - DV2:G4 + DV3:G2 + DV3:G3 + DV3:G4 + DV4:G2 + DV
+4:G3 + DV4:G4))[][] 
  []
 
-[6 <./figure/unnamed-chunk-8-1.pdf>]
-Package color Info: Redefining color shadecolor on input line 394.
- [7 <./figure/unnamed-chunk-9-1.pdf>]
-Overfull \hbox (31.58763pt too wide) in paragraph at lines 443--444
-[]\OT1/cmr/m/n/10 The two mod-els fit the data rel-a-tively well ($\OML/cmm/m/i
-t/10 RMSEA[] \OT1/cmr/m/n/10 = 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 07$, $\OML/cm
-m/m/it/10 RMSEA[] \OT1/cmr/m/n/10 = 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 07$, $\O
-ML/cmm/m/it/10 RMSEA[] \OT1/cmr/m/n/10 =
+
+Overfull \hbox (345.724pt too wide) in paragraph at lines 521--521
+[]  []\OT1/cmtt/m/it/10 # ((DV1:G1 + DV2:G1 + DV3:G1) = DV4:G1) = ((DV1:G2 + DV
+2:G2 + DV3:G2 + DV1:G3 + DV2:G3 + DV3:G3 + DV1:G4 + DV2:G4 + DV3:G4) = (DV4:G2 
++ DV4:G3 + DV4:G4))[][] 
  []
 
-Package color Info: Redefining color shadecolor on input line 448.
-Package color Info: Redefining color shadecolor on input line 513.
 
-Overfull \hbox (2.74086pt too wide) in paragraph at lines 515--515
-[][]\OT1/cmtt/m/n/10 fa_1[][]$[][]Vaccounted[] []%>%[] []data.frame[] []%>%[] [
-]mutate[][]([][]Measure[] []=[] []rownames[][](.),[] []Rotate[] []=[] []"Unrota
-ted"[][])[] []%>%[][] 
+Overfull \hbox (293.22446pt too wide) in paragraph at lines 522--522
+[]  []\OT1/cmtt/m/it/10 # DV1:G1 + DV2:G1 + DV3:G1 - DV4:G1 - DV1:G2 - DV2:G2 -
+ DV3:G2 - DV1:G3 - DV2:G3 - DV3:G3 - DV1:G4 - DV2:G4 - DV3:G4 + DV4:G2 + DV4:G3
+ + DV4:G4[][] 
  []
 
-[8] [9] [10] [11] [12] [13] [14] [15] [16] [17] [18] (./Beck_HW_5.aux) ) 
+Package color Info: Redefining color shadecolor on input line 531.
+[7]
+Overfull \hbox (27.99088pt too wide) in paragraph at lines 572--572
+[]  []\OT1/cmtt/m/n/10 mutate_at[][]([][]vars[][](Estimate, CI),[] []funs[][]([
+][]ifelse[][](sign[] []==[] []"sig"[][],[] []sprintf[][]([][]"\OMS/cmsy/m/n/10 
+nn\OT1/cmtt/m/n/10 textbf\OMS/cmsy/m/n/10 f\OT1/cmtt/m/n/10 %s\OMS/cmsy/m/n/10 
+g\OT1/cmtt/m/n/10 "[][], .), .)))[] []%>%[][] 
+ []
+
+
+Overfull \hbox (2.74086pt too wide) in paragraph at lines 581--581
+[]  []\OT1/cmtt/m/n/10 add_header_above[][]([][]c[][]([][]" "[] []=[] []1[][],[
+] []"DV1+2+3 v DV4"[] []=[] []2[][],[]  []"V1+2 v DV3+4"[] []=[] []2[][],[]  []
+"DV1 v DV2"[] []=[] []2[][]))[][] 
+ []
+
+[8] (./Beck_HW_2_R_2.aux) ) 
 Here is how much of TeX's memory you used:
- 5256 strings out of 492995
- 72900 string characters out of 6132704
- 180111 words of memory out of 5000000
- 8675 multiletter control sequences out of 15000+600000
+ 5244 strings out of 492995
+ 72562 string characters out of 6132704
+ 177562 words of memory out of 5000000
+ 8668 multiletter control sequences out of 15000+600000
  9359 words of font info for 35 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 39i,10n,56p,470b,282s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/l
-ocal/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/lo
-cal/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/loc
-al/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmitt10.pfb></usr/loc
-al/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/loca
-l/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/
-texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/te
-xlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texl
-ive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texliv
-e/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2
-017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/20
-17/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on Beck_HW_5.pdf (18 pages, 175471 bytes).
+ 39i,9n,56p,440b,277s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2017/texmf-dist/fonts/type1/publ
+ic/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public
+/amsfonts/cm/cmitt10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public
+/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/
+amsfonts/cm/cmr10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/am
+sfonts/cm/cmr12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsf
+onts/cm/cmr17.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfon
+ts/cm/cmsy10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfont
+s/cm/cmtt10.pfb>
+Output written on Beck_HW_2_R_2.pdf (8 pages, 129521 bytes).
 PDF statistics:
- 130 PDF objects out of 1000 (max. 8388607)
- 89 compressed objects within 1 object stream
+ 67 PDF objects out of 1000 (max. 8388607)
+ 47 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 16 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
 

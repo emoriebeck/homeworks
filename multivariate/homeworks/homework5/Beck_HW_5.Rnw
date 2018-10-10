@@ -185,7 +185,7 @@ There appear to be intercorrelations among the variables.
 (KMO1 <- KMO(r))
 @
 
-The MSA for each item range from \Sexpr{round(min(KMO1$MSAi))} to \Sexpr{round(max(min(KMO1$MSAi)))}, with a mean of \Sexpr{round(mean(min(KMO1$MSAi)))}, indicating strong evidence for using a data reduction technique. 
+The MSA for each item range from \Sexpr{round(min(KMO1$MSAi), 2)} to \Sexpr{round(max(KMO1$MSAi), 2)}, with a mean of \Sexpr{round(mean(KMO1$MSAi), 2)}, indicating strong evidence for using a data reduction technique. 
 
 \subsubsection{Bartlett's Test}
 <<>>=
@@ -234,7 +234,40 @@ cor(scores_3) %>% round(., 2)
 @
 
 
-The two models fit the data relatively well ($RMSEA_{unrotated} = \Sexpr{fa_1$RMSEA[1]}$, $RMSEA_{varimax} = \Sexpr{fa_2$RMSEA[1]}$, $RMSEA_{oblimin} = \Sexpr{fa_3$RMSEA[1]}$, $TLI_{unrotated} = \Sexpr{fa_1$TLI}$; $TLI_{varimax} = \Sexpr{fa_2$TLI}$; $TLI_{oblimin} = \Sexpr{fa_3$TLI}$). 
+The two models fit the data relatively well ($RMSEA_{unrotated} = \Sexpr{round(fa_1$RMSEA[1], 2)}$, $RMSEA_{varimax} = \Sexpr{round(fa_2$RMSEA[1],2)}$, $RMSEA_{oblimin} = \Sexpr{round(fa_3$RMSEA[1],2)}$, $TLI_{unrotated} = \Sexpr{round(fa_1$TLI,2)}$; $TLI_{varimax} = \Sexpr{round(fa_2$TLI,2)}$; $TLI_{oblimin} = \Sexpr{round(fa_3$TLI,2)}$).  
+
+We can also look at the communalities: 
+
+<<>>=
+tibble(Facet = names(fa_1$communalities),
+       Unrotated = fa_1$communalities,
+       Varimax = fa_2$communalities,
+       Oblimin = fa_3$communalities) %>% 
+  mutate(Facet = str_replace_all(Facet, "_", " ")) %>%
+  kable(., "latex", booktabs = T, escape = F, digits = 2,
+        caption = "Communalities") %>%
+  kable_styling(full_width = F)
+@
+
+THe communalities are identical across models but suggest that the latent factors explain a considerable amount of the variance in most variables.  
+
+How much variance is explained?
+<<>>=
+fa_1$Vaccounted %>% data.frame %>% mutate(Measure = rownames(.), Rotate = "Unrotated") %>%
+  full_join(
+    fa_1$Vaccounted %>% data.frame %>% mutate(Measure = rownames(.), Rotate = "Varimax")
+  ) %>%
+  full_join(
+    fa_1$Vaccounted %>% data.frame %>% mutate(Measure = rownames(.), Rotate = "Oblimin")
+  ) %>%
+  select(Measure, everything(), -Rotate) %>%
+  kable(., "latex", escape = F, booktabs = T, digits = 2,
+        caption = "Variance Explained") %>%
+  group_rows("Unrotated", 1,5) %>%
+  group_rows("Varimax", 6, 10) %>%
+  group_rows("Oblimin", 11, 15)
+@
+
 
 But we aren't just concerned with model fit. We are also generally interested in naming the factors. 
 
@@ -248,7 +281,7 @@ fa_1$Structure %>% unclass %>%
   mutate_at(vars(MR1:MR5), funs(round(., 2))) %>%
   mutate_at(vars(MR1:MR5), funs(cell_spec(., "latex", 
         background = ifelse((.) > .5, "yellow", "white")))) %>%
-  mutate(Facet = str_remove_all(Facet, "_")) %>%
+  mutate(Facet = str_replace_all(Facet, "_", " ")) %>%
   kable(., "latex", escape = F, booktabs = T,
         caption = "Unrotated Solution") %>%
   kable_styling(full_width = F)
@@ -261,7 +294,7 @@ fa_2$Structure %>% unclass %>%
   mutate_at(vars(MR1:MR5), funs(round(., 2))) %>%
   mutate_at(vars(MR1:MR5), funs(cell_spec(., "latex", 
         background = ifelse(abs(.) > .5, "yellow", "white")))) %>%
-  mutate(Facet = str_remove_all(Facet, "_")) %>%
+  mutate(Facet = str_replace_all(Facet, "_", " "))
   kable(., "latex", escape = F, booktabs = T,
         caption = "Varimax Rotated Solution") %>%
   kable_styling(full_width = F)
@@ -274,7 +307,7 @@ fa_3$Structure %>% unclass %>%
   mutate_at(vars(MR1:MR5), funs(round(., 2))) %>%
   mutate_at(vars(MR1:MR5), funs(cell_spec(., "latex", 
         background = ifelse(abs(.) > .5, "yellow", "white")))) %>%
-  mutate(Facet = str_remove_all(Facet, "_")) %>%
+  mutate(Facet = str_replace_all(Facet, "_", " "))
   kable(., "latex", escape = F, booktabs = T,
         caption = "Oblimin Rotated Solution") %>%
   kable_styling(full_width = F)

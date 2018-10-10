@@ -1,0 +1,1068 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Confirmatory Factor Analysis III}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(car)
+library(multcomp)
+library(ggplot2)
+library(MASS)
+library(parallel)
+library(ellipse)
+library(FactoMineR)
+library(PerformanceAnalytics)
+library(plotpc)
+library(sciplot)
+library(GPArotation)
+library(GGally)
+library(MVN)
+library(qqplotr)
+library(scatterplot3d)
+library(rgl)
+library(cowplot)
+library(lavaan)
+library(semPlot)
+library(semTools)
+library(MVN)
+@
+
+\subsection{Data Files}
+\textbf{\large{\textit{
+We will use the mental abilities data sets (full and split), the need for cognition data set, the self-esteem data set, and the HolzingerSwineford data set for the example analyses.
+}}}
+<<tidy=TRUE>>=
+# Get the drug use data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+Mental <- read.table('mental.csv',sep=',',header=TRUE)
+Mental <- as.data.frame(Mental)
+Mental <- na.omit(Mental)
+names(Mental) <- c("Grammar","Paragraph_Comprehension","Vocabulary","Sentence_Completion","Geometry",
+                     "Algebra","Numerical_Puzzles","Series_Completion","Practical_Problem_Solving",
+                     "Symbol_Manipulation","Analytical_Ability","Formal_Logic")
+Mental_1 <- read.table('mental_1.csv',sep=',',header=TRUE)
+Mental_1 <- as.data.frame(Mental_1)
+Mental_1 <- na.omit(Mental_1)
+names(Mental_1) <- c("Grammar","Paragraph_Comprehension","Vocabulary","Sentence_Completion","Geometry",
+                     "Algebra","Numerical_Puzzles","Series_Completion","Practical_Problem_Solving",
+                     "Symbol_Manipulation","Analytical_Ability","Formal_Logic")
+Mental_2 <- read.table('mental_2.csv',sep=',',header=TRUE)
+Mental_2 <- as.data.frame(Mental_2)
+Mental_2 <- na.omit(Mental_2)
+names(Mental_2) <- c("Grammar","Paragraph_Comprehension","Vocabulary","Sentence_Completion","Geometry",
+                     "Algebra","Numerical_Puzzles","Series_Completion","Practical_Problem_Solving",
+                     "Symbol_Manipulation","Analytical_Ability","Formal_Logic")
+Mental_G <- read.table('mental_groups.csv',sep=',',header=TRUE)
+Mental_G <- as.data.frame(Mental_G)
+Mental_G <- na.omit(Mental_G)
+names(Mental_G) <- c("Grammar","Paragraph_Comprehension","Vocabulary","Sentence_Completion","Geometry",
+                     "Algebra","Numerical_Puzzles","Series_Completion","Practical_Problem_Solving",
+                     "Symbol_Manipulation","Analytical_Ability","Formal_Logic","Group")
+Mental_G$Group <- as.factor(Mental_G$Group)
+NC <- read.table('need_for_cognition.csv',sep=',',header=TRUE)
+NC <- as.data.frame(NC[,1:18])
+NC <- na.omit(NC)
+names(NC) <- c("nc1","nc2","nc3","nc4","nc5","nc6","nc7","nc8","nc9","nc10","nc11","nc12","nc13","nc14",
+                     "nc15","nc16","nc17","nc18")
+SE <- read.table('Set_4.csv',sep=',',header=TRUE)
+SE <- as.data.frame(SE)
+SE <- na.omit(SE[,2:21])
+
+HS <- as.data.frame(HolzingerSwineford1939)
+HS <- HS[,c(5,7:15)]
+HS <- na.omit(HS)
+@
+
+\section{Screen the Data}
+\textbf{\large{\textit{
+For each data set we do a quick screen to make sure there are no severe multivariate outliers or multivariate normality problems.
+}}}
+\subsection{Mental Abilities}
+\textbf{\large{\textit{
+First we will do a quick screen of the data to make sure there are no severe multivariate outliers.
+}}}
+\subsubsection{Mahalanobis Distance}
+<<tidy=TRUE>>=
+CV <- cov(Mental)
+D2 <- mahalanobis(Mental,center=colMeans(Mental),cov=CV)
+D2 <- as.data.frame(D2)
+describe(D2)
+ggplot(D2, aes(sample=D2)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=12)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=12)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=12)) +
+    scale_y_continuous(breaks=seq(0,35,5)) +
+    scale_x_continuous(breaks=seq(0,35,5)) +
+    coord_cartesian(xlim = c(0,35), ylim =c(0,35)) +
+    xlab(expression("Expected Values from" * ~ chi[12]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[12]^2))
+@
+
+\textbf{\large{\textit{
+The squared Mahalanobis distances suggest the data are well behaved.
+}}}
+
+\subsubsection{Multivariate Normality}
+\textbf{\large{\textit{
+We can also test for multivariate normality.
+}}}
+<<tidy=TRUE>>=
+mvn(Mental,mvnTest="mardia")
+@
+
+\textbf{\large{\textit{
+The data are multivariate normal, which is of course not surprising given that they were generated from a multivariate normal distribution.
+}}}
+
+\subsection{Need for Cognition}
+\subsubsection{Mahalanobis Distance}
+<<tidy=TRUE>>=
+ CV <- cov(NC)
+D2 <- mahalanobis(NC,center=colMeans(NC),cov=CV)
+D2 <- as.data.frame(D2)
+describe(D2)
+ggplot(D2, aes(sample=D2)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=18)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=18)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=18)) +
+    scale_y_continuous(breaks=seq(0,55,5)) +
+    scale_x_continuous(breaks=seq(0,55,5)) +
+    coord_cartesian(xlim = c(0,55), ylim =c(0,55)) +
+    xlab(expression("Expected Values from" * ~ chi[18]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[18]^2))
+@
+
+\textbf{\large{\textit{
+The squared Mahalanobis distances suggest no multivariate outliers but the data appear to violate multivariate normality.
+}}}
+
+\subsubsection{Multivariate Normality}
+\textbf{\large{\textit{
+We can also test for multivariate normality.
+}}}
+<<tidy=TRUE>>=
+mvn(NC,mvnTest="mardia")
+@
+
+\textbf{\large{\textit{
+The data are not univariate or multivariate normal.
+}}}
+
+\subsection{Self-Esteem Sample 1}
+\subsubsection{Mahalanobis Distance}
+<<tidy=TRUE>>=
+CV <- cov(SE[,1:10])
+D2 <- mahalanobis(SE[,1:10],center=colMeans(SE[,1:10]),cov=CV)
+D2 <- as.data.frame(D2)
+describe(D2)
+ggplot(D2, aes(sample=D2)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=10)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=10)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=10)) +
+    scale_y_continuous(breaks=seq(0,35,5)) +
+    scale_x_continuous(breaks=seq(0,35,5)) +
+    coord_cartesian(xlim = c(0,35), ylim =c(0,35)) +
+    xlab(expression("Expected Values from" * ~ chi[10]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[10]^2))
+@
+
+\textbf{\large{\textit{
+The squared Mahalanobis distances suggest no multivariate outliers but the data appear to violate multivariate normality.
+}}}
+
+\subsubsection{Multivariate Normality}
+\textbf{\large{\textit{
+We can also test for multivariate normality.
+}}}
+<<tidy=TRUE>>=
+mvn(SE[,1:10],mvnTest="mardia")
+@
+
+\textbf{\large{\textit{
+The data are not univariate or multivariate normal.
+}}}
+
+\subsection{Self-Esteem Sample 2}
+\subsubsection{Mahalanobis Distance}
+<<tidy=TRUE>>=
+CV <- cov(SE[,11:20])
+D2 <- mahalanobis(SE[,11:20],center=colMeans(SE[,11:20]),cov=CV)
+D2 <- as.data.frame(D2)
+describe(D2)
+ggplot(D2, aes(sample=D2)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=10)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=10)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=10)) +
+    scale_y_continuous(breaks=seq(0,35,5)) +
+    scale_x_continuous(breaks=seq(0,35,5)) +
+    coord_cartesian(xlim = c(0,35), ylim =c(0,35)) +
+    xlab(expression("Expected Values from" * ~ chi[10]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[10]^2))
+@
+
+\textbf{\large{\textit{
+The squared Mahalanobis distances suggest no multivariate outliers but the data appear to violate multivariate normality.
+}}}
+
+\subsubsection{Multivariate Normality}
+\textbf{\large{\textit{
+We can also test for multivariate normality.
+}}}
+<<tidy=TRUE>>=
+mvn(SE[,11:20],mvnTest="mardia")
+@
+
+\textbf{\large{\textit{
+The data are not univariate or multivariate normal.
+}}}
+
+\subsection{Holzinger and Swineford (1939)}
+\subsubsection{Mahalanobis Distance}
+<<tidy=TRUE>>=
+CV <- cov(HS[,2:10])
+D2 <- mahalanobis(HS[,2:10],center=colMeans(HS[,2:10]),cov=CV)
+D2 <- as.data.frame(D2)
+describe(D2)
+ggplot(D2, aes(sample=D2)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=9)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=9)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=9)) +
+    scale_y_continuous(breaks=seq(0,35,5)) +
+    scale_x_continuous(breaks=seq(0,35,5)) +
+    coord_cartesian(xlim = c(0,35), ylim =c(0,35)) +
+    xlab(expression("Expected Values from" * ~ chi[9]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[9]^2))
+@
+
+\textbf{\large{\textit{
+The squared Mahalanobis distances suggest no multivariate outliers but the data appear to violate multivariate normality.
+}}}
+
+\subsubsection{Multivariate Normality}
+\textbf{\large{\textit{
+We can also test for multivariate normality.
+}}}
+<<tidy=TRUE>>=
+mvn(HS[,2:10],mvnTest="mardia")
+@
+
+\textbf{\large{\textit{
+The data are not univariate or multivariate normal.
+}}}
+
+\section{CFA With Two Approaches to Scaling}
+\textbf{\large{\textit{
+The scale for the latent variables can either be set by using one of the manifest variables or by specifying the variances of the latent variables directly (usually by standardizing them). 
+The two approaches will produce identical fits to the data but will differ in the particular parameters that get estimated.
+}}}
+<<tidy=TRUE>>=
+scaling.model.1 <- '
+# Latent variable definitions.
+# Scale of the latent variables is set by the first listed manifest variable.
+Verbal =~ Grammar+Paragraph_Comprehension+Vocabulary+Sentence_Completion
+Math =~ Geometry+Algebra+Numerical_Puzzles+Series_Completion
+Reasoning =~ Practical_Problem_Solving+Symbol_Manipulation+Analytical_Ability+Formal_Logic
+# Latent variable covariances.
+Verbal ~~ Math
+Verbal ~~ Reasoning
+Math ~~ Reasoning
+'
+
+scaling.model.2 <- '
+# Latent variable definitions.
+# Scale of the latent variables is set directly.
+Verbal =~ NA*Grammar+Paragraph_Comprehension+Vocabulary+Sentence_Completion
+Math =~ NA*Geometry+Algebra+Numerical_Puzzles+Series_Completion
+Reasoning =~ NA*Practical_Problem_Solving+Symbol_Manipulation+Analytical_Ability+Formal_Logic
+# Latent variable covariances.
+Verbal ~~ Math
+Verbal ~~ Reasoning
+Math ~~ Reasoning
+# Latent variable variances.
+Verbal ~~ 1*Verbal
+Math ~~ 1*Math
+Reasoning ~~ 1*Reasoning
+'
+@
+
+<<tidy=TRUE>>=
+CFA_Fit_1 <- cfa(scaling.model.1, data = Mental,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_1, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+
+CFA_Fit_2 <- cfa(scaling.model.2, data = Mental,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_2, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+@
+
+\section{CFA With Covariance versus Correlation Matrices}
+\textbf{\large{\textit{
+Confirmatory factor analysis models are usually based on the decomposition of covariance matrices, not correlation matrices. 
+The solutions hold, strictly speaking, for the analysis of covariance matrices. 
+To the extent that the solution depends on the scale of the variables, analyses based on covariance matrices and correlation matrices can differ.
+The differences are a function of the differences in the variances across the variables.
+}}}
+<<tidy=TRUE>>=
+NC.model.1 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+'
+@
+
+<<tidy=TRUE>>=
+CFA_Fit_3 <- cfa(NC.model.1, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_3, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+CFA_Fit_4 <- cfa(NC.model.1, data = as.data.frame(scale(NC)),missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(CFA_Fit_4, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+cov(NC)
+cov(scale(NC))
+(as.matrix(diag(cov(NC))))
+@
+
+\section{Model Modification}
+\textbf{\large{\textit{
+The Need for Cognition Scale is supposedly a measure of a single underlying latent variable.
+Is that true?
+We'll first see if one factor seems sensible using methods from exploratory factor analysis.
+Then we'll apply CFA and explore model modification.
+}}}
+
+<<tidy=TRUE>>=
+fa.parallel(NC,fa="fa",fm="ml",error.bars = TRUE,n.iter=1000)
+M <- vss(NC,n=10,fm="pc")
+@
+
+<<tidy=TRUE>>=
+plot_data <- M$map
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("map")
+plot_data$component <- seq(1,10,1)
+
+ggplot(plot_data, aes(x=component, y=map)) +
+  geom_line(size=1) + geom_point(size=3) + 
+  coord_cartesian(xlim = c(1,10), ylim = c(0,.1)) +
+  scale_x_continuous(breaks=c(seq(1,10,1))) +
+  scale_y_continuous(breaks=seq(0,.1,.01)) +
+  xlab("Factors") + 
+  ylab("MAP") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+      axis.text.y = element_text(colour = "black",size=12,face="bold"),
+      axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+      axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+      axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+      axis.line.x = element_blank(),
+      axis.line.y = element_blank(),
+      plot.title = element_text(size=16, face="bold", 
+                                margin = margin(0, 0, 20, 0),hjust=.5),
+      panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),  
+      plot.background = element_rect(fill = "white"),
+      plot.margin = unit(c(1, 1, 1, 1), "cm"),
+      legend.position = "bottom", 
+      legend.title = element_blank()) +
+  geom_hline(yintercept=min(plot_data$map,size=1,linetype=2)) +
+  ggtitle("MAP Index as a Function of Factors")
+@
+
+<<tidy=TRUE>>=
+fit_NC <- fa(NC,nfactors=1,rotate="none",fm="ml",n.obs=195,n.iter=1000)
+fit_NC
+@
+
+<<tidy=TRUE>>=
+NC.model.1 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_1 <- cfa(NC.model.1, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_1, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_1)
+subset(MI, mi>10)
+@
+
+\textbf{\large{\textit{
+We will free a parameter at a time, depending on the highest modification index at each step.
+}}}
+
+<<tidy=TRUE>>=
+NC.model.2 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+nc4 ~~ nc5
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_2 <- cfa(NC.model.2, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_2, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_2)
+subset(MI, mi>10)
+anova(NC_Fit_1,NC_Fit_2)
+@
+
+<<tidy=TRUE>>=
+NC.model.3 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+nc4 ~~ nc5
+nc13 ~~ nc14
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_3 <- cfa(NC.model.3, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_3, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_3)
+subset(MI, mi>10)
+anova(NC_Fit_2,NC_Fit_3)
+@
+
+<<tidy=TRUE>>=
+NC.model.4 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+nc4 ~~ nc5
+nc13 ~~ nc14
+nc8 ~~ nc11
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_4 <- cfa(NC.model.4, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_4, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_4)
+subset(MI, mi>10)
+anova(NC_Fit_3,NC_Fit_4)
+@
+
+<<tidy=TRUE>>=
+NC.model.5 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+nc4 ~~ nc5
+nc13 ~~ nc14
+nc8 ~~ nc11
+nc8 ~~ nc12
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_5 <- cfa(NC.model.5, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_5, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_5)
+subset(MI, mi>10)
+anova(NC_Fit_4,NC_Fit_5)
+@
+
+<<tidy=TRUE>>=
+NC.model.6 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+nc4 ~~ nc5
+nc13 ~~ nc14
+nc8 ~~ nc11
+nc8 ~~ nc12
+nc10 ~~ nc11
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_6 <- cfa(NC.model.6, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_6, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_6)
+subset(MI, mi>5)
+anova(NC_Fit_5,NC_Fit_6)
+@
+
+<<tidy=TRUE>>=
+NC.model.7 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+nc4 ~~ nc5
+nc13 ~~ nc14
+nc8 ~~ nc11
+nc8 ~~ nc12
+nc10 ~~ nc11
+nc5 ~~ nc12
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_7 <- cfa(NC.model.7, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_7, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_7)
+subset(MI, mi>5)
+anova(NC_Fit_6,NC_Fit_7)
+@
+
+<<tidy=TRUE>>=
+NC.model.8 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+nc4 ~~ nc5
+nc13 ~~ nc14
+nc8 ~~ nc11
+nc8 ~~ nc12
+nc10 ~~ nc11
+nc5 ~~ nc12
+nc2 ~~ nc4
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_8 <- cfa(NC.model.8, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_8, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_8)
+subset(MI, mi>5)
+anova(NC_Fit_7,NC_Fit_8)
+@
+
+<<tidy=TRUE>>=
+NC.model.9 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+nc4 ~~ nc5
+nc13 ~~ nc14
+nc8 ~~ nc11
+nc8 ~~ nc12
+nc10 ~~ nc11
+nc5 ~~ nc12
+nc2 ~~ nc4
+nc14 ~~ nc17
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_9 <- cfa(NC.model.9, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_9, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_9)
+subset(MI, mi>5)
+anova(NC_Fit_8,NC_Fit_9)
+@
+
+\textbf{\large{\textit{
+An alternative would be to specify a model alternative that might be conceptually viable.
+}}}
+<<tidy=TRUE>>=
+NC.model.10 <- '
+# Latent variable definitions.
+NC_N =~ NA*nc1 + nc2 + nc6 + nc10 + nc11 + nc13 + nc14 + nc15 + nc18
+NC_P =~ NA*nc3 + nc4 + nc5 + nc7 + nc8 + nc9 + nc12 + nc16 + nc17
+NC_N ~~ 1*NC_N
+NC_P ~~ 1*NC_P
+
+NC_N ~~ NC_P
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_10 <- cfa(NC.model.10, data = NC,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_10, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+MI <- modificationIndices(NC_Fit_10)
+subset(MI, mi>5)
+anova(NC_Fit_9,NC_Fit_10)
+anova(NC_Fit_1,NC_Fit_9)
+anova(NC_Fit_1,NC_Fit_10)
+@
+
+\section{Reliability}
+\textbf{\large{\textit{
+The reliability of a scale can be obtained from CFA output.
+It is first important to score the items in a consistent direction.
+}}}
+
+<<tidy=TRUE>>=
+NC_rescaled <- as.data.frame(NC)
+NC_rescaled$nc1 <- 6-NC_rescaled$nc1
+NC_rescaled$nc2 <- 6-NC_rescaled$nc2
+NC_rescaled$nc6 <- 6-NC_rescaled$nc6
+NC_rescaled$nc10 <- 6-NC_rescaled$nc10
+NC_rescaled$nc11 <- 6-NC_rescaled$nc11
+NC_rescaled$nc13 <- 6-NC_rescaled$nc13
+NC_rescaled$nc14 <- 6-NC_rescaled$nc14
+NC_rescaled$nc15 <- 6-NC_rescaled$nc15
+NC_rescaled$nc18 <- 6-NC_rescaled$nc18
+cor(NC_rescaled)
+@
+
+\subsection{Single Factor Model}
+\textbf{\large{\textit{
+A single factor model is estimated in order to get the raw information for calculating reliability.
+}}}
+<<tidy=TRUE>>=
+NC.model.11 <- '
+# Latent variable definitions.
+NC =~ nc1 + nc2 + nc3 + nc4 + nc5 + nc6 + nc7 + nc8 + nc9 + nc10 +
+nc11 + nc12 + nc13 + nc14 + nc15 + nc16 + nc17 + nc18
+'
+@
+
+<<tidy=TRUE>>=
+NC_Fit_11 <- cfa(NC.model.11, data = NC_rescaled,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(NC_Fit_11, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+@
+
+\subsection{Coefficient Alpha: Traditional}
+<<tidy=TRUE>>=
+psych::alpha(NC_rescaled)
+@
+
+\subsection{Coefficient Alpha: CFA}
+<<tidy=TRUE>>=
+# Extract standardized loadings and error variances.
+NC_Loadings <- inspect(NC_Fit_11,what="std")$lambda
+NC_error_variances <- diag(inspect(NC_Fit_11,what="std")$theta)
+
+# Standardized coefficient alpha, version 1.
+Mean_Item_Reliability <- mean(NC_Loadings^2)
+(18*Mean_Item_Reliability)/(1+17*Mean_Item_Reliability)
+
+# Standardized coefficient alpha, version 2.
+sum(NC_Loadings)^2/(sum(NC_Loadings)^2+sum(NC_error_variances))
+@
+
+\section{Cross-Validation}
+\subsection{Across Samples}
+\textbf{\large{\textit{
+The most convincing cross-validation occurs across independent samples. 
+For this demonstration, the state self-esteem data will be used.
+Cross-validation in this case is usually described in the context of measurement invariance.
+Several increasingly stringent forms of invariance are possible, estimated from a set of models that place increasing equality constraints across groups. \newline
+\begin{addmargin}[1em]{0em}
+1. The first model simply requires estimation of the same basic factor model in each group.
+Configural invariance is said to exist if this first model has a good fit and the same loadings are significant in all groups.\newline
+2. The next constraint is to require the factor loadings to be equal across groups.
+This constraint is called metric or weak invariance and tests whether respondents across groups attribute the same meaning to the latent constructs. \newline
+3. Next the intercepts are constrained to be equal. 
+This is called scalar or strong invariance and implies that the meaning of the construct (the factor loadings), and the levels of the underlying items (intercepts) are equal in both groups.
+If this constraint holds, the groups can be compared on their latent variable scores. \newline
+4. Finally, the residual variances are fixed to be equal across groups. 
+This is called strict invariance and means that the explained variance for every item is the
+same across groups. 
+In other words, the latent construct is measured identically across groups. 
+If error variances are not equal, groups can still be compared on the latent variable, but this is measured with different amounts of error between groups. \newline
+\newline
+It is also possible to extend the sequence of tests by requiring the latent means, variances, and covariances to be equal. \newline
+\newline
+The sequence of tests compares each newly constrained model to the previous one. 
+The level of invariance is determined by the furthest step at which model equivalence holds. \newline
+\newline
+It is possible that partial invariance holds, occurring when a level of invariance is found for some, but not all items. \newline
+\newline
+Comparison of models is usuall conducted using both chi-square difference tests as well as comparison of CFI. 
+A nonsignificant chi-square difference and a CFI difference less than .01 are conventionally taken as evidence for invariance at a particular step.
+\newline
+\end{addmargin}
+}}}
+
+<<tidy=TRUE>>=
+HS.model <- '
+Visual =~ x1+x2+x3
+Textual =~ x4+x5+x6
+Speed =~ x7+x8+x9
+'
+no_groups <-cfa(HS.model,data=HS,missing="ML",estimator="MLR",
+              likelihood="wishart",representation="LISREL")
+summary(no_groups,standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+config <- cfa(HS.model,data=HS,missing="ML",estimator="MLR",
+              likelihood="wishart",representation="LISREL",group="school")
+summary(config,standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+weak <- cfa(HS.model,data=HS,missing="ML",estimator="MLR",
+            likelihood="wishart",representation="LISREL",group="school",
+            group.equal="loadings")
+summary(weak,standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+strong <- cfa(HS.model,data=HS,missing="ML",estimator="MLR",
+              likelihood="wishart",representation="LISREL",group="school", 
+              group.equal = c("loadings","intercepts"))
+summary(strong,standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+strict<- cfa(HS.model,data=HS,missing="ML",estimator="MLR",
+             likelihood="wishart",representation="LISREL",group="school", 
+             group.equal =c("loadings","intercepts","residuals"))
+summary(strict,standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+@
+
+<<tidy=TRUE>>=
+strict_2<- cfa(HS.model,data=HS,missing="ML",estimator="MLR",
+             likelihood="wishart",representation="LISREL",group="school", 
+             group.equal =c("loadings","intercepts","residuals","means"))
+summary(strict_2,standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+@
+
+<<tidy=TRUE>>=
+strict_3<- cfa(HS.model,data=HS,missing="ML",estimator="MLR",
+             likelihood="wishart",representation="LISREL",group="school", 
+             group.equal =c("loadings","intercepts","residuals","means",
+                            "lv.variances","lv.covariances"))
+summary(strict_3,standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+@
+
+<<tidy=TRUE>>=
+anova(config,weak,strong,strict,strict_2,strict_3)
+@
+
+<<tidy=TRUE>>=
+measurementInvariance(HS.model, data = HS, group = "school")
+@
+
+\subsection{Over Time, Within Samples}
+\textbf{\large{\textit{
+Invariance can also be tested within a sample, over time.
+The self-esteem data provide a good example. 
+First, to establish configural invariance, a single-factor model is estimated at each time.
+}}}
+<<tidy=TRUE>>=
+SE_Model_1 <- '
+SE_1 =~ r_1_1 + r_1_2 + r_1_3 + r_1_4 + r_1_5 + r_1_6 + r_1_7 + r_1_8 + r_1_9 + r_1_10 
+SE_2 =~ r_2_1 + r_2_2 + r_2_3 + r_2_4 + r_2_5 + r_2_6 + r_2_7 + r_2_8 + r_2_9 + r_2_10 
+SE_1 ~ 0*1
+SE_2 ~ 0*1
+'
+config <- cfa(SE_Model_1, data = SE,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(config, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+@
+
+\textbf{\large{\textit{
+Across time, the corresponding items are constrained to have the same loadings.
+}}}
+<<tidy=TRUE>>=
+SE_Model_2 <- '
+SE_1 =~ a*r_1_1 + b*r_1_2 + c*r_1_3 + d*r_1_4 + e*r_1_5 + f*r_1_6 + g*r_1_7 + h*r_1_8 + i*r_1_9 + j*r_1_10 
+SE_2 =~ a*r_2_1 + b*r_2_2 + c*r_2_3 + d*r_2_4 + e*r_2_5 + f*r_2_6 + g*r_2_7 + h*r_2_8 + i*r_2_9 + j*r_2_10 
+SE_1 ~ 0*1
+SE_2 ~ 0*1
+'
+weak <- cfa(SE_Model_2, data = SE,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(weak, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+@
+
+\textbf{\large{\textit{
+Next the corresponding items are constrained to have the same intercepts.
+}}}
+<<tidy=TRUE>>=
+SE_Model_3 <- '
+SE_1 =~ a*r_1_1 + b*r_1_2 + c*r_1_3 + d*r_1_4 + e*r_1_5 + f*r_1_6 + g*r_1_7 + h*r_1_8 + i*r_1_9 + j*r_1_10 
+SE_2 =~ a*r_2_1 + b*r_2_2 + c*r_2_3 + d*r_2_4 + e*r_2_5 + f*r_2_6 + g*r_2_7 + h*r_2_8 + i*r_2_9 + j*r_2_10 
+r_1_1 ~ aa*1
+r_2_1 ~ aa*1
+r_1_2 ~ bb*1
+r_2_2 ~ bb*1
+r_1_3 ~ cc*1
+r_2_3 ~ cc*1
+r_1_4 ~ dd*1
+r_2_4 ~ dd*1
+r_1_5 ~ ee*1
+r_2_5 ~ ee*1
+r_1_6 ~ ff*1
+r_2_6 ~ ff*1
+r_1_7 ~ gg*1
+r_2_7 ~ gg*1
+r_1_8 ~ hh*1
+r_2_8 ~ hh*1
+r_1_9 ~ ii*1
+r_2_9 ~ ii*1
+r_1_10 ~ jj*1
+r_2_10 ~ jj*1
+SE_1 ~ 0*1
+SE_2 ~ 0*1
+'
+strong <- cfa(SE_Model_3, data = SE,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(strong, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+@
+
+\textbf{\large{\textit{
+Finally, the corresponding items are constrained to have the same loadings, the same intercepts, and their error variances are constrained to be equal as well.
+}}}
+<<tidy=TRUE>>=
+SE_Model_4 <- '
+SE_1 =~ a*r_1_1 + b*r_1_2 + c*r_1_3 + d*r_1_4 + e*r_1_5 + f*r_1_6 + g*r_1_7 + h*r_1_8 + i*r_1_9 + j*r_1_10 
+SE_2 =~ a*r_2_1 + b*r_2_2 + c*r_2_3 + d*r_2_4 + e*r_2_5 + f*r_2_6 + g*r_2_7 + h*r_2_8 + i*r_2_9 + j*r_2_10 
+r_1_1 ~ aa*1
+r_2_1 ~ aa*1
+r_1_2 ~ bb*1
+r_2_2 ~ bb*1
+r_1_3 ~ cc*1
+r_2_3 ~ cc*1
+r_1_4 ~ dd*1
+r_2_4 ~ dd*1
+r_1_5 ~ ee*1
+r_2_5 ~ ee*1
+r_1_6 ~ ff*1
+r_2_6 ~ ff*1
+r_1_7 ~ gg*1
+r_2_7 ~ gg*1
+r_1_8 ~ hh*1
+r_2_8 ~ hh*1
+r_1_9 ~ ii*1
+r_2_9 ~ ii*1
+r_1_10 ~ jj*1
+r_2_10 ~ jj*1
+r_1_1 ~~ aaa*r_1_1
+r_2_1 ~~ aaa*r_2_1
+r_1_2 ~~ bbb*r_1_2
+r_2_2 ~~ bbb*r_2_2
+r_1_3 ~~ ccc*r_1_3
+r_2_3 ~~ ccc*r_2_3
+r_1_4 ~~ ddd*r_1_4
+r_2_4 ~~ ddd*r_2_4
+r_1_5 ~~ eee*r_1_5
+r_2_5 ~~ eee*r_2_5
+r_1_6 ~~ fff*r_1_6
+r_2_6 ~~ fff*r_2_6
+r_1_7 ~~ ggg*r_1_7
+r_2_7 ~~ ggg*r_2_7
+r_1_8 ~~ hhh*r_1_8
+r_2_8 ~~ hhh*r_2_8
+r_1_9 ~~ iii*r_1_9
+r_2_9 ~~ iii*r_2_9
+r_1_10 ~~ jjj*r_1_10
+r_2_10 ~~ jjj*r_2_10
+SE_1 ~ 0*1
+SE_2 ~ 1
+'
+strict_1 <- cfa(SE_Model_4, data = SE,missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(strict_1, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+anova(config,weak,strong,strict_1)
+anova(config,weak)
+anova(config,strong)
+anova(config,strict_1)
+@
+
+\textbf{\large{\textit{
+Across time, the corresponding items are constrained to have the same loadings, the same intercepts, and their error variances are constrained to be equal as well.
+In addition, the latent means are constrained to be equal (and 0).
+}}}
+<<tidy=TRUE>>=
+SE_Model_5 <- '
+SE_1 =~ a*r_1_1 + b*r_1_2 + c*r_1_3 + d*r_1_4 + e*r_1_5 + f*r_1_6 + g*r_1_7 + h*r_1_8 + i*r_1_9 + j*r_1_10 
+SE_2 =~ a*r_2_1 + b*r_2_2 + c*r_2_3 + d*r_2_4 + e*r_2_5 + f*r_2_6 + g*r_2_7 + h*r_2_8 + i*r_2_9 + j*r_2_10 
+r_1_1 ~ aa*1
+r_2_1 ~ aa*1
+r_1_2 ~ bb*1
+r_2_2 ~ bb*1
+r_1_3 ~ cc*1
+r_2_3 ~ cc*1
+r_1_4 ~ dd*1
+r_2_4 ~ dd*1
+r_1_5 ~ ee*1
+r_2_5 ~ ee*1
+r_1_6 ~ ff*1
+r_2_6 ~ ff*1
+r_1_7 ~ gg*1
+r_2_7 ~ gg*1
+r_1_8 ~ hh*1
+r_2_8 ~ hh*1
+r_1_9 ~ ii*1
+r_2_9 ~ ii*1
+r_1_10 ~ jj*1
+r_2_10 ~ jj*1
+r_1_1 ~~ aaa*r_1_1
+r_2_1 ~~ aaa*r_2_1
+r_1_2 ~~ bbb*r_1_2
+r_2_2 ~~ bbb*r_2_2
+r_1_3 ~~ ccc*r_1_3
+r_2_3 ~~ ccc*r_2_3
+r_1_4 ~~ ddd*r_1_4
+r_2_4 ~~ ddd*r_2_4
+r_1_5 ~~ eee*r_1_5
+r_2_5 ~~ eee*r_2_5
+r_1_6 ~~ fff*r_1_6
+r_2_6 ~~ fff*r_2_6
+r_1_7 ~~ ggg*r_1_7
+r_2_7 ~~ ggg*r_2_7
+r_1_8 ~~ hhh*r_1_8
+r_2_8 ~~ hhh*r_2_8
+r_1_9 ~~ iii*r_1_9
+r_2_9 ~~ iii*r_2_9
+r_1_10 ~~ jjj*r_1_10
+r_2_10 ~~ jjj*r_2_10
+SE_1 ~ 0*1
+SE_2 ~ 0*1
+'
+strict_2 <- cfa(SE_Model_5, data = SE[,2:21],missing="ML",estimator="MLR",
+                 likelihood="wishart",representation="LISREL")
+summary(strict_2, standardized=TRUE,rsq=TRUE,fit.measures = TRUE)
+anova(config,weak,strong,strict_1,strict_2)
+anova(config,weak)
+anova(config,strong)
+anova(config,strict_1)
+anova(config,strict_2)
+@
+\end{document}

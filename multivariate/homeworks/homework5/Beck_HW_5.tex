@@ -325,7 +325,7 @@ There appear to be intercorrelations among the variables.
 \end{kframe}
 \end{knitrout}
 
-The MSA for each item range from 1 to 1, with a mean of 1, indicating strong evidence for using a data reduction technique. 
+The MSA for each item range from 0.74 to 0.91, with a mean of 0.86, indicating strong evidence for using a data reduction technique. 
 
 \subsubsection{Bartlett's Test}
 \begin{knitrout}
@@ -440,7 +440,128 @@ VSS also suggests 5 factors.
 \end{knitrout}
 
 
-The two models fit the data relatively well ($RMSEA_{unrotated} = 0.0677843$, $RMSEA_{varimax} = 0.0677843$, $RMSEA_{oblimin} = 0.0677843$, $TLI_{unrotated} = 0.8938015$; $TLI_{varimax} = 0.8938015$; $TLI_{oblimin} = 0.8938015$). 
+The two models fit the data relatively well ($RMSEA_{unrotated} = 0.07$, $RMSEA_{varimax} = 0.07$, $RMSEA_{oblimin} = 0.07$, $TLI_{unrotated} = 0.89$; $TLI_{varimax} = 0.89$; $TLI_{oblimin} = 0.89$).  
+
+We can also look at the communalities: 
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{tibble}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{names}\hlstd{(fa_1}\hlopt{$}\hlstd{communalities),}
+       \hlkwc{Unrotated} \hlstd{= fa_1}\hlopt{$}\hlstd{communalities,}
+       \hlkwc{Varimax} \hlstd{= fa_2}\hlopt{$}\hlstd{communalities,}
+       \hlkwc{Oblimin} \hlstd{= fa_3}\hlopt{$}\hlstd{communalities)} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{str_replace_all}\hlstd{(Facet,} \hlstr{"_"}\hlstd{,} \hlstr{" "}\hlstd{))} \hlopt{%>%}
+  \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{escape} \hlstd{= F,} \hlkwc{digits} \hlstd{=} \hlnum{2}\hlstd{,}
+        \hlkwc{caption} \hlstd{=} \hlstr{"Communalities"}\hlstd{)} \hlopt{%>%}
+  \hlkwd{kable_styling}\hlstd{(}\hlkwc{full_width} \hlstd{= F)}
+\end{alltt}
+\end{kframe}\begin{table}
+
+\caption{\label{tab:unnamed-chunk-11}Communalities}
+\centering
+\begin{tabular}[t]{lrrr}
+\toprule
+Facet & Unrotated & Varimax & Oblimin\\
+\midrule
+Anxiety & 0.74 & 0.74 & 0.74\\
+Angry Hostility & 0.71 & 0.71 & 0.71\\
+Depression & 0.77 & 0.77 & 0.77\\
+Self Consciousness & 0.64 & 0.64 & 0.64\\
+Impulsiveness & 0.45 & 0.45 & 0.45\\
+\addlinespace
+Vulnerability & 0.69 & 0.69 & 0.69\\
+Warmth & 0.76 & 0.76 & 0.76\\
+Gregariousness & 0.54 & 0.54 & 0.54\\
+Assertiveness & 0.56 & 0.56 & 0.56\\
+Activity & 0.57 & 0.57 & 0.57\\
+\addlinespace
+Excitement Seeking & 0.35 & 0.35 & 0.35\\
+Positive Emotions & 0.68 & 0.68 & 0.68\\
+Fantasy & 0.53 & 0.53 & 0.53\\
+Aesthetics & 0.54 & 0.54 & 0.54\\
+Feelings & 0.60 & 0.60 & 0.60\\
+\addlinespace
+Actions & 0.49 & 0.49 & 0.49\\
+Ideas & 0.51 & 0.51 & 0.51\\
+Values & 0.47 & 0.47 & 0.47\\
+Trust & 0.47 & 0.47 & 0.47\\
+Straightforwardness & 0.46 & 0.46 & 0.46\\
+\addlinespace
+Altruism & 0.71 & 0.71 & 0.71\\
+Compliance & 0.66 & 0.66 & 0.66\\
+Modesty & 0.40 & 0.40 & 0.40\\
+Tender Mindedness & 0.45 & 0.45 & 0.45\\
+Competence & 0.69 & 0.69 & 0.69\\
+\addlinespace
+Order & 0.50 & 0.50 & 0.50\\
+Dutifulness & 0.65 & 0.65 & 0.65\\
+Achievement Striving & 0.73 & 0.73 & 0.73\\
+Self Discipline & 0.75 & 0.75 & 0.75\\
+Deliberation & 0.56 & 0.56 & 0.56\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\end{knitrout}
+
+THe communalities are identical across models but suggest that the latent factors explain a considerable amount of the variance in most variables.  
+
+How much variance is explained?
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{fa_1}\hlopt{$}\hlstd{Vaccounted} \hlopt{%>%} \hlstd{data.frame} \hlopt{%>%} \hlkwd{mutate}\hlstd{(}\hlkwc{Measure} \hlstd{=} \hlkwd{rownames}\hlstd{(.),} \hlkwc{Rotate} \hlstd{=} \hlstr{"Unrotated"}\hlstd{)} \hlopt{%>%}
+  \hlkwd{full_join}\hlstd{(}
+    \hlstd{fa_1}\hlopt{$}\hlstd{Vaccounted} \hlopt{%>%} \hlstd{data.frame} \hlopt{%>%} \hlkwd{mutate}\hlstd{(}\hlkwc{Measure} \hlstd{=} \hlkwd{rownames}\hlstd{(.),} \hlkwc{Rotate} \hlstd{=} \hlstr{"Varimax"}\hlstd{)}
+  \hlstd{)} \hlopt{%>%}
+  \hlkwd{full_join}\hlstd{(}
+    \hlstd{fa_1}\hlopt{$}\hlstd{Vaccounted} \hlopt{%>%} \hlstd{data.frame} \hlopt{%>%} \hlkwd{mutate}\hlstd{(}\hlkwc{Measure} \hlstd{=} \hlkwd{rownames}\hlstd{(.),} \hlkwc{Rotate} \hlstd{=} \hlstr{"Oblimin"}\hlstd{)}
+  \hlstd{)} \hlopt{%>%}
+  \hlkwd{select}\hlstd{(Measure,} \hlkwd{everything}\hlstd{(),} \hlopt{-}\hlstd{Rotate)} \hlopt{%>%}
+  \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{escape} \hlstd{= F,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{digits} \hlstd{=} \hlnum{2}\hlstd{,}
+        \hlkwc{caption} \hlstd{=} \hlstr{"Variance Explained"}\hlstd{)} \hlopt{%>%}
+  \hlkwd{group_rows}\hlstd{(}\hlstr{"Unrotated"}\hlstd{,} \hlnum{1}\hlstd{,}\hlnum{5}\hlstd{)} \hlopt{%>%}
+  \hlkwd{group_rows}\hlstd{(}\hlstr{"Varimax"}\hlstd{,} \hlnum{6}\hlstd{,} \hlnum{10}\hlstd{)} \hlopt{%>%}
+  \hlkwd{group_rows}\hlstd{(}\hlstr{"Oblimin"}\hlstd{,} \hlnum{11}\hlstd{,} \hlnum{15}\hlstd{)}
+\end{alltt}
+\end{kframe}\begin{table}
+
+\caption{\label{tab:unnamed-chunk-12}Variance Explained}
+\centering
+\begin{tabular}[t]{lrrrrr}
+\toprule
+Measure & MR1 & MR2 & MR3 & MR4 & MR5\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Unrotated}}\\
+\hspace{1em}SS loadings & 7.01 & 4.14 & 3.26 & 2.00 & \vphantom{2} 1.22\\
+\hspace{1em}Proportion Var & 0.23 & 0.14 & 0.11 & 0.07 & \vphantom{2} 0.04\\
+\hspace{1em}Cumulative Var & 0.23 & 0.37 & 0.48 & 0.55 & \vphantom{2} 0.59\\
+\hspace{1em}Proportion Explained & 0.40 & 0.23 & 0.18 & 0.11 & \vphantom{2} 0.07\\
+\hspace{1em}Cumulative Proportion & 0.40 & 0.63 & 0.82 & 0.93 & \vphantom{2} 1.00\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Varimax}}\\
+\hspace{1em}SS loadings & 7.01 & 4.14 & 3.26 & 2.00 & \vphantom{1} 1.22\\
+\hspace{1em}Proportion Var & 0.23 & 0.14 & 0.11 & 0.07 & \vphantom{1} 0.04\\
+\hspace{1em}Cumulative Var & 0.23 & 0.37 & 0.48 & 0.55 & \vphantom{1} 0.59\\
+\hspace{1em}Proportion Explained & 0.40 & 0.23 & 0.18 & 0.11 & \vphantom{1} 0.07\\
+\hspace{1em}Cumulative Proportion & 0.40 & 0.63 & 0.82 & 0.93 & \vphantom{1} 1.00\\
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Oblimin}}\\
+\hspace{1em}SS loadings & 7.01 & 4.14 & 3.26 & 2.00 & 1.22\\
+\hspace{1em}Proportion Var & 0.23 & 0.14 & 0.11 & 0.07 & 0.04\\
+\hspace{1em}Cumulative Var & 0.23 & 0.37 & 0.48 & 0.55 & 0.59\\
+\hspace{1em}Proportion Explained & 0.40 & 0.23 & 0.18 & 0.11 & 0.07\\
+\hspace{1em}Cumulative Proportion & 0.40 & 0.63 & 0.82 & 0.93 & 1.00\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\end{knitrout}
+
 
 But we aren't just concerned with model fit. We are also generally interested in naming the factors. 
 
@@ -455,23 +576,23 @@ There's no way for me to pretend I don't have expectations for how the data shou
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(MR1}\hlopt{:}\hlstd{MR5),} \hlkwd{funs}\hlstd{(}\hlkwd{round}\hlstd{(.,} \hlnum{2}\hlstd{)))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(MR1}\hlopt{:}\hlstd{MR5),} \hlkwd{funs}\hlstd{(}\hlkwd{cell_spec}\hlstd{(.,} \hlstr{"latex"}\hlstd{,}
         \hlkwc{background} \hlstd{=} \hlkwd{ifelse}\hlstd{((.)} \hlopt{>} \hlnum{.5}\hlstd{,} \hlstr{"yellow"}\hlstd{,} \hlstr{"white"}\hlstd{))))} \hlopt{%>%}
-  \hlkwd{mutate}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{str_remove_all}\hlstd{(Facet,} \hlstr{"_"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{str_replace_all}\hlstd{(Facet,} \hlstr{"_"}\hlstd{,} \hlstr{" "}\hlstd{))} \hlopt{%>%}
   \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{escape} \hlstd{= F,} \hlkwc{booktabs} \hlstd{= T,}
         \hlkwc{caption} \hlstd{=} \hlstr{"Unrotated Solution"}\hlstd{)} \hlopt{%>%}
   \hlkwd{kable_styling}\hlstd{(}\hlkwc{full_width} \hlstd{= F)}
 \end{alltt}
 \end{kframe}\begin{table}
 
-\caption{\label{tab:unnamed-chunk-11}Unrotated Solution}
+\caption{\label{tab:unnamed-chunk-13}Unrotated Solution}
 \centering
 \begin{tabular}[t]{lllllll}
 \toprule
 Factor & Facet & MR1 & MR2 & MR3 & MR4 & MR5\\
 \midrule
 Neuroticism & Anxiety & \cellcolor{white}{0.26} & \cellcolor{yellow}{0.78} & \cellcolor{white}{0.25} & \cellcolor{white}{0.09} & \cellcolor{white}{0}\\
-Neuroticism & AngryHostility & \cellcolor{white}{0.03} & \cellcolor{white}{0.47} & \cellcolor{white}{0.12} & \cellcolor{yellow}{0.69} & \cellcolor{white}{0.02}\\
+Neuroticism & Angry Hostility & \cellcolor{white}{0.03} & \cellcolor{white}{0.47} & \cellcolor{white}{0.12} & \cellcolor{yellow}{0.69} & \cellcolor{white}{0.02}\\
 Neuroticism & Depression & \cellcolor{white}{0.08} & \cellcolor{yellow}{0.87} & \cellcolor{white}{0.05} & \cellcolor{white}{0.12} & \cellcolor{white}{-0.05}\\
-Neuroticism & SelfConsciousness & \cellcolor{white}{0.17} & \cellcolor{yellow}{0.72} & \cellcolor{white}{0.28} & \cellcolor{white}{-0.04} & \cellcolor{white}{0.03}\\
+Neuroticism & Self Consciousness & \cellcolor{white}{0.17} & \cellcolor{yellow}{0.72} & \cellcolor{white}{0.28} & \cellcolor{white}{-0.04} & \cellcolor{white}{0.03}\\
 Neuroticism & Impulsiveness & \cellcolor{white}{0.29} & \cellcolor{white}{0.43} & \cellcolor{white}{-0.22} & \cellcolor{white}{0.31} & \cellcolor{white}{-0.18}\\
 \addlinespace
 Neuroticism & Vulnerability & \cellcolor{white}{0.05} & \cellcolor{yellow}{0.81} & \cellcolor{white}{0.12} & \cellcolor{white}{0.07} & \cellcolor{white}{-0.11}\\
@@ -480,8 +601,8 @@ Extraversion & Gregariousness & \cellcolor{yellow}{0.53} & \cellcolor{white}{-0.
 Extraversion & Assertiveness & \cellcolor{white}{0.47} & \cellcolor{white}{-0.42} & \cellcolor{white}{-0.04} & \cellcolor{white}{0.38} & \cellcolor{white}{-0.12}\\
 Extraversion & Activity & \cellcolor{yellow}{0.62} & \cellcolor{white}{-0.21} & \cellcolor{white}{0.02} & \cellcolor{white}{0.38} & \cellcolor{white}{-0.02}\\
 \addlinespace
-Extraversion & ExcitementSeeking & \cellcolor{white}{0.42} & \cellcolor{white}{-0.07} & \cellcolor{white}{-0.35} & \cellcolor{white}{0.22} & \cellcolor{white}{-0.01}\\
-Extraversion & PositiveEmotions & \cellcolor{yellow}{0.7} & \cellcolor{white}{-0.3} & \cellcolor{white}{-0.32} & \cellcolor{white}{-0.01} & \cellcolor{white}{-0.08}\\
+Extraversion & Excitement Seeking & \cellcolor{white}{0.42} & \cellcolor{white}{-0.07} & \cellcolor{white}{-0.35} & \cellcolor{white}{0.22} & \cellcolor{white}{-0.01}\\
+Extraversion & Positive Emotions & \cellcolor{yellow}{0.7} & \cellcolor{white}{-0.3} & \cellcolor{white}{-0.32} & \cellcolor{white}{-0.01} & \cellcolor{white}{-0.08}\\
 Openness & Fantasy & \cellcolor{white}{0.41} & \cellcolor{white}{0.1} & \cellcolor{white}{-0.55} & \cellcolor{white}{0} & \cellcolor{white}{0.24}\\
 Openness & Aesthetics & \cellcolor{white}{0.37} & \cellcolor{white}{0.3} & \cellcolor{white}{-0.3} & \cellcolor{white}{-0.1} & \cellcolor{white}{0.46}\\
 Openness & Feelings & \cellcolor{yellow}{0.66} & \cellcolor{white}{0.19} & \cellcolor{white}{-0.22} & \cellcolor{white}{0.27} & \cellcolor{white}{0.07}\\
@@ -495,13 +616,13 @@ Agreeableness & Straightforwardness & \cellcolor{white}{0.43} & \cellcolor{white
 Agreeableness & Altruism & \cellcolor{yellow}{0.78} & \cellcolor{white}{0.03} & \cellcolor{white}{-0.04} & \cellcolor{white}{-0.21} & \cellcolor{white}{-0.24}\\
 Agreeableness & Compliance & \cellcolor{white}{0.42} & \cellcolor{white}{0.17} & \cellcolor{white}{-0.06} & \cellcolor{white}{-0.67} & \cellcolor{white}{-0.05}\\
 Agreeableness & Modesty & \cellcolor{white}{0.36} & \cellcolor{white}{0.43} & \cellcolor{white}{0.15} & \cellcolor{white}{-0.24} & \cellcolor{white}{-0.09}\\
-Agreeableness & TenderMindedness & \cellcolor{yellow}{0.55} & \cellcolor{white}{0.29} & \cellcolor{white}{-0.19} & \cellcolor{white}{-0.13} & \cellcolor{white}{0}\\
+Agreeableness & Tender Mindedness & \cellcolor{yellow}{0.55} & \cellcolor{white}{0.29} & \cellcolor{white}{-0.19} & \cellcolor{white}{-0.13} & \cellcolor{white}{0}\\
 Conscientiousness & Competence & \cellcolor{yellow}{0.6} & \cellcolor{white}{-0.42} & \cellcolor{white}{0.35} & \cellcolor{white}{0.07} & \cellcolor{white}{0.15}\\
 \addlinespace
 Conscientiousness & Order & \cellcolor{white}{0.39} & \cellcolor{white}{-0.08} & \cellcolor{yellow}{0.59} & \cellcolor{white}{0.03} & \cellcolor{white}{0.05}\\
 Conscientiousness & Dutifulness & \cellcolor{yellow}{0.61} & \cellcolor{white}{-0.11} & \cellcolor{yellow}{0.52} & \cellcolor{white}{0.04} & \cellcolor{white}{0.03}\\
-Conscientiousness & AchievementStriving & \cellcolor{yellow}{0.6} & \cellcolor{white}{-0.14} & \cellcolor{yellow}{0.52} & \cellcolor{white}{0.25} & \cellcolor{white}{0.11}\\
-Conscientiousness & SelfDiscipline & \cellcolor{yellow}{0.57} & \cellcolor{white}{-0.28} & \cellcolor{yellow}{0.57} & \cellcolor{white}{0} & \cellcolor{white}{0.14}\\
+Conscientiousness & Achievement Striving & \cellcolor{yellow}{0.6} & \cellcolor{white}{-0.14} & \cellcolor{yellow}{0.52} & \cellcolor{white}{0.25} & \cellcolor{white}{0.11}\\
+Conscientiousness & Self Discipline & \cellcolor{yellow}{0.57} & \cellcolor{white}{-0.28} & \cellcolor{yellow}{0.57} & \cellcolor{white}{0} & \cellcolor{white}{0.14}\\
 Conscientiousness & Deliberation & \cellcolor{white}{0.46} & \cellcolor{white}{-0.06} & \cellcolor{yellow}{0.52} & \cellcolor{white}{-0.2} & \cellcolor{white}{0.19}\\
 \bottomrule
 \end{tabular}
@@ -516,59 +637,109 @@ Conscientiousness & Deliberation & \cellcolor{white}{0.46} & \cellcolor{white}{-
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(MR1}\hlopt{:}\hlstd{MR5),} \hlkwd{funs}\hlstd{(}\hlkwd{round}\hlstd{(.,} \hlnum{2}\hlstd{)))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(MR1}\hlopt{:}\hlstd{MR5),} \hlkwd{funs}\hlstd{(}\hlkwd{cell_spec}\hlstd{(.,} \hlstr{"latex"}\hlstd{,}
         \hlkwc{background} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{abs}\hlstd{(.)} \hlopt{>} \hlnum{.5}\hlstd{,} \hlstr{"yellow"}\hlstd{,} \hlstr{"white"}\hlstd{))))} \hlopt{%>%}
-  \hlkwd{mutate}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{str_remove_all}\hlstd{(Facet,} \hlstr{"_"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{str_replace_all}\hlstd{(Facet,} \hlstr{"_"}\hlstd{,} \hlstr{" "}\hlstd{))}
+\end{alltt}
+\end{kframe}              Factor                Facet                       MR1
+1        Neuroticism              Anxiety \\cellcolor{white}{-0.05}
+2        Neuroticism      Angry Hostility  \\cellcolor{white}{0.14}
+3        Neuroticism           Depression \\cellcolor{white}{-0.07}
+4        Neuroticism   Self Consciousness \\cellcolor{white}{-0.18}
+5        Neuroticism        Impulsiveness   \\cellcolor{white}{0.4}
+6        Neuroticism        Vulnerability \\cellcolor{white}{-0.09}
+7       Extraversion               Warmth \\cellcolor{yellow}{0.77}
+8       Extraversion       Gregariousness \\cellcolor{yellow}{0.72}
+9       Extraversion        Assertiveness  \\cellcolor{yellow}{0.6}
+10      Extraversion             Activity \\cellcolor{yellow}{0.57}
+11      Extraversion   Excitement Seeking   \\cellcolor{white}{0.5}
+12      Extraversion    Positive Emotions \\cellcolor{yellow}{0.65}
+13          Openness              Fantasy  \\cellcolor{white}{0.32}
+14          Openness           Aesthetics  \\cellcolor{white}{0.01}
+15          Openness             Feelings \\cellcolor{yellow}{0.53}
+16          Openness              Actions  \\cellcolor{white}{0.36}
+17          Openness                Ideas  \\cellcolor{white}{0.04}
+18          Openness               Values  \\cellcolor{white}{0.22}
+19     Agreeableness                Trust  \\cellcolor{white}{0.39}
+20     Agreeableness  Straightforwardness  \\cellcolor{white}{0.03}
+21     Agreeableness             Altruism \\cellcolor{yellow}{0.53}
+22     Agreeableness           Compliance  \\cellcolor{white}{0.01}
+23     Agreeableness              Modesty  \\cellcolor{white}{0.03}
+24     Agreeableness    Tender Mindedness  \\cellcolor{white}{0.31}
+25 Conscientiousness           Competence  \\cellcolor{white}{0.27}
+26 Conscientiousness                Order  \\cellcolor{white}{0.02}
+27 Conscientiousness          Dutifulness   \\cellcolor{white}{0.2}
+28 Conscientiousness Achievement Striving  \\cellcolor{white}{0.24}
+29 Conscientiousness      Self Discipline  \\cellcolor{white}{0.12}
+30 Conscientiousness         Deliberation \\cellcolor{white}{-0.08}
+                         MR2                       MR3
+1  \\cellcolor{yellow}{0.84}  \\cellcolor{white}{0.16}
+2  \\cellcolor{yellow}{0.62}  \\cellcolor{white}{0.07}
+3  \\cellcolor{yellow}{0.86} \\cellcolor{white}{-0.13}
+4  \\cellcolor{yellow}{0.74}  \\cellcolor{white}{0.14}
+5    \\cellcolor{white}{0.5} \\cellcolor{white}{-0.12}
+6  \\cellcolor{yellow}{0.82}  \\cellcolor{white}{-0.1}
+7      \\cellcolor{white}{0}  \\cellcolor{white}{0.15}
+8  \\cellcolor{white}{-0.06}  \\cellcolor{white}{0.07}
+9  \\cellcolor{white}{-0.22}  \\cellcolor{white}{0.34}
+10     \\cellcolor{white}{0}  \\cellcolor{white}{0.44}
+11 \\cellcolor{white}{-0.01}  \\cellcolor{white}{0.01}
+12 \\cellcolor{white}{-0.21}  \\cellcolor{white}{0.19}
+13  \\cellcolor{white}{0.03} \\cellcolor{white}{-0.15}
+14  \\cellcolor{white}{0.21}  \\cellcolor{white}{0.02}
+15   \\cellcolor{white}{0.3}   \\cellcolor{white}{0.2}
+16 \\cellcolor{white}{-0.07}  \\cellcolor{white}{-0.2}
+17 \\cellcolor{white}{-0.13}  \\cellcolor{white}{0.19}
+18  \\cellcolor{white}{0.19}     \\cellcolor{white}{0}
+19 \\cellcolor{white}{-0.02}  \\cellcolor{white}{0.15}
+20  \\cellcolor{white}{0.22}  \\cellcolor{white}{0.32}
+21  \\cellcolor{white}{0.13}   \\cellcolor{white}{0.3}
+22  \\cellcolor{white}{0.07}  \\cellcolor{white}{0.07}
+23  \\cellcolor{white}{0.44}  \\cellcolor{white}{0.16}
+24   \\cellcolor{white}{0.3}  \\cellcolor{white}{0.08}
+25 \\cellcolor{white}{-0.24} \\cellcolor{yellow}{0.74}
+26   \\cellcolor{white}{0.1} \\cellcolor{yellow}{0.69}
+27   \\cellcolor{white}{0.1} \\cellcolor{yellow}{0.76}
+28  \\cellcolor{white}{0.11} \\cellcolor{yellow}{0.81}
+29 \\cellcolor{white}{-0.08} \\cellcolor{yellow}{0.84}
+30  \\cellcolor{white}{0.05} \\cellcolor{yellow}{0.68}
+                          MR4                       MR5
+1     \\cellcolor{white}{0.1}  \\cellcolor{white}{0.07}
+2  \\cellcolor{yellow}{-0.55}     \\cellcolor{white}{0}
+3    \\cellcolor{white}{0.03}  \\cellcolor{white}{0.08}
+4    \\cellcolor{white}{0.17}  \\cellcolor{white}{0.05}
+5   \\cellcolor{white}{-0.07}  \\cellcolor{white}{0.13}
+6    \\cellcolor{white}{0.08} \\cellcolor{white}{-0.02}
+7    \\cellcolor{white}{0.37}   \\cellcolor{white}{0.1}
+8    \\cellcolor{white}{0.09}  \\cellcolor{white}{0.05}
+9   \\cellcolor{white}{-0.18}  \\cellcolor{white}{0.04}
+10  \\cellcolor{white}{-0.13}  \\cellcolor{white}{0.17}
+11  \\cellcolor{white}{-0.04}  \\cellcolor{white}{0.31}
+12   \\cellcolor{white}{0.25}  \\cellcolor{white}{0.33}
+13    \\cellcolor{white}{0.1} \\cellcolor{yellow}{0.63}
+14   \\cellcolor{white}{0.14} \\cellcolor{yellow}{0.69}
+15      \\cellcolor{white}{0}  \\cellcolor{white}{0.43}
+16   \\cellcolor{white}{0.19} \\cellcolor{yellow}{0.53}
+17  \\cellcolor{white}{-0.05} \\cellcolor{yellow}{0.67}
+18   \\cellcolor{white}{0.17}  \\cellcolor{yellow}{0.6}
+19  \\cellcolor{yellow}{0.53}  \\cellcolor{white}{0.14}
+20  \\cellcolor{yellow}{0.55}     \\cellcolor{white}{0}
+21  \\cellcolor{yellow}{0.54}  \\cellcolor{white}{0.16}
+22  \\cellcolor{yellow}{0.78}  \\cellcolor{white}{0.21}
+23   \\cellcolor{white}{0.41}  \\cellcolor{white}{0.07}
+24   \\cellcolor{white}{0.36}  \\cellcolor{white}{0.36}
+25   \\cellcolor{white}{0.06}  \\cellcolor{white}{0.12}
+26   \\cellcolor{white}{0.09} \\cellcolor{white}{-0.11}
+27   \\cellcolor{white}{0.16} \\cellcolor{white}{-0.02}
+28  \\cellcolor{white}{-0.05}  \\cellcolor{white}{0.03}
+29   \\cellcolor{white}{0.13}  \\cellcolor{white}{0.01}
+30   \\cellcolor{white}{0.28}  \\cellcolor{white}{0.07}
+\begin{kframe}\begin{alltt}
   \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{escape} \hlstd{= F,} \hlkwc{booktabs} \hlstd{= T,}
         \hlkwc{caption} \hlstd{=} \hlstr{"Varimax Rotated Solution"}\hlstd{)} \hlopt{%>%}
   \hlkwd{kable_styling}\hlstd{(}\hlkwc{full_width} \hlstd{= F)}
 \end{alltt}
-\end{kframe}\begin{table}
 
-\caption{\label{tab:unnamed-chunk-11}Varimax Rotated Solution}
-\centering
-\begin{tabular}[t]{lllllll}
-\toprule
-Factor & Facet & MR1 & MR2 & MR3 & MR4 & MR5\\
-\midrule
-Neuroticism & Anxiety & \cellcolor{white}{-0.05} & \cellcolor{yellow}{0.84} & \cellcolor{white}{0.16} & \cellcolor{white}{0.1} & \cellcolor{white}{0.07}\\
-Neuroticism & AngryHostility & \cellcolor{white}{0.14} & \cellcolor{yellow}{0.62} & \cellcolor{white}{0.07} & \cellcolor{yellow}{-0.55} & \cellcolor{white}{0}\\
-Neuroticism & Depression & \cellcolor{white}{-0.07} & \cellcolor{yellow}{0.86} & \cellcolor{white}{-0.13} & \cellcolor{white}{0.03} & \cellcolor{white}{0.08}\\
-Neuroticism & SelfConsciousness & \cellcolor{white}{-0.18} & \cellcolor{yellow}{0.74} & \cellcolor{white}{0.14} & \cellcolor{white}{0.17} & \cellcolor{white}{0.05}\\
-Neuroticism & Impulsiveness & \cellcolor{white}{0.4} & \cellcolor{white}{0.5} & \cellcolor{white}{-0.12} & \cellcolor{white}{-0.07} & \cellcolor{white}{0.13}\\
-\addlinespace
-Neuroticism & Vulnerability & \cellcolor{white}{-0.09} & \cellcolor{yellow}{0.82} & \cellcolor{white}{-0.1} & \cellcolor{white}{0.08} & \cellcolor{white}{-0.02}\\
-Extraversion & Warmth & \cellcolor{yellow}{0.77} & \cellcolor{white}{0} & \cellcolor{white}{0.15} & \cellcolor{white}{0.37} & \cellcolor{white}{0.1}\\
-Extraversion & Gregariousness & \cellcolor{yellow}{0.72} & \cellcolor{white}{-0.06} & \cellcolor{white}{0.07} & \cellcolor{white}{0.09} & \cellcolor{white}{0.05}\\
-Extraversion & Assertiveness & \cellcolor{yellow}{0.6} & \cellcolor{white}{-0.22} & \cellcolor{white}{0.34} & \cellcolor{white}{-0.18} & \cellcolor{white}{0.04}\\
-Extraversion & Activity & \cellcolor{yellow}{0.57} & \cellcolor{white}{0} & \cellcolor{white}{0.44} & \cellcolor{white}{-0.13} & \cellcolor{white}{0.17}\\
-\addlinespace
-Extraversion & ExcitementSeeking & \cellcolor{white}{0.5} & \cellcolor{white}{-0.01} & \cellcolor{white}{0.01} & \cellcolor{white}{-0.04} & \cellcolor{white}{0.31}\\
-Extraversion & PositiveEmotions & \cellcolor{yellow}{0.65} & \cellcolor{white}{-0.21} & \cellcolor{white}{0.19} & \cellcolor{white}{0.25} & \cellcolor{white}{0.33}\\
-Openness & Fantasy & \cellcolor{white}{0.32} & \cellcolor{white}{0.03} & \cellcolor{white}{-0.15} & \cellcolor{white}{0.1} & \cellcolor{yellow}{0.63}\\
-Openness & Aesthetics & \cellcolor{white}{0.01} & \cellcolor{white}{0.21} & \cellcolor{white}{0.02} & \cellcolor{white}{0.14} & \cellcolor{yellow}{0.69}\\
-Openness & Feelings & \cellcolor{yellow}{0.53} & \cellcolor{white}{0.3} & \cellcolor{white}{0.2} & \cellcolor{white}{0} & \cellcolor{white}{0.43}\\
-\addlinespace
-Openness & Actions & \cellcolor{white}{0.36} & \cellcolor{white}{-0.07} & \cellcolor{white}{-0.2} & \cellcolor{white}{0.19} & \cellcolor{yellow}{0.53}\\
-Openness & Ideas & \cellcolor{white}{0.04} & \cellcolor{white}{-0.13} & \cellcolor{white}{0.19} & \cellcolor{white}{-0.05} & \cellcolor{yellow}{0.67}\\
-Openness & Values & \cellcolor{white}{0.22} & \cellcolor{white}{0.19} & \cellcolor{white}{0} & \cellcolor{white}{0.17} & \cellcolor{yellow}{0.6}\\
-Agreeableness & Trust & \cellcolor{white}{0.39} & \cellcolor{white}{-0.02} & \cellcolor{white}{0.15} & \cellcolor{yellow}{0.53} & \cellcolor{white}{0.14}\\
-Agreeableness & Straightforwardness & \cellcolor{white}{0.03} & \cellcolor{white}{0.22} & \cellcolor{white}{0.32} & \cellcolor{yellow}{0.55} & \cellcolor{white}{0}\\
-\addlinespace
-Agreeableness & Altruism & \cellcolor{yellow}{0.53} & \cellcolor{white}{0.13} & \cellcolor{white}{0.3} & \cellcolor{yellow}{0.54} & \cellcolor{white}{0.16}\\
-Agreeableness & Compliance & \cellcolor{white}{0.01} & \cellcolor{white}{0.07} & \cellcolor{white}{0.07} & \cellcolor{yellow}{0.78} & \cellcolor{white}{0.21}\\
-Agreeableness & Modesty & \cellcolor{white}{0.03} & \cellcolor{white}{0.44} & \cellcolor{white}{0.16} & \cellcolor{white}{0.41} & \cellcolor{white}{0.07}\\
-Agreeableness & TenderMindedness & \cellcolor{white}{0.31} & \cellcolor{white}{0.3} & \cellcolor{white}{0.08} & \cellcolor{white}{0.36} & \cellcolor{white}{0.36}\\
-Conscientiousness & Competence & \cellcolor{white}{0.27} & \cellcolor{white}{-0.24} & \cellcolor{yellow}{0.74} & \cellcolor{white}{0.06} & \cellcolor{white}{0.12}\\
-\addlinespace
-Conscientiousness & Order & \cellcolor{white}{0.02} & \cellcolor{white}{0.1} & \cellcolor{yellow}{0.69} & \cellcolor{white}{0.09} & \cellcolor{white}{-0.11}\\
-Conscientiousness & Dutifulness & \cellcolor{white}{0.2} & \cellcolor{white}{0.1} & \cellcolor{yellow}{0.76} & \cellcolor{white}{0.16} & \cellcolor{white}{-0.02}\\
-Conscientiousness & AchievementStriving & \cellcolor{white}{0.24} & \cellcolor{white}{0.11} & \cellcolor{yellow}{0.81} & \cellcolor{white}{-0.05} & \cellcolor{white}{0.03}\\
-Conscientiousness & SelfDiscipline & \cellcolor{white}{0.12} & \cellcolor{white}{-0.08} & \cellcolor{yellow}{0.84} & \cellcolor{white}{0.13} & \cellcolor{white}{0.01}\\
-Conscientiousness & Deliberation & \cellcolor{white}{-0.08} & \cellcolor{white}{0.05} & \cellcolor{yellow}{0.68} & \cellcolor{white}{0.28} & \cellcolor{white}{0.07}\\
-\bottomrule
-\end{tabular}
-\end{table}
 
-\begin{kframe}\begin{alltt}
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in seq\_len(m): argument must be coercible to non-negative integer}}\begin{alltt}
 \hlstd{fa_3}\hlopt{$}\hlstd{Structure} \hlopt{%>%} \hlstd{unclass} \hlopt{%>%}
   \hlstd{data.frame} \hlopt{%>%}
   \hlkwd{mutate}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{rownames}\hlstd{(.))} \hlopt{%>%}
@@ -577,59 +748,109 @@ Conscientiousness & Deliberation & \cellcolor{white}{-0.08} & \cellcolor{white}{
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(MR1}\hlopt{:}\hlstd{MR5),} \hlkwd{funs}\hlstd{(}\hlkwd{round}\hlstd{(.,} \hlnum{2}\hlstd{)))} \hlopt{%>%}
   \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(MR1}\hlopt{:}\hlstd{MR5),} \hlkwd{funs}\hlstd{(}\hlkwd{cell_spec}\hlstd{(.,} \hlstr{"latex"}\hlstd{,}
         \hlkwc{background} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{abs}\hlstd{(.)} \hlopt{>} \hlnum{.5}\hlstd{,} \hlstr{"yellow"}\hlstd{,} \hlstr{"white"}\hlstd{))))} \hlopt{%>%}
-  \hlkwd{mutate}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{str_remove_all}\hlstd{(Facet,} \hlstr{"_"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{Facet} \hlstd{=} \hlkwd{str_replace_all}\hlstd{(Facet,} \hlstr{"_"}\hlstd{,} \hlstr{" "}\hlstd{))}
+\end{alltt}
+\end{kframe}              Factor                Facet                       MR1
+1        Neuroticism              Anxiety  \\cellcolor{white}{0.02}
+2        Neuroticism      Angry Hostility  \\cellcolor{white}{0.01}
+3        Neuroticism           Depression \\cellcolor{white}{-0.05}
+4        Neuroticism   Self Consciousness \\cellcolor{white}{-0.08}
+5        Neuroticism        Impulsiveness  \\cellcolor{white}{0.37}
+6        Neuroticism        Vulnerability \\cellcolor{white}{-0.06}
+7       Extraversion               Warmth \\cellcolor{yellow}{0.86}
+8       Extraversion       Gregariousness \\cellcolor{yellow}{0.72}
+9       Extraversion        Assertiveness \\cellcolor{yellow}{0.57}
+10      Extraversion             Activity \\cellcolor{yellow}{0.58}
+11      Extraversion   Excitement Seeking   \\cellcolor{white}{0.5}
+12      Extraversion    Positive Emotions \\cellcolor{yellow}{0.75}
+13          Openness              Fantasy   \\cellcolor{white}{0.4}
+14          Openness           Aesthetics  \\cellcolor{white}{0.14}
+15          Openness             Feelings \\cellcolor{yellow}{0.59}
+16          Openness              Actions  \\cellcolor{white}{0.43}
+17          Openness                Ideas  \\cellcolor{white}{0.13}
+18          Openness               Values  \\cellcolor{white}{0.34}
+19     Agreeableness                Trust \\cellcolor{yellow}{0.54}
+20     Agreeableness  Straightforwardness  \\cellcolor{white}{0.22}
+21     Agreeableness             Altruism \\cellcolor{yellow}{0.71}
+22     Agreeableness           Compliance  \\cellcolor{white}{0.25}
+23     Agreeableness              Modesty  \\cellcolor{white}{0.17}
+24     Agreeableness    Tender Mindedness  \\cellcolor{white}{0.45}
+25 Conscientiousness           Competence  \\cellcolor{white}{0.37}
+26 Conscientiousness                Order  \\cellcolor{white}{0.11}
+27 Conscientiousness          Dutifulness  \\cellcolor{white}{0.32}
+28 Conscientiousness Achievement Striving  \\cellcolor{white}{0.31}
+29 Conscientiousness      Self Discipline  \\cellcolor{white}{0.25}
+30 Conscientiousness         Deliberation  \\cellcolor{white}{0.09}
+                         MR2                       MR3
+1  \\cellcolor{yellow}{0.85}  \\cellcolor{white}{0.16}
+2  \\cellcolor{yellow}{0.55}  \\cellcolor{white}{0.04}
+3  \\cellcolor{yellow}{0.87} \\cellcolor{white}{-0.12}
+4  \\cellcolor{yellow}{0.77}  \\cellcolor{white}{0.14}
+5   \\cellcolor{white}{0.48} \\cellcolor{white}{-0.07}
+6  \\cellcolor{yellow}{0.82}  \\cellcolor{white}{-0.1}
+7      \\cellcolor{white}{0}   \\cellcolor{white}{0.3}
+8  \\cellcolor{white}{-0.09}  \\cellcolor{white}{0.18}
+9  \\cellcolor{white}{-0.26}   \\cellcolor{white}{0.4}
+10 \\cellcolor{white}{-0.03}   \\cellcolor{white}{0.5}
+11 \\cellcolor{white}{-0.02}  \\cellcolor{white}{0.08}
+12  \\cellcolor{white}{-0.2}  \\cellcolor{white}{0.31}
+13  \\cellcolor{white}{0.05} \\cellcolor{white}{-0.08}
+14  \\cellcolor{white}{0.25}  \\cellcolor{white}{0.05}
+15   \\cellcolor{white}{0.3}  \\cellcolor{white}{0.28}
+16 \\cellcolor{white}{-0.05} \\cellcolor{white}{-0.12}
+17  \\cellcolor{white}{-0.1}   \\cellcolor{white}{0.2}
+18  \\cellcolor{white}{0.22}  \\cellcolor{white}{0.06}
+19  \\cellcolor{white}{0.01}  \\cellcolor{white}{0.26}
+20  \\cellcolor{white}{0.27}  \\cellcolor{white}{0.38}
+21  \\cellcolor{white}{0.16}  \\cellcolor{white}{0.44}
+22  \\cellcolor{white}{0.16}  \\cellcolor{white}{0.15}
+23  \\cellcolor{white}{0.48}  \\cellcolor{white}{0.21}
+24  \\cellcolor{white}{0.33}  \\cellcolor{white}{0.16}
+25 \\cellcolor{white}{-0.23} \\cellcolor{yellow}{0.77}
+26  \\cellcolor{white}{0.11} \\cellcolor{yellow}{0.69}
+27  \\cellcolor{white}{0.11}  \\cellcolor{yellow}{0.8}
+28   \\cellcolor{white}{0.1} \\cellcolor{yellow}{0.83}
+29 \\cellcolor{white}{-0.06} \\cellcolor{yellow}{0.86}
+30  \\cellcolor{white}{0.09} \\cellcolor{yellow}{0.69}
+                          MR4                       MR5
+1    \\cellcolor{white}{0.05}  \\cellcolor{white}{0.12}
+2  \\cellcolor{yellow}{-0.61}  \\cellcolor{white}{0.02}
+3   \\cellcolor{white}{-0.01}   \\cellcolor{white}{0.1}
+4    \\cellcolor{white}{0.16}  \\cellcolor{white}{0.06}
+5   \\cellcolor{white}{-0.18}  \\cellcolor{white}{0.24}
+6    \\cellcolor{white}{0.04}  \\cellcolor{white}{0.01}
+7    \\cellcolor{white}{0.19}  \\cellcolor{white}{0.32}
+8   \\cellcolor{white}{-0.06}  \\cellcolor{white}{0.23}
+9   \\cellcolor{white}{-0.28}  \\cellcolor{white}{0.17}
+10  \\cellcolor{white}{-0.24}  \\cellcolor{white}{0.31}
+11  \\cellcolor{white}{-0.13}  \\cellcolor{white}{0.42}
+12   \\cellcolor{white}{0.14}   \\cellcolor{white}{0.5}
+13   \\cellcolor{white}{0.06} \\cellcolor{yellow}{0.69}
+14   \\cellcolor{white}{0.16} \\cellcolor{yellow}{0.69}
+15  \\cellcolor{white}{-0.11} \\cellcolor{yellow}{0.57}
+16   \\cellcolor{white}{0.14} \\cellcolor{yellow}{0.61}
+17  \\cellcolor{white}{-0.01} \\cellcolor{yellow}{0.66}
+18   \\cellcolor{white}{0.14} \\cellcolor{yellow}{0.65}
+19   \\cellcolor{white}{0.44}  \\cellcolor{white}{0.28}
+20  \\cellcolor{yellow}{0.52}  \\cellcolor{white}{0.08}
+21   \\cellcolor{white}{0.41}  \\cellcolor{white}{0.35}
+22  \\cellcolor{yellow}{0.76}  \\cellcolor{white}{0.28}
+23   \\cellcolor{white}{0.37}  \\cellcolor{white}{0.14}
+24   \\cellcolor{white}{0.28}  \\cellcolor{white}{0.47}
+25   \\cellcolor{white}{0.03}   \\cellcolor{white}{0.2}
+26   \\cellcolor{white}{0.08} \\cellcolor{white}{-0.06}
+27   \\cellcolor{white}{0.11}  \\cellcolor{white}{0.09}
+28   \\cellcolor{white}{-0.1}  \\cellcolor{white}{0.12}
+29   \\cellcolor{white}{0.12}  \\cellcolor{white}{0.08}
+30   \\cellcolor{white}{0.29}   \\cellcolor{white}{0.1}
+\begin{kframe}\begin{alltt}
   \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{escape} \hlstd{= F,} \hlkwc{booktabs} \hlstd{= T,}
         \hlkwc{caption} \hlstd{=} \hlstr{"Oblimin Rotated Solution"}\hlstd{)} \hlopt{%>%}
   \hlkwd{kable_styling}\hlstd{(}\hlkwc{full_width} \hlstd{= F)}
 \end{alltt}
-\end{kframe}\begin{table}
-
-\caption{\label{tab:unnamed-chunk-11}Oblimin Rotated Solution}
-\centering
-\begin{tabular}[t]{lllllll}
-\toprule
-Factor & Facet & MR1 & MR2 & MR3 & MR4 & MR5\\
-\midrule
-Neuroticism & Anxiety & \cellcolor{white}{0.02} & \cellcolor{yellow}{0.85} & \cellcolor{white}{0.16} & \cellcolor{white}{0.05} & \cellcolor{white}{0.12}\\
-Neuroticism & AngryHostility & \cellcolor{white}{0.01} & \cellcolor{yellow}{0.55} & \cellcolor{white}{0.04} & \cellcolor{yellow}{-0.61} & \cellcolor{white}{0.02}\\
-Neuroticism & Depression & \cellcolor{white}{-0.05} & \cellcolor{yellow}{0.87} & \cellcolor{white}{-0.12} & \cellcolor{white}{-0.01} & \cellcolor{white}{0.1}\\
-Neuroticism & SelfConsciousness & \cellcolor{white}{-0.08} & \cellcolor{yellow}{0.77} & \cellcolor{white}{0.14} & \cellcolor{white}{0.16} & \cellcolor{white}{0.06}\\
-Neuroticism & Impulsiveness & \cellcolor{white}{0.37} & \cellcolor{white}{0.48} & \cellcolor{white}{-0.07} & \cellcolor{white}{-0.18} & \cellcolor{white}{0.24}\\
-\addlinespace
-Neuroticism & Vulnerability & \cellcolor{white}{-0.06} & \cellcolor{yellow}{0.82} & \cellcolor{white}{-0.1} & \cellcolor{white}{0.04} & \cellcolor{white}{0.01}\\
-Extraversion & Warmth & \cellcolor{yellow}{0.86} & \cellcolor{white}{0} & \cellcolor{white}{0.3} & \cellcolor{white}{0.19} & \cellcolor{white}{0.32}\\
-Extraversion & Gregariousness & \cellcolor{yellow}{0.72} & \cellcolor{white}{-0.09} & \cellcolor{white}{0.18} & \cellcolor{white}{-0.06} & \cellcolor{white}{0.23}\\
-Extraversion & Assertiveness & \cellcolor{yellow}{0.57} & \cellcolor{white}{-0.26} & \cellcolor{white}{0.4} & \cellcolor{white}{-0.28} & \cellcolor{white}{0.17}\\
-Extraversion & Activity & \cellcolor{yellow}{0.58} & \cellcolor{white}{-0.03} & \cellcolor{white}{0.5} & \cellcolor{white}{-0.24} & \cellcolor{white}{0.31}\\
-\addlinespace
-Extraversion & ExcitementSeeking & \cellcolor{white}{0.5} & \cellcolor{white}{-0.02} & \cellcolor{white}{0.08} & \cellcolor{white}{-0.13} & \cellcolor{white}{0.42}\\
-Extraversion & PositiveEmotions & \cellcolor{yellow}{0.75} & \cellcolor{white}{-0.2} & \cellcolor{white}{0.31} & \cellcolor{white}{0.14} & \cellcolor{white}{0.5}\\
-Openness & Fantasy & \cellcolor{white}{0.4} & \cellcolor{white}{0.05} & \cellcolor{white}{-0.08} & \cellcolor{white}{0.06} & \cellcolor{yellow}{0.69}\\
-Openness & Aesthetics & \cellcolor{white}{0.14} & \cellcolor{white}{0.25} & \cellcolor{white}{0.05} & \cellcolor{white}{0.16} & \cellcolor{yellow}{0.69}\\
-Openness & Feelings & \cellcolor{yellow}{0.59} & \cellcolor{white}{0.3} & \cellcolor{white}{0.28} & \cellcolor{white}{-0.11} & \cellcolor{yellow}{0.57}\\
-\addlinespace
-Openness & Actions & \cellcolor{white}{0.43} & \cellcolor{white}{-0.05} & \cellcolor{white}{-0.12} & \cellcolor{white}{0.14} & \cellcolor{yellow}{0.61}\\
-Openness & Ideas & \cellcolor{white}{0.13} & \cellcolor{white}{-0.1} & \cellcolor{white}{0.2} & \cellcolor{white}{-0.01} & \cellcolor{yellow}{0.66}\\
-Openness & Values & \cellcolor{white}{0.34} & \cellcolor{white}{0.22} & \cellcolor{white}{0.06} & \cellcolor{white}{0.14} & \cellcolor{yellow}{0.65}\\
-Agreeableness & Trust & \cellcolor{yellow}{0.54} & \cellcolor{white}{0.01} & \cellcolor{white}{0.26} & \cellcolor{white}{0.44} & \cellcolor{white}{0.28}\\
-Agreeableness & Straightforwardness & \cellcolor{white}{0.22} & \cellcolor{white}{0.27} & \cellcolor{white}{0.38} & \cellcolor{yellow}{0.52} & \cellcolor{white}{0.08}\\
-\addlinespace
-Agreeableness & Altruism & \cellcolor{yellow}{0.71} & \cellcolor{white}{0.16} & \cellcolor{white}{0.44} & \cellcolor{white}{0.41} & \cellcolor{white}{0.35}\\
-Agreeableness & Compliance & \cellcolor{white}{0.25} & \cellcolor{white}{0.16} & \cellcolor{white}{0.15} & \cellcolor{yellow}{0.76} & \cellcolor{white}{0.28}\\
-Agreeableness & Modesty & \cellcolor{white}{0.17} & \cellcolor{white}{0.48} & \cellcolor{white}{0.21} & \cellcolor{white}{0.37} & \cellcolor{white}{0.14}\\
-Agreeableness & TenderMindedness & \cellcolor{white}{0.45} & \cellcolor{white}{0.33} & \cellcolor{white}{0.16} & \cellcolor{white}{0.28} & \cellcolor{white}{0.47}\\
-Conscientiousness & Competence & \cellcolor{white}{0.37} & \cellcolor{white}{-0.23} & \cellcolor{yellow}{0.77} & \cellcolor{white}{0.03} & \cellcolor{white}{0.2}\\
-\addlinespace
-Conscientiousness & Order & \cellcolor{white}{0.11} & \cellcolor{white}{0.11} & \cellcolor{yellow}{0.69} & \cellcolor{white}{0.08} & \cellcolor{white}{-0.06}\\
-Conscientiousness & Dutifulness & \cellcolor{white}{0.32} & \cellcolor{white}{0.11} & \cellcolor{yellow}{0.8} & \cellcolor{white}{0.11} & \cellcolor{white}{0.09}\\
-Conscientiousness & AchievementStriving & \cellcolor{white}{0.31} & \cellcolor{white}{0.1} & \cellcolor{yellow}{0.83} & \cellcolor{white}{-0.1} & \cellcolor{white}{0.12}\\
-Conscientiousness & SelfDiscipline & \cellcolor{white}{0.25} & \cellcolor{white}{-0.06} & \cellcolor{yellow}{0.86} & \cellcolor{white}{0.12} & \cellcolor{white}{0.08}\\
-Conscientiousness & Deliberation & \cellcolor{white}{0.09} & \cellcolor{white}{0.09} & \cellcolor{yellow}{0.69} & \cellcolor{white}{0.29} & \cellcolor{white}{0.1}\\
-\bottomrule
-\end{tabular}
-\end{table}
 
 
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in seq\_len(m): argument must be coercible to non-negative integer}}\end{kframe}
 
 With the exception of the 2nd and 3rd factors, the unrotated solution doesn't resemble the expected solution. However, the indicators for each factor in the varimax rotated solution can clearly be identified as the Big 5 by content. Finally, in the oblimin rotated solution, we see that the factors can be fairly readily identified by content.  
 

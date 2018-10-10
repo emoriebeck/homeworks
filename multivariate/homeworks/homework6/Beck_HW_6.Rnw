@@ -1,0 +1,203 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 3\\
+\large Applied Mutlivariate Analysis}
+\date{September 22, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(kableExtra)
+library(multcomp)
+library(lme4)
+library(plyr)
+library(tidyverse)
+library(MVN)
+@
+
+
+
+\subsection{data}
+The file, Set\_5.csv, contains data from a study in which college students completed the NEO-PI Personality Inventory. This 240-item scale purportedly measures the Big Five personality dimensions, assumed to be fairly independent. The inventory is scored on 6 subscales per dimension, listed below. The file contains the subscale scores, rather than the individual items, which should help reduce the impact of the small sample size.\\
+
+Neuroticism: Anxiety
+Neuroticism: Angry\_Hostility
+Neuroticism: Depression
+Neuroticism: Self\_Consciousness
+Neuroticism: Impulsiveness
+Neuroticism: Vulnerability
+Extraversion: Warmth
+Extraversion: Gregariousness
+Extraversion: Assertiveness
+Extraversion: Activity
+Extraversion: Excitement\_Seeking
+Extraversion: Positive\_Emotions
+Openness: Fantasy
+Openness: Aesthetics
+Openness: Feelings
+Openness: Actions
+Openness: Ideas
+Openness: Values
+Agreeableness: Trust
+Agreeableness: Straightforwardness 
+Agreeableness: Altruism
+Agreeableness: Compliance
+Agreeableness: Modesty
+Agreeableness: Tender\_Mindedness
+Conscientiousness: Competence
+Conscientiousness: Order
+Conscientiousness: Dutifulness
+Conscientiousness: Achievement\_Striving: 
+Conscientiousness: Self\_Discipline
+Conscientiousness: Deliberation
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework6"
+
+dat <- sprintf("%s/Set_5(1).csv", wd) %>% 
+  read.csv(., stringsAsFactors = F) 
+
+head(dat)
+@
+
+<<>>=
+source <- tribble(
+~Factor, ~Facet,
+"Neuroticism", "Anxiety",
+"Neuroticism", "Angry_Hostility",
+"Neuroticism", "Depression",
+"Neuroticism", "Self_Consciousness",
+"Neuroticism", "Impulsiveness",
+"Neuroticism", "Vulnerability",
+"Extraversion", "Warmth",
+"Extraversion", "Gregariousness",
+"Extraversion", "Assertiveness",
+"Extraversion", "Activity",
+"Extraversion", "Excitement_Seeking",
+"Extraversion", "Positive_Emotions",
+"Openness", "Fantasy",
+"Openness", "Aesthetics",
+"Openness", "Feelings",
+"Openness", "Actions",
+"Openness", "Ideas",
+"Openness", "Values",
+"Agreeableness", "Trust",
+"Agreeableness", "Straightforwardness" ,
+"Agreeableness", "Altruism",
+"Agreeableness", "Compliance",
+"Agreeableness", "Modesty",
+"Agreeableness", "Tender_Mindedness",
+"Conscientiousness", "Competence",
+"Conscientiousness", "Order",
+"Conscientiousness", "Dutifulness",
+"Conscientiousness", "Achievement_Striving", 
+"Conscientiousness", "Self_Discipline",
+"Conscientiousness", "Deliberation"
+)
+
+dat <- dat %>% select(ID, source$Facet)
+@
+
+
+
+Use confirmatory factor analysis to answer the following questions.  
+
+\section{Question 1}
+First, test the hypothesis that the structure of personality is best described by five independent factors. How well does this model fit the data? Base your decision on the $\chi^2$ goodness of fit test along with the goodness-of-fit index of your choice.  
+<<>>=
+
+@
+
+\section{Question 2}
+Now allow the factors to correlate.  
+
+\subsection{Part A}
+Does this model fit the data significantly better? Use a $\chi^2$ difference test to answer the question.
+
+<<>>=
+
+@
+
+\subsection{Part B}
+Which of the factor correlations are statistically significant?  
+<<>>=
+
+@
+
+\section{Question 3}
+Test a model that constrains all factor correlations to be equal.  
+
+\subsection{Part A}
+Is this constraint acceptable (i.e., is it statistically different from the model tested in Question 2)?
+<<>>=
+
+@
+
+\subsection{Part B}
+Is the estimated latent variable correlation significant?
+
+<<>>=
+
+@
+
+\section{Question 4}
+Use the most parsimonious model from the first three steps. Constrain the loadings within each dimension to be equal. Is this simplification acceptable?
+<<>>=
+
+@
+
+
+\section{Question 5}
+Use the modification indices to diagnose the major problem with the model in Question 2. What change to that model would produce the biggest improvement in model fit?
+<<>>=
+
+@
+
+\end{document}
