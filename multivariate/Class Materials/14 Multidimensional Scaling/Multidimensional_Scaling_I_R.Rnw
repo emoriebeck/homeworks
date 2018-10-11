@@ -1,0 +1,666 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Multidimensional Scaling I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(ggplot2)
+library(vegan)
+library(smacof)
+library(ape)
+library(ade4)
+library(ecodist)
+library(scatterplot3d)
+@
+
+\subsection{Data Files}
+\textbf{\large{\textit{
+We will use distances between European cities for the initial example of metric MDS.
+The Cars data set will be used for the second example. 
+It contains pairwise rankings, with lower numbers indicating pairs of cars that were viewed as being more similar to each other.
+}}}
+<<tidy=TRUE>>=
+# Get the drug use data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+Cities<-read.table('cities.csv',sep=',',header=TRUE)
+Cities_Names<-as.vector(Cities[,1])
+Cities_Matrix<-as.matrix(Cities[,2:ncol(Cities)])
+Cities_Dist<-as.dist(Cities_Matrix)
+Cities_Dist
+
+Cars<-read.table('car_dissim.csv',sep=',',header=TRUE)
+Cars_Names<-as.vector(Cars[,1])
+Cars_Matrix<-as.matrix(Cars[,2:ncol(Cars)])
+Cars_Dist<-as.dist(Cars_Matrix)
+Cars_Dist
+@
+
+\section{Available Metric Methods}
+\textbf{\large{\textit{
+There are a number of packages in R that can conduct metric MDS.
+Following are several examples.
+Some have the advantage of making it relatively easy to get the stress values and coordinates for plotting.
+Some allow specifying the particular number of dimensions to extract.
+}}}
+\subsection{cmdscale( )}
+\textbf{\large{\textit{
+The cmdscale( ) function comes as part of the base R installation.
+}}}
+<<tidy=TRUE>>=
+mds_1 <- cmdscale(Cities_Dist, k = 1,eig = TRUE, add = FALSE, x.ret = FALSE)
+mds_1
+
+mds_2 <- cmdscale(Cities_Dist, k = 2, eig = TRUE, add = FALSE, x.ret = FALSE)
+mds_2
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_1$points)
+names(plot_data) <- c("D")
+plot_data$Name <- c("Athens","Berlin","Dublin","London","           Madrid","Paris","Rome","         Warsaw")
+plot_data$x <- 0
+
+ggplot(plot_data, aes(x=x,y=D)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +
+    scale_y_continuous(breaks=c(seq(-800,1400,200))) +
+    scale_x_continuous(breaks=c(seq(-1000,1000,200))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=5) +
+    coord_cartesian(xlim = c(-1000,1000), ylim = c(-800,1400)) +
+    xlab("") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_blank(),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("One-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_2$points)
+names(plot_data) <- c("W_E","S_N")
+plot_data$Name <- row.names(plot_data)
+
+ggplot(plot_data, aes(x=W_E,y=S_N)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(-800,800,200))) +
+    scale_x_continuous(breaks=c(seq(-1000,1400,200))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=5) +
+    coord_cartesian(xlim = c(-1000,1400), ylim = c(-800,800)) +
+    xlab("West-East") + 
+    ylab("South-North") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Two-Dimensional Space")
+@
+
+\subsection{wcmdscale( )}
+\textbf{\large{\textit{
+The wcmdcmdscale( ) function is part of the vegan package.
+}}}
+<<tidy=TRUE>>=
+mds_3 <- wcmdscale(Cities_Dist, k=1, add = FALSE, x.ret = FALSE, w=rep(1,8))
+mds_3
+
+mds_4 <- wcmdscale(Cities_Dist, k=2, add = FALSE, x.ret = FALSE, w=rep(1,8))
+mds_4
+mds_4 <- wcmdscale(Cities_Dist, k=2, add = FALSE, x.ret = TRUE, w=rep(1,8))
+mds_4
+@
+
+\subsection{pco( )}
+\textbf{\large{\textit{
+The pco( ) function is part of the ecodist package.
+}}}
+<<tidy=TRUE>>=
+Cities_Dist_2 <-dist(Cities_Matrix,method="euclidean")
+mds_5 <- pcoscaled(Cities_Dist_2)
+mds_5
+@
+
+\subsection{pcoa( )}
+\textbf{\large{\textit{
+The pcoa( ) function is part of the ape package.
+}}}
+<<tidy=TRUE>>=
+mds_6 <- pcoa(Cities_Dist, correction="none", rn = NULL)
+mds_6
+@
+
+\subsection{dudi.pco( )}
+\textbf{\large{\textit{
+The dudi.pco( ) function is part of the ade4 package.
+}}}
+<<tidy=TRUE>>=
+mds_7 <- dudi.pco(Cities_Dist, row.w = "uniform", scannf = FALSE, nf = 2, full = FALSE, tol = 1e-07)
+mds_7
+@
+
+\subsection{smacofSym( )}
+\textbf{\large{\textit{
+The smacofSym( ) function is part of the smacof package.
+}}}
+<<tidy=TRUE>>=
+mds_8 <- smacofSym(Cities_Dist, ndim = 2,verbose=FALSE,type="interval")
+mds_8
+
+mds_8b <- smacofSym(Cities_Dist, ndim = 2,verbose=FALSE,type="ratio")
+mds_8b
+@
+
+\subsubsection{Stress Plot}
+\textbf{\large{\textit{
+Stress plot for up to 4 dimensions.
+Here we run the smacofSym( ) function iteratively for 1 to 4 dimensions in order to get the stress values for plotting.
+}}}
+<<tidy=TRUE>>=
+# Create a matrix to hold the stress values.
+mds_stress <- matrix(NA,nrow=5,ncol=2)
+for (i in 1:5) {
+  mds_8 <- smacofSym(Cities_Dist, ndim = i,verbose=FALSE,type="interval")
+  mds_stress[i,1] <- i
+  mds_stress[i,2] <- mds_8$stress
+}
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_stress)
+names(plot_data) <- c("D","Stress")
+
+ggplot(plot_data, aes(x=D,y=Stress)) +
+    geom_point(shape=19,size=3, color="black",na.rm=TRUE) +   
+    geom_line(size=1) +
+    scale_y_continuous(breaks=c(seq(0,.35,.05))) +
+    scale_x_continuous(breaks=c(seq(1,5,1))) +
+    coord_cartesian(xlim = c(1,5), ylim = c(0,.35)) +
+    xlab("Number of Dimensions") + 
+    ylab("Stress") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Stress Plot for City Distances")
+@
+
+\subsubsection{Shepard Plot}
+\textbf{\large{\textit{
+A Shepard plot pairs the actual distances (called disparities) with the distances estimated from the MDS solution. 
+An excellent fit should produce a nearly diagonal line.
+Shepard plots for up to 4 dimensions.
+}}}
+<<tidy=TRUE>>=
+mds_8 <- smacofSym(Cities_Dist, ndim = 1,verbose=FALSE,type="interval")
+Cities_1_fits <- Shepard(Cities_Dist,mds_8$conf)
+mds_8 <- smacofSym(Cities_Dist, ndim = 2,verbose=FALSE,type="interval")
+Cities_2_fits <- Shepard(Cities_Dist,mds_8$conf)
+mds_8 <- smacofSym(Cities_Dist, ndim = 3,verbose=FALSE,type="interval")
+Cities_3_fits <- Shepard(Cities_Dist,mds_8$conf)
+mds_8 <- smacofSym(Cities_Dist, ndim = 4,verbose=FALSE,type="interval")
+Cities_4_fits <- Shepard(Cities_Dist,mds_8$conf)
+
+mds_8$conf
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Cities_1_fits)
+
+ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2,.25))) +
+    scale_x_continuous(breaks=c(seq(0,2000,500))) +
+    coord_cartesian(xlim = c(0,2000), ylim = c(0,2)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plot: One-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Cities_2_fits)
+
+ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2,.25))) +
+    scale_x_continuous(breaks=c(seq(0,2000,500))) +
+    coord_cartesian(xlim = c(0,2000), ylim = c(0,2)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plot: Two-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Cities_1_fits)
+plot_data <- rbind(plot_data,Cities_2_fits)
+plot_data <- rbind(plot_data,Cities_3_fits)
+plot_data <- rbind(plot_data,Cities_4_fits)
+plot_data$D <- c(rep(1,28),rep(2,28),rep(3,28),rep(4,28))
+
+p <- ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=2, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2,.25))) +
+    scale_x_continuous(breaks=c(seq(0,2000,500))) +
+    coord_cartesian(xlim = c(0,2000), ylim = c(0,2)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plots as a Function of Dimensions")
+p + facet_wrap(~ D, nrow = 2)
+@
+
+\section{Non-Metric Methods}
+\textbf{\large{\textit{
+The car rank data can be used to demonstrate non-metric methods.
+In non-metric MDS, the lower dimensional solution only needs to preserve rank order.
+The smacofSym( ) can be used for non-metric MDS, but we need to specifically request this in the function call.
+}}}
+
+\subsubsection{Stress Plot}
+\textbf{\large{\textit{
+Stress plot for up to 4 dimensions.
+The stress plot can help us determine the best number of dimensions to describing the data.
+}}}
+<<tidy=TRUE>>=
+mds_stress <- matrix(NA,nrow=5,ncol=2)
+for (i in 1:5) {
+  mds_9 <- smacofSym(Cars_Dist, ndim = i,verbose=FALSE,type="ordinal")
+  mds_stress[i,1] <- i
+  mds_stress[i,2] <- mds_9$stress
+}
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_stress)
+names(plot_data) <- c("D","Stress")
+
+ggplot(plot_data, aes(x=D,y=Stress)) +
+    geom_point(shape=19,size=3, color="black",na.rm=TRUE) +   
+    geom_line(size=1) +
+    scale_y_continuous(breaks=c(seq(0,.2,.05))) +
+    scale_x_continuous(breaks=c(seq(1,5,1))) +
+    coord_cartesian(xlim = c(1,5), ylim = c(0,.2)) +
+    xlab("Number of Dimensions") + 
+    ylab("Stress") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Stress Plot for Car Distances")
+@
+
+\subsection{Shepard Plots}
+\textbf{\large{\textit{
+Shepard plots for up to 4 dimensions.
+}}}
+<<tidy=TRUE>>=
+mds_9 <- smacofSym(Cars_Dist, ndim = 1,verbose=FALSE,type="ordinal")
+Cars_1_fits <- Shepard(Cars_Dist,mds_9$conf)
+mds_9 <- smacofSym(Cars_Dist, ndim = 2,verbose=FALSE,type="ordinal")
+Cars_2_fits <- Shepard(Cars_Dist,mds_9$conf)
+mds_9 <- smacofSym(Cars_Dist, ndim = 3,verbose=FALSE,type="ordinal")
+Cars_3_fits <- Shepard(Cars_Dist,mds_9$conf)
+mds_9 <- smacofSym(Cars_Dist, ndim = 4,verbose=FALSE,type="ordinal")
+Cars_4_fits <- Shepard(Cars_Dist,mds_9$conf)
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Cars_1_fits)
+plot_data <- rbind(plot_data,Cars_2_fits)
+plot_data <- rbind(plot_data,Cars_3_fits)
+plot_data <- rbind(plot_data,Cars_4_fits)
+plot_data$D <- c(rep(1,45),rep(2,45),rep(3,45),rep(4,45))
+
+p <- ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=2, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2.5,.5))) +
+    scale_x_continuous(breaks=c(seq(1,45,5))) +
+    coord_cartesian(xlim = c(1,45), ylim = c(0,2.5)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plots as a Function of Dimensions")
+p + facet_wrap(~ D, nrow = 2)
+@
+
+\subsection{Scatterplots}
+<<tidy=TRUE>>=
+mds_9 <- smacofSym(Cars_Dist, ndim = 2,verbose=FALSE,type="ordinal")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_9$conf)
+names(plot_data) <- c("D1","D2")
+plot_data$Name <- c("BMW","         Ford","           Infiniti","Jeep","Lexus","Chrysler","Mercedes",
+                    "Saab","Porsche","Volvo")
+
+ggplot(plot_data, aes(x=D1,y=D2)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(-.5,.75,.25))) +
+    scale_x_continuous(breaks=c(seq(-1.25,1,.25))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=5) +
+    coord_cartesian(xlim = c(-1.25,1), ylim = c(-.5,.75)) +
+    xlab("Dimension 1") + 
+    ylab("Dimension 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Two-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+mds_9 <- smacofSym(Cars_Dist, ndim = 3,verbose=FALSE,type="ordinal")
+
+# Save the MDS coordinates as a dataframe.
+mds_points <- as.data.frame(mds_9$conf)
+
+scatterplot3d(mds_points$D1,mds_points$D2,mds_points$D3,
+                 color="blue", pch=16,   
+                 type="h",                  
+                 main="Three Dimensional Scatterplot of Car MDS",
+                 xlab="Dimension 1",
+                 ylab="Dimension 2",
+                 zlab="Dimension 3")
+@
+
+
+<<tidy=TRUE>>=
+with(mds_points, {
+   s3d <- scatterplot3d(mds_points$D1,mds_points$D2,mds_points$D3,
+                 color="blue", pch=16,   
+                 type="h",                  
+                 main="Three Dimensional Scatterplot of Car MDS",
+                 xlab="Dimension 1",
+                 ylab="Dimension 2",
+                 zlab="Dimension 3")
+    s3d.coords <- s3d$xyz.convert(mds_points$D1,mds_points$D2,mds_points$D3) 
+    text(s3d.coords$x, s3d.coords$y, labels=row.names(mds_points),
+         cex=.75, pos=4)          
+})
+
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_9$conf)
+names(plot_data) <- c("D1","D2","D3")
+plot_data$Name <- c("BMW","         Ford","           Infiniti","Jeep","Lexus","Chrysler","Mercedes",
+                    "Saab","Porsche","Volvo")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=D1,y=D2)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(-1.25,1,.25))) +
+    scale_x_continuous(breaks=c(seq(-1.25,1,.25))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=5) +
+    coord_cartesian(xlim = c(-1.25,1), ylim = c(-1.25,1)) +
+    xlab("Dimension 1") + 
+    ylab("Dimension 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Three-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_9$conf)
+names(plot_data) <- c("D1","D2","D3")
+plot_data$Name <- c("BMW","Ford","Infiniti","Jeep","Lexus","Chrysler","Mercedes",
+                    "Saab","Porsche","Volvo")
+@
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=D1,y=D3)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(-1.25,1,.25))) +
+    scale_x_continuous(breaks=c(seq(-1.25,1,.25))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=5) +
+    coord_cartesian(xlim = c(-1.25,1), ylim = c(-1.25,1)) +
+    xlab("Dimension 1") + 
+    ylab("Dimension 3") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Three-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_9$conf)
+names(plot_data) <- c("D1","D2","D3")
+plot_data$Name <- c("BMW","Ford","Infiniti","Jeep","Lexus","Chrysler","Mercedes",
+                    "Saab","Porsche","Volvo")
+@
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=D2,y=D3)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(-1.25,1,.25))) +
+    scale_x_continuous(breaks=c(seq(-1.25,1,.25))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=5) +
+    coord_cartesian(xlim = c(-1.25,1), ylim = c(-1.25,1)) +
+    xlab("Dimension 2") + 
+    ylab("Dimension 3") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Three-Dimensional Space")
+@
+\end{document}

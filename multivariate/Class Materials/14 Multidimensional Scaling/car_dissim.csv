@@ -1,0 +1,11 @@
+col1,BMW,Ford,Infiniti,Jeep,Lexus,Chrysler,Mercedes,Saab,Porsche,Volvo
+BMW,0, , , , , , , , , 
+Ford,34,0, , , , , , , , 
+Infiniti,8,24,0, , , , , , , 
+Jeep,31,2,25,0, , , , , , 
+Lexus,7,26,1,27,0, , , , , 
+Chrysler,43,14,35,15,37,0, , , , 
+Mercedes,3,28,5,29,4,42,0, , , 
+Saab,10,18,20,17,13,36,19,0, , 
+Porsche,6,39,41,38,40,45,32,21,0, 
+Volvo,33,11,22,12,23,9,30,16,44,0
