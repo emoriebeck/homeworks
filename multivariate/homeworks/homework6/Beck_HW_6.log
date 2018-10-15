@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  10 OCT 2018 12:55
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  11 OCT 2018 20:12
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -506,11 +506,13 @@ Underfull \hbox (badness 10000) in paragraph at lines 122--123
  []
 
 
-Overfull \hbox (19.7514pt too wide) in paragraph at lines 124--154
-[]\OT1/cmr/m/n/10 Neuroticism: Anx-i-ety Neu-roti-cism: An-gry[]Hostility Neu-r
-oti-cism: De-pres-sion Neu-roti-cism: Self[]Consciousness
+Underfull \hbox (badness 10000) in paragraph at lines 124--154
+
  []
 
+[1
+
+{/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
 Package color Info: Redefining color shadecolor on input line 156.
 
 Overfull \hbox (7.99081pt too wide) in paragraph at lines 158--158
@@ -518,14 +520,10 @@ Overfull \hbox (7.99081pt too wide) in paragraph at lines 158--158
 /master/multivariate/homeworks/homework6"[][] 
  []
 
-[1
-
-{/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Package color Info: Redefining color shadecolor on input line 213.
-
 [2]
+Package color Info: Redefining color shadecolor on input line 213.
 Package color Info: Redefining color shadecolor on input line 261.
-
+ [3]
 Overfull \hbox (34.24059pt too wide) in paragraph at lines 270--270
 []\OT1/cmtt/m/n/10 E =~ Warmth + Gregariousness + Assertiveness + Activity + Ex
 citement_Seeking + Positive_Emotions[] 
@@ -545,7 +543,7 @@ File: omscmtt.fd
 LaTeX Font Info:    Font shape `OMS/cmtt/m/n' in size <10> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 287.
 
-[3] <figure/unnamed-chunk-5-1.pdf, id=19, 505.89pt x 505.89pt>
+<figure/unnamed-chunk-5-1.pdf, id=17, 505.89pt x 505.89pt>
 File: figure/unnamed-chunk-5-1.pdf Graphic file (type pdf)
 
 <use figure/unnamed-chunk-5-1.pdf>
@@ -556,66 +554,153 @@ Overfull \hbox (15.0pt too wide) in paragraph at lines 294--295
 [][] 
  []
 
-[4 <./figure/unnamed-chunk-5-1.pdf>]
-Underfull \vbox (badness 10000) detected at line 404
+[4] [5 <./figure/unnamed-chunk-5-1.pdf>]
+Underfull \vbox (badness 10000) detected at line 443
  []
 
 
-Underfull \vbox (badness 10000) detected at line 404
+Underfull \vbox (badness 10000) detected at line 443
  []
 
-[5] [6]
-Package color Info: Redefining color shadecolor on input line 415.
- <figure/unnamed-chunk-6-1.pdf, id=35, 505.89pt x 505.89pt>
+[6]
+Underfull \vbox (badness 10000) detected at line 443
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 443
+ []
+
+[7]
+Package color Info: Redefining color shadecolor on input line 456.
+ <figure/unnamed-chunk-6-1.pdf, id=39, 505.89pt x 505.89pt>
 File: figure/unnamed-chunk-6-1.pdf Graphic file (type pdf)
 
 <use figure/unnamed-chunk-6-1.pdf>
-Package pdftex.def Info: figure/unnamed-chunk-6-1.pdf used on input line 421.
+Package pdftex.def Info: figure/unnamed-chunk-6-1.pdf used on input line 462.
 (pdftex.def)             Requested size: 469.75502pt x 469.76265pt.
 
-Overfull \hbox (15.0pt too wide) in paragraph at lines 421--422
+Overfull \hbox (15.0pt too wide) in paragraph at lines 462--463
 [][] 
  []
 
-[7 <./figure/unnamed-chunk-6-1.pdf>]
-Package color Info: Redefining color shadecolor on input line 442.
-
-Overfull \hbox (18.49072pt too wide) in paragraph at lines 448--448
+[8]
+Package color Info: Redefining color shadecolor on input line 483.
+ [9 <./figure/unnamed-chunk-6-1.pdf>]
+Overfull \hbox (18.49072pt too wide) in paragraph at lines 489--489
 []  []\OT1/cmtt/m/n/10 full_join[][]([][]crossing[][]([][]lhs[] []=[] []c[][]([
 ][]"E"[][],[] []"A"[][],[] []"C"[][],[] []"N"[][],[] []"O"[][]),[] []rhs[] []=[
 ] []c[][]([][]"E"[][],[] []"A"[][],[] []"C"[][],[] []"N"[][],[] []"O"[][])))[] 
 []%>%[][] 
  []
 
+Package color Info: Redefining color shadecolor on input line 526.
+[10] <figure/unnamed-chunk-8-1.pdf, id=56, 505.89pt x 505.89pt>
+File: figure/unnamed-chunk-8-1.pdf Graphic file (type pdf)
 
-Overfull \hbox (7.43736pt too wide) in paragraph at lines 466--477
- [][] 
+<use figure/unnamed-chunk-8-1.pdf>
+Package pdftex.def Info: figure/unnamed-chunk-8-1.pdf used on input line 548.
+(pdftex.def)             Requested size: 469.75502pt x 469.76265pt.
+
+Overfull \hbox (15.0pt too wide) in paragraph at lines 548--549
+[][] 
  []
 
-[8] [9] (./Beck_HW_6.aux) ) 
+Package color Info: Redefining color shadecolor on input line 555.
+[11 <./figure/unnamed-chunk-8-1.pdf>]
+Package color Info: Redefining color shadecolor on input line 577.
+Package color Info: Redefining color shadecolor on input line 602.
+
+Overfull \hbox (286.23839pt too wide) in paragraph at lines 611--611
+[]\OT1/cmtt/m/n/10 E =~ lambdaE*Warmth + lambdaE*Gregariousness + lambdaE*Asser
+tiveness + lambdaE*Activity + lambdaE*Excitement_Seeking + lambdaE*Positive_Emo
+tions[] 
+ []
+
+
+Overfull \hbox (233.73885pt too wide) in paragraph at lines 611--611
+[]\OT1/cmtt/m/n/10 A =~ lambdaA*Trust + lambdaA*Straightforwardness + lambdaA*A
+ltruism + lambdaA*Compliance + lambdaA*Modesty + lambdaA*Tender_Mindedness[] 
+ []
+
+
+Overfull \hbox (160.23949pt too wide) in paragraph at lines 611--611
+[]\OT1/cmtt/m/n/10 C =~ lambdaC*Competence + lambdaC*Order + lambdaC*Dutifulnes
+s + lambdaC*Competence + lambdaC*Order + lambdaC*Dutifulness[] 
+ []
+
+
+Overfull \hbox (286.23839pt too wide) in paragraph at lines 611--611
+[]\OT1/cmtt/m/n/10 N =~ lambdaN*Anxiety + lambdaN*Angry_Hostility + lambdaN*Dep
+ression + lambdaN*Self_Consciousness + lambdaN*Impulsiveness + lambdaN*Vulnerab
+ility[] 
+ []
+
+
+Overfull \hbox (112.9899pt too wide) in paragraph at lines 611--611
+[]\OT1/cmtt/m/n/10 O =~ lambdaO*Fantasy + lambdaO*Aesthetics + lambdaO*Feelings
+ + lambdaO*Actions + lambdaO*Ideas + lambdaO*Values[] 
+ []
+
+<figure/unnamed-chunk-11-1.pdf, id=65, 505.89pt x 505.89pt>
+File: figure/unnamed-chunk-11-1.pdf Graphic file (type pdf)
+
+<use figure/unnamed-chunk-11-1.pdf>
+Package pdftex.def Info: figure/unnamed-chunk-11-1.pdf used on input line 618.
+(pdftex.def)             Requested size: 469.75502pt x 469.76265pt.
+
+Overfull \hbox (15.0pt too wide) in paragraph at lines 618--619
+[][] 
+ []
+
+[12] [13 <./figure/unnamed-chunk-11-1.pdf>]
+Underfull \vbox (badness 10000) detected at line 777
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 777
+ []
+
+[14]
+Underfull \vbox (badness 10000) detected at line 777
+ []
+
+
+Underfull \vbox (badness 10000) detected at line 777
+ []
+
+[15]
+Package color Info: Redefining color shadecolor on input line 785.
+
+Overfull \hbox (10.75432pt too wide) in paragraph at lines 792--793
+[]\OT1/cmr/m/n/10 The biggest prob-lem in the model from Ques-tion 2 was the $\
+OML/cmm/m/it/10 covariation$ \OT1/cmr/m/n/10 be-tween $\OML/cmm/m/it/10 Complia
+nceAngry[]ostility$\OT1/cmr/m/n/10 . 
+ []
+
+[16] (./Beck_HW_6.aux) ) 
 Here is how much of TeX's memory you used:
- 5249 strings out of 492995
- 72715 string characters out of 6132704
- 178093 words of memory out of 5000000
- 8670 multiletter control sequences out of 15000+600000
+ 5259 strings out of 492995
+ 73024 string characters out of 6132704
+ 186094 words of memory out of 5000000
+ 8678 multiletter control sequences out of 15000+600000
  9191 words of font info for 34 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  39i,9n,56p,470b,280s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/local/texlive/2017/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/publi
-c/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public
-/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/
-amsfonts/cm/cmmi7.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/am
-sfonts/cm/cmr10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsf
-onts/cm/cmr12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfon
-ts/cm/cmr17.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts
-/cm/cmr7.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm
-/cmsy10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/
-cmtt10.pfb>
-Output written on Beck_HW_6.pdf (9 pages, 161592 bytes).
+</usr/local/texlive/2017/texmf-dist/fonts/type1/public/
+amsfonts/cm/cmbx10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmbx12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/am
+sfonts/cm/cmmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/ams
+fonts/cm/cmmi7.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfo
+nts/cm/cmr10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfont
+s/cm/cmr12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/
+cm/cmr17.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm
+/cmr7.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cm
+sy10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmt
+t10.pfb>
+Output written on Beck_HW_6.pdf (16 pages, 204466 bytes).
 PDF statistics:
- 86 PDF objects out of 1000 (max. 8388607)
- 60 compressed objects within 1 object stream
+ 120 PDF objects out of 1000 (max. 8388607)
+ 83 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 11 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 21 words of extra memory for PDF output out of 10000 (max. 10000000)
 

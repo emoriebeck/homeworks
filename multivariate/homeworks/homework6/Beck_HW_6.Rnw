@@ -69,36 +69,36 @@ library(MVN)
 \subsection{data}
 The file, Set\_5.csv, contains data from a study in which college students completed the NEO-PI Personality Inventory. This 240-item scale purportedly measures the Big Five personality dimensions, assumed to be fairly independent. The inventory is scored on 6 subscales per dimension, listed below. The file contains the subscale scores, rather than the individual items, which should help reduce the impact of the small sample size.\\
 
-Neuroticism: Anxiety
-Neuroticism: Angry\_Hostility
-Neuroticism: Depression
-Neuroticism: Self\_Consciousness
-Neuroticism: Impulsiveness
-Neuroticism: Vulnerability
-Extraversion: Warmth
-Extraversion: Gregariousness
-Extraversion: Assertiveness
-Extraversion: Activity
-Extraversion: Excitement\_Seeking
-Extraversion: Positive\_Emotions
-Openness: Fantasy
-Openness: Aesthetics
-Openness: Feelings
-Openness: Actions
-Openness: Ideas
-Openness: Values
-Agreeableness: Trust
-Agreeableness: Straightforwardness 
-Agreeableness: Altruism
-Agreeableness: Compliance
-Agreeableness: Modesty
-Agreeableness: Tender\_Mindedness
-Conscientiousness: Competence
-Conscientiousness: Order
-Conscientiousness: Dutifulness
-Conscientiousness: Achievement\_Striving: 
-Conscientiousness: Self\_Discipline
-Conscientiousness: Deliberation
+Neuroticism: Anxiety\\
+Neuroticism: Angry\_Hostility\\
+Neuroticism: Depression\\
+Neuroticism: Self\_Consciousness\\
+Neuroticism: Impulsiveness\\
+Neuroticism: Vulnerability\\
+Extraversion: Warmth\\
+Extraversion: Gregariousness\\
+Extraversion: Assertiveness\\
+Extraversion: Activity\\
+Extraversion: Excitement\_Seeking\\
+Extraversion: Positive\_Emotions\\
+Openness: Fantasy\\
+Openness: Aesthetics\\
+Openness: Feelings\\
+Openness: Actions\\
+Openness: Ideas\\
+Openness: Values\\
+Agreeableness: Trust\\
+Agreeableness: Straightforwardness \\
+Agreeableness: Altruism\\
+Agreeableness: Compliance\\
+Agreeableness: Modesty\\
+Agreeableness: Tender\_Mindedness\\
+Conscientiousness: Competence\\
+Conscientiousness: Order\\
+Conscientiousness: Dutifulness\\
+Conscientiousness: Achievement\_Striving \\
+Conscientiousness: Self\_Discipline\\
+Conscientiousness: Deliberation\\
 
 <<>>=
 wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework6"
@@ -185,7 +185,11 @@ fit1 <- cfa(b5.mod, dat, orthogonal = T, missing = 'ML', std.lv = T)
 semPaths(fit1, layout = "circle2")
 
 summary(fit1)
+
+fm <- fitmeasures(fit1)
 @
+
+The $\chi^2$ test indicates poor model fit, $\chi^2(\Sexpr{fm["df"]}) = \Sexpr{round(fm["chisq"],2)}, p = \Sexpr{round(fm["pvalue"],2)}$. 
 
 
 \section{Question 2}
@@ -201,7 +205,7 @@ semPaths(fit2, layout = "circle2")
 (c1 <- anova(fit1, fit2))
 @
 
-The orthogonal factor model fits the data better, $\chi^2_{diff}(\Sexpr{c1$`Df diff`[2]}) = \Sexpr{round(c1$`Chisq diff`[2],2)}$. 
+The correlated factor model fits the data better, $\chi^2_{diff}(\Sexpr{c1$`Df diff`[2]}) = \Sexpr{round(c1$`Chisq diff`[2],2)}$. 
 
 \subsection{Part B}
 Which of the factor correlations are statistically significant?  
@@ -251,8 +255,10 @@ semPaths(fit3, layout = "circle2")
 \subsection{Part A}
 Is this constraint acceptable (i.e., is it statistically different from the model tested in Question 2)?
 <<>>=
-
+(c3 <- anova(fit3, fit2))
 @
+
+Constraining the factor correlations to be equal does not appear to be justified, $\chi^2_{diff}(\Sexpr{c3$`Df diff`[2]}) = \Sexpr{round(c3$`Chisq diff`[2],2)}$. 
 
 \subsection{Part B}
 Is the estimated latent variable correlation significant?
@@ -295,7 +301,10 @@ A likelihood ratio test suggests that constraining the loadings is not justified
 \section{Question 5}
 Use the modification indices to diagnose the major problem with the model in Question 2. What change to that model would produce the biggest improvement in model fit?
 <<>>=
-
+mi2 <- modificationindices(fit2) %>% arrange(desc(mi))
 @
+
+The biggest problem in the model from Question 2 was the $\Sexpr{ifelse(mi2$op[1] == "~~", "covariation", "factor loading")}$ between $\Sexpr{mi2$lhs[1]} \Sexpr{mi2$rhs[1]}$. 
+
 
 \end{document}

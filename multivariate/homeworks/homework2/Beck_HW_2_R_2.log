@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  10 OCT 2018 11:28
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  13 OCT 2018 17:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -511,17 +511,17 @@ Package color Info: Redefining color shadecolor on input line 151.
 [1
 
 {/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Package color Info: Redefining color shadecolor on input line 176.
-LaTeX Font Info:    Try loading font information for OMS+cmtt on input line 189
+Package color Info: Redefining color shadecolor on input line 179.
+LaTeX Font Info:    Try loading font information for OMS+cmtt on input line 192
 .
 
 (/Library/Frameworks/R.framework/Resources/share/texmf/tex/latex/omscmtt.fd
 File: omscmtt.fd 
 )
 LaTeX Font Info:    Font shape `OMS/cmtt/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 189.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 192.
 
-Overfull \hbox (27.99088pt too wide) in paragraph at lines 204--204
+Overfull \hbox (27.99088pt too wide) in paragraph at lines 207--207
 []  []\OT1/cmtt/m/n/10 mutate_at[][]([][]vars[][](Estimate, CI),[] []funs[][]([
 ][]ifelse[][](sign[] []==[] []"sig"[][],[] []sprintf[][]([][]"\OMS/cmsy/m/n/10 
 nn\OT1/cmtt/m/n/10 textbf\OMS/cmsy/m/n/10 f\OT1/cmtt/m/n/10 %s\OMS/cmsy/m/n/10 
@@ -529,66 +529,66 @@ g\OT1/cmtt/m/n/10 "[][], .), .)))[] []%>%[][]
  []
 
 [2]
-Underfull \hbox (badness 10000) in paragraph at lines 240--241
+Underfull \hbox (badness 10000) in paragraph at lines 243--244
 
  []
 
 [3]
-Package color Info: Redefining color shadecolor on input line 306.
-Package color Info: Redefining color shadecolor on input line 317.
-Package color Info: Redefining color shadecolor on input line 329.
-Package color Info: Redefining color shadecolor on input line 338.
+Package color Info: Redefining color shadecolor on input line 309.
+Package color Info: Redefining color shadecolor on input line 320.
+Package color Info: Redefining color shadecolor on input line 332.
+Package color Info: Redefining color shadecolor on input line 341.
 LaTeX Font Info:    Font shape `OMS/cmtt/m/it' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 357.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 360.
 
-Overfull \hbox (40.2269pt too wide) in paragraph at lines 357--357
+Overfull \hbox (40.2269pt too wide) in paragraph at lines 360--360
 []  []\OT1/cmtt/m/it/10 # mutate_at(vars(Estimate, CI), funs(ifelse(sign == "si
 g", sprintf("\OMS/cmsy/m/n/10 nn\OT1/cmtt/m/it/10 textbf\OMS/cmsy/m/n/10 f\OT1/
 cmtt/m/it/10 %s\OMS/cmsy/m/n/10 g\OT1/cmtt/m/it/10 ", .), .))) %>%[][] 
  []
 
 [4]
-Package color Info: Redefining color shadecolor on input line 395.
-Package color Info: Redefining color shadecolor on input line 405.
-Package color Info: Redefining color shadecolor on input line 415.
+Package color Info: Redefining color shadecolor on input line 398.
+Package color Info: Redefining color shadecolor on input line 408.
  [5]
-Package color Info: Redefining color shadecolor on input line 423.
+Package color Info: Redefining color shadecolor on input line 418.
+Package color Info: Redefining color shadecolor on input line 426.
 
-Overfull \hbox (27.99088pt too wide) in paragraph at lines 437--437
+Overfull \hbox (27.99088pt too wide) in paragraph at lines 440--440
 []  []\OT1/cmtt/m/n/10 mutate_at[][]([][]vars[][](Estimate, CI),[] []funs[][]([
 ][]ifelse[][](sign[] []==[] []"sig"[][],[] []sprintf[][]([][]"\OMS/cmsy/m/n/10 
 nn\OT1/cmtt/m/n/10 textbf\OMS/cmsy/m/n/10 f\OT1/cmtt/m/n/10 %s\OMS/cmsy/m/n/10 
 g\OT1/cmtt/m/n/10 "[][], .), .)))[] []%>%[][] 
  []
 
-Package color Info: Redefining color shadecolor on input line 469.
-Package color Info: Redefining color shadecolor on input line 484.
+Package color Info: Redefining color shadecolor on input line 472.
+Package color Info: Redefining color shadecolor on input line 487.
 [6]
-Package color Info: Redefining color shadecolor on input line 508.
+Package color Info: Redefining color shadecolor on input line 511.
 
-Overfull \hbox (324.72418pt too wide) in paragraph at lines 517--517
+Overfull \hbox (324.72418pt too wide) in paragraph at lines 520--520
 []  []\OT1/cmtt/m/it/10 # ((DV1:G1 + DV2:G1 - DV3:G1 - DV4:G1)) - DV1:G2 - DV1:
 G3 - DV1:G4 - DV2:G2 - DV2:G3 - DV2:G4 + DV3:G2 + DV3:G3 + DV3:G4 + DV4:G2 + DV
 4:G3 + DV4:G4))[][] 
  []
 
 
-Overfull \hbox (345.724pt too wide) in paragraph at lines 521--521
+Overfull \hbox (345.724pt too wide) in paragraph at lines 524--524
 []  []\OT1/cmtt/m/it/10 # ((DV1:G1 + DV2:G1 + DV3:G1) = DV4:G1) = ((DV1:G2 + DV
 2:G2 + DV3:G2 + DV1:G3 + DV2:G3 + DV3:G3 + DV1:G4 + DV2:G4 + DV3:G4) = (DV4:G2 
 + DV4:G3 + DV4:G4))[][] 
  []
 
 
-Overfull \hbox (293.22446pt too wide) in paragraph at lines 522--522
+Overfull \hbox (293.22446pt too wide) in paragraph at lines 525--525
 []  []\OT1/cmtt/m/it/10 # DV1:G1 + DV2:G1 + DV3:G1 - DV4:G1 - DV1:G2 - DV2:G2 -
  DV3:G2 - DV1:G3 - DV2:G3 - DV3:G3 - DV1:G4 - DV2:G4 - DV3:G4 + DV4:G2 + DV4:G3
  + DV4:G4[][] 
  []
 
-Package color Info: Redefining color shadecolor on input line 531.
+Package color Info: Redefining color shadecolor on input line 534.
 [7]
-Overfull \hbox (27.99088pt too wide) in paragraph at lines 572--572
+Overfull \hbox (27.99088pt too wide) in paragraph at lines 575--575
 []  []\OT1/cmtt/m/n/10 mutate_at[][]([][]vars[][](Estimate, CI),[] []funs[][]([
 ][]ifelse[][](sign[] []==[] []"sig"[][],[] []sprintf[][]([][]"\OMS/cmsy/m/n/10 
 nn\OT1/cmtt/m/n/10 textbf\OMS/cmsy/m/n/10 f\OT1/cmtt/m/n/10 %s\OMS/cmsy/m/n/10 
@@ -596,7 +596,7 @@ g\OT1/cmtt/m/n/10 "[][], .), .)))[] []%>%[][]
  []
 
 
-Overfull \hbox (2.74086pt too wide) in paragraph at lines 581--581
+Overfull \hbox (2.74086pt too wide) in paragraph at lines 584--584
 []  []\OT1/cmtt/m/n/10 add_header_above[][]([][]c[][]([][]" "[] []=[] []1[][],[
 ] []"DV1+2+3 v DV4"[] []=[] []2[][],[]  []"V1+2 v DV3+4"[] []=[] []2[][],[]  []
 "DV1 v DV2"[] []=[] []2[][]))[][] 
@@ -606,7 +606,7 @@ Overfull \hbox (2.74086pt too wide) in paragraph at lines 581--581
 Here is how much of TeX's memory you used:
  5244 strings out of 492995
  72562 string characters out of 6132704
- 177562 words of memory out of 5000000
+ 178979 words of memory out of 5000000
  8668 multiletter control sequences out of 15000+600000
  9359 words of font info for 35 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -621,7 +621,7 @@ sfonts/cm/cmr12.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsf
 onts/cm/cmr17.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfon
 ts/cm/cmsy10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfont
 s/cm/cmtt10.pfb>
-Output written on Beck_HW_2_R_2.pdf (8 pages, 129521 bytes).
+Output written on Beck_HW_2_R_2.pdf (8 pages, 129541 bytes).
 PDF statistics:
  67 PDF objects out of 1000 (max. 8388607)
  47 compressed objects within 1 object stream
