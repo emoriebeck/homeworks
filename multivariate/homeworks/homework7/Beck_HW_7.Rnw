@@ -1,0 +1,154 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 3\\
+\large Applied Mutlivariate Analysis}
+\date{September 22, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(lavaan)
+library(semPlot)
+library(kableExtra)
+library(multcomp)
+library(lme4)
+library(plyr)
+library(tidyverse)
+library(MVN)
+@
+
+
+
+\subsection{data}
+We know that President Trump is a polarizing figure within the United States, but how is he viewed around the world? In 2017, the Pew Research Center conducted surveys in 38 countries. Each sample was representative of that country’s adult population and sample sizes were typically around 1000 in each country (the details can be found at http://www.pewresearch.org/methodology/international-survey-research/international- methodology/global-attitudes-survey/all-country/2017). Included among the survey items were the following that asked respondents to answer “yes” or “no”:  
+
+\textit{Please tell me whether you think the following describes U.S. President Donald Trump. Do you think of Donald Trump as \_\_\_\_\_\_\_\_\_\_?} 
+\begin{enumerate}
+\item well-qualified to be president
+\item a strong leader
+\item dangerous
+\item charismatic
+\item intolerant
+\item caring about ordinary people
+\item arrogant
+
+The data are contained in the file, trump.csv. For each country, the percentage of the sample that responded “yes” is provided.
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework7"
+
+dat <- sprintf("%s/trump.csv", wd) %>% 
+  read.csv(., stringsAsFactors = F) 
+
+head(dat)
+@
+
+\section{Question 1}
+First, provide a profile of the sample. Construct a bar graph that contains the mean percentage for each question along with the 95\% confidence interval.  
+
+<<>>=
+
+@
+
+\section{Question 2}
+Second, create two additional data frames representing alternative ways to represent the data.
+
+<<>>=
+
+@
+
+
+\subsection{Part A}
+The ratings are in a common metric (percentages) but vary in their standard deviations. To give each item equal weight, standardize the ratings.
+
+<<>>=
+
+@
+
+
+\subsection{Part B}
+The percentage scale is bounded and a case might be made that differences at the extremes (e.g., the difference between 90\% and 95\%) are more important than equal differences in the middle (e.g., the difference between 45\% and 50\%). One way to provide this unequal emphasis is to convert the percentages to proportions and then to transform them to probits using the \verbatim{qnorm( )} function. This will stretch the scale at the extremes.
+
+<<>>=
+
+@
+
+
+\section{Question 3}
+Convert each rating file to a distance matrix using Euclidean distances.  
+
+<<>>=
+
+@
+
+
+\section{Question 4}
+Using the original ratings data, and metric multidimensional scaling, construct a plot of the stress values (for up to 6 dimensions). How many dimensions are suggested by this plot?
+
+<<>>=
+
+@
+
+\section{Question 5}
+Construct Shepard plots for up to 4 dimensions. Is your decision about the number of dimensions in Question 4 supported by the Shepard plots?  
+
+<<>>=
+
+@
+
+\section{Question 6}
+Construct a graphical display of the multidimensional space using the number of dimensions identified in Question 4.
+
+<<>>=
+
+@
+
+
+\end{document}
