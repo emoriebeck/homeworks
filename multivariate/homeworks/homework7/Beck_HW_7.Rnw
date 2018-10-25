@@ -54,14 +54,15 @@ knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 library(car)
 library(knitr)
 library(psych)
-library(lavaan)
-library(semPlot)
 library(kableExtra)
-library(multcomp)
+library(vegan)
+library(smacof)
+library(ape)
+library(ade4)
+library(ecodist)
 library(lme4)
 library(plyr)
 library(tidyverse)
-library(MVN)
 @
 
 
@@ -94,14 +95,41 @@ head(dat)
 First, provide a profile of the sample. Construct a bar graph that contains the mean percentage for each question along with the 95\% confidence interval.  
 
 <<>>=
-
+dat %>% 
+  gather(key = item, value = value, -Country) %>%
+  Rmisc::summarySE(., measurevar = "value", groupvars = "item") %>%
+  mutate(rank = rank(desc(value))) %>%
+  arrange(rank) %>%
+  mutate(item = factor(item, levels = unique(item))) %>%
+  ggplot(aes(x = item, y = value, ymin = value - ci, ymax = value + ci)) + 
+    geom_bar(aes(fill = item), color = "black", position = "dodge", stat = "identity") + 
+    geom_errorbar(position = "dodge", width = .1) + 
+    labs(y = "Mean Percentage", x = NULL) +
+    coord_flip() + 
+    theme_classic() +
+    theme(legend.position = "none")
 @
 
 \section{Question 2}
 Second, create two additional data frames representing alternative ways to represent the data.
 
 <<>>=
+GGally::ggpairs(dat %>% select(-Country))
 
+dat %>% gather(key = item, value = value, -Country) %>%
+  group_by(item) %>% 
+  mutate(mean = mean(value)) %>%
+  ungroup() %>%
+  mutate(rank = rank(desc(mean))) %>%
+  arrange(rank) %>%
+  mutate(item = factor(item, levels = unique(item)))  %>%
+  ggplot(aes(x = value, y = item, fill = item)) +
+    # geom_boxplot() + 
+    ggridges::geom_density_ridges() +
+    labs(x = "Percentage", y = NULL, title = "Density Distributions") +
+    theme_classic() + 
+    theme(legend.position = "none",
+          plot.title = element_text(hjust = .5, face = "bold"))
 @
 
 
@@ -109,7 +137,10 @@ Second, create two additional data frames representing alternative ways to repre
 The ratings are in a common metric (percentages) but vary in their standard deviations. To give each item equal weight, standardize the ratings.
 
 <<>>=
-
+dat <- dat %>%
+  gather(key = item, value = raw, -Country) %>%
+  group_by(item) %>%
+  mutate(z = as.numeric(scale(raw)))
 @
 
 
@@ -117,7 +148,8 @@ The ratings are in a common metric (percentages) but vary in their standard devi
 The percentage scale is bounded and a case might be made that differences at the extremes (e.g., the difference between 90\% and 95\%) are more important than equal differences in the middle (e.g., the difference between 45\% and 50\%). One way to provide this unequal emphasis is to convert the percentages to proportions and then to transform them to probits using the \verbatim{qnorm( )} function. This will stretch the scale at the extremes.
 
 <<>>=
-
+dat <- dat %>% 
+  mutate(probit = ecotoxicology::PercentageToProbit(raw))
 @
 
 
@@ -125,7 +157,12 @@ The percentage scale is bounded and a case might be made that differences at the
 Convert each rating file to a distance matrix using Euclidean distances.  
 
 <<>>=
-
+nested.dat <- dat %>%
+  gather(key = type, value = value, -Country, -item) %>%
+  spread(key = item, value = value) %>%
+  group_by(type) %>%
+  nest() %>%
+  mutate(d_mat = map(data, ~dist(.[,-1],method="euclidean",diag=TRUE)))
 @
 
 
@@ -133,7 +170,10 @@ Convert each rating file to a distance matrix using Euclidean distances.
 Using the original ratings data, and metric multidimensional scaling, construct a plot of the stress values (for up to 6 dimensions). How many dimensions are suggested by this plot?
 
 <<>>=
-
+nested.dat %>% 
+  full_join(crossing(type = nested.dat$type, dim = 1:6)) %>%
+  mutate(mds = map2(data, dim, ~smacofSym(.x, ndim = .y,verbose=FALSE,type="ordinal",itmax=1000)))
+  
 @
 
 \section{Question 5}
