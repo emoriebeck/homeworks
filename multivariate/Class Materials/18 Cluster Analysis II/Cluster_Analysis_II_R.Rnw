@@ -1,0 +1,1013 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Cluster Analysis II}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(ggplot2)
+library(vegan)
+library(smacof)
+library(ape)
+library(ade4)
+library(scatterplot3d)
+library(cluster)
+library(factoextra)
+library(ggdendro)
+library(plyr)
+library(fpc)
+@
+
+\clearpage
+\section{Old Data}
+\textbf{\large{\textit{
+Clustering methods can be applied to the same kind of data that are examined using MDS. A proximity matrix can be used as input and the clusters identified using any of the methods. \newline
+\newline
+Car rankings \newline
+Country attributes \newline
+President rankings \newline
+}}}
+
+\subsection{Data Entry}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+Cars<-read.table('cars_means_with_rover.csv',sep=',',header=TRUE)
+row.names(Cars)<-Cars$Car
+Cars_Names<-as.vector(Cars[,1])
+Cars_Matrix<-as.matrix(Cars[,2:ncol(Cars)])
+# The cars data are mean ratings along multiple scales, all in the same
+# metric. They can be converted to Euclidean distances.
+Cars_Dist<-dist(Cars_Matrix,method="euclidean")
+
+Presidents<-read.table('presidents.csv',sep=',',header=TRUE)
+Presidents <- as.data.frame(Presidents)
+row.names(Presidents)<-Presidents$President
+
+# The euclidean distances are created from the ranks.
+Presidents_Dist<-dist(Presidents[,2:ncol(Presidents)],method="euclidean",diag=TRUE)
+
+# If the ratings are provided on quite different scales, then they should be standardized
+# before distances are calculated. Here is way to do that and modify the names if
+# files are later combined. Standardization is not needed here because the data are
+# ranks and so all scales have identical standard deviations.
+Presidents_Z <- scale(Presidents[,2:ncol(Presidents)])
+Presidents_Z <- as.data.frame(Presidents_Z)
+names(Presidents_Z) <- paste(names(Presidents[-1]), "_Z", sep = "")
+Presidents_Dist_Z<-dist(scale(Presidents[,2:ncol(Presidents)]),method="euclidean",diag=TRUE)
+# Presidents_Dist_Z
+
+# Raw ranks can be converted to normalized ranks as follows. This
+# can be useful if there are missing data and thus different numbers
+# of objects ranked across scales. This step is also unnecessary for
+# for the current data because all objects were ranked for all
+# scales.
+Presidents_r <- Presidents[,2:ncol(Presidents)]-1
+Presidents_NR <- matrix(NA,ncol=(length(Presidents_r[1,])),nrow=length(Presidents_r[,1]))
+for(j in seq(1,ncol(Presidents_r))) {
+  for(i in seq(1,nrow(Presidents_r))) {
+   Presidents_NR[i,j] <- Presidents_r[i,j]/(42)
+  }
+}
+
+Presidents_NR <- as.data.frame(Presidents_NR)
+names(Presidents_NR) <- paste(names(Presidents[-1]), "_NR", sep = "")
+Presidents_Dist_NR<-dist(Presidents_NR,method="euclidean",diag=TRUE)
+
+Presidents_All <- cbind(Presidents,Presidents_Z,Presidents_NR)
+# cor(Presidents_All[-1],,use="pairwise.complete.obs")
+
+cor(Presidents[,2:11])
+
+Trump<-read.table('trump.csv',sep=',',header=TRUE)
+Trump <- as.data.frame(Trump)
+row.names(Trump)<-Trump$Country
+Trump_Dist<-dist(Trump[,2:ncol(Trump)],method="euclidean",diag=TRUE)
+@
+
+\clearpage
+\subsection{Ward's Method}
+\textbf{\large{\textit{
+Ward's method usually provides a good solution, so we'll give that a try.
+The dissimilarity between two clusters (A and B) is the loss of information from joining the clusters, measured by the increase in error sum of squares. \newline
+\newline
+The sum of squares for a cluster is the sum of squared deviations of each case from the centroid for the cluster.  
+The error sum of squares is the total of these for all clusters. 
+The two clusters among all possible combinations that have the minimum increase in error sum of squares are joined.  \newline
+\newline
+Two versions are available. 
+The Ward D method will produce the traditional Ward solution, but only if squared Euclidean distances are used.
+the Ward D2 method will produce the traditional Ward solution starting from Euclidean distances. \newline
+\newline
+Note that Ward's method traditionally is described as requiring squared Euclidean distances, but this requirement is often relaxed, apparently with little effect.
+We will use it here, where it is is most strongly justified for the country rating data, somewhat less so for the president data, and least so for the car data.
+An active area of work is the impact on clustering of different metric with different clustering methods.
+}}}
+
+\subsubsection{Car Data}
+<<tidy=TRUE>>=
+Cars_Wards<-hclust(Cars_Dist, method="ward.D2")
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(Cars_Wards,theme_dendro=FALSE,size=4) +
+  xlab("Cars") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Ward's Method")
+@
+
+\subsubsection{President Data}
+<<tidy=TRUE>>=
+Presidents_Wards<-hclust(Presidents_Dist, method="ward.D2")
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(Presidents_Wards,theme_dendro=FALSE,size=4) +
+  xlab("Presidents") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Ward's Method")
+@
+
+\subsubsection{Trump Data}
+<<tidy=TRUE>>=
+Trump_Wards<-hclust(Trump_Dist, method="ward.D2")
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(Trump_Wards,theme_dendro=FALSE,size=4) +
+  xlab("Countries") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Ward's Method")
+@
+
+\clearpage
+\section{K-Means Clustering}
+\textbf{\large{\textit{
+The partitioning procedure known as K-Means clustering attempts to form clusters that have the smallest possible within-cluster variances.
+The partitioning approach to finding clusters begins with specification of the number of clusters desired (K) and "seed" values for the initial cluster centroids. 
+Then, cases are assigned to clusters so that the sum of the squared distances from cases to cluster centroids are minimized. 
+Cases are reassigned until no further reduction in the sum of squared deviations is found.
+The K-Means clustering procedure is similar to Ward's method, but is not a hierarchical approach.  
+In Ward's method, when cases are joined in a cluster they cannot later separate and join different clusters.  
+Reassignment is possible in K-Means clustering.
+}}}
+
+\subsection{Iris Data}
+\textbf{\large{\textit{
+We'll begin by analyzing the iris data.
+The kmeans( ) function in the basic stats available when R starts up is a good option for most problems.
+It requires the raw data matrix, with the objects to be clustered on the rows.
+If the variables used to measure the objects are not in the same scale, then they should be standardized first.
+Because of the nature of the method, the data are assumed to be at least interval level.
+}}}
+
+\subsubsection{Data}
+<<tidy=TRUE>>=
+# Get the use data from the working directory.
+Iris<-read.table('iris.csv',sep=',',header=TRUE)
+Iris <- as.data.frame(Iris)
+Iris$Species[Iris$Species=="1"] <- "Setosa"
+Iris$Species[Iris$Species=="2"] <- "Versicolor"
+Iris$Species[Iris$Species=="3"] <- "Virginica"
+@
+
+\subsubsection{Dimensional Plot}
+<<tidy=TRUE>>=
+# Use PCA to show potential clustering along two dimensions.
+PCA <- principal(Iris[,1:4],nfactors=2,rotate="varimax",scores=TRUE)
+PCA
+Iris <- cbind(Iris,PCA$scores)
+@
+
+<<tidy=TRUE>>=
+ggplot(Iris, aes(x=RC1,y=RC2,color=factor(Species))) +
+    geom_point(shape=19,size=3) +
+    scale_color_manual(values=c("red", "blue", "green")) +
+    scale_y_continuous(breaks=c(seq(-3,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-3,3.5)) +
+    xlab("Component 1") + 
+    ylab("Component 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Component Plot by Species")
+@
+
+\subsubsection{Basic Function}
+<<tidy=TRUE>>=
+# The minimum specification is the data source and number of clusters desired.
+Iris_K <- kmeans(Iris[,1:4],centers=3,iter.max = 1000,nstart = 10)
+Iris_K$cluster
+Iris_K$centers
+Iris_K$totss
+Iris_K$tot.withinss
+Iris_K$betweenss
+Iris_K$withinss
+Iris_K$size
+Iris_Class <- as.data.frame(cbind(Iris_K$cluster,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species,Iris_Class$Cluster)
+
+Iris_New <- as.data.frame(Iris_K$cluster)
+names(Iris_New) <- c("Cluster")
+Iris_New <- as.data.frame(cbind(Iris,Iris_New))
+@
+
+\subsubsection{Plot of Within-Cluster Sums of Squares}
+\textbf{\large{\textit{
+The method attempts to minimize the within-cluster sums of squares. 
+This can be used to help identify the optimal number of clusters. For different numbers of clusters, a point may be found, after which little improvement in the solution occurs. 
+Similar to a scree plot, the point at which the plot of within-cluster sums of squares reaches a discernible floor can be used as the optimal number of clusters.
+}}}
+<<tidy=TRUE>>=
+wssplot <- function(data,nc=15,seed=1234) {
+  wss <- (nrow(data-1))*sum(apply(data,2,var))
+  for (i in 2:nc) {
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data,centers=i)$withinss)
+  }
+  plot_data <- cbind(wss,seq(1,nc,1))
+  plot_data <- as.data.frame(plot_data)
+  names(plot_data) <- c("wss","nc")
+  ggplot(plot_data, aes(x=nc,y=wss)) +
+    geom_point(shape=19,size=3) +
+    geom_line() +
+    scale_x_continuous(breaks=c(seq(1,nc,1))) +
+    xlab("Number of Clusters") + 
+    ylab("Within-Cluster Sum of Squares") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Within-Cluster Sums of Squares by Number of Clusters")
+}
+wssplot(Iris[,1:4],nc=10)
+@
+
+\subsubsection{Plot of Cluster Means on Original Variables}
+\textbf{\large{\textit{
+Once the clusters are identified, the means on the original variables can be plotted.
+}}}
+
+<<tidy=TRUE>>=
+SE_SL <-  ddply(Iris_New,~Cluster,summarise,se=se(Sepal_Length))
+Means_SL <-  ddply(Iris_New,~Cluster,summarise,mean=mean(Sepal_Length))
+N_SL <- table(Iris_New$Cluster)
+SL <- cbind(Means_SL,SE_SL$se,N_SL)
+SL <- as.data.frame(SL)
+SL <- SL[-4]
+names(SL) <- c("Cluster","Mean","SE","N")
+              
+SE_SW <-  ddply(Iris_New,~Cluster,summarise,se=se(Sepal_Width))
+Means_SW <-  ddply(Iris_New,~Cluster,summarise,mean=mean(Sepal_Width))
+N_SW <- table(Iris_New$Cluster)
+SW <- cbind(Means_SW,SE_SW$se,N_SW)
+SW <- as.data.frame(SW)
+SW <- SW[-4]
+names(SW) <- c("Cluster","Mean","SE","N")    
+            
+SE_PL <-  ddply(Iris_New,~Cluster,summarise,se=se(Petal_Length))
+Means_PL <-  ddply(Iris_New,~Cluster,summarise,mean=mean(Petal_Length))
+N_PL <- table(Iris_New$Cluster)
+PL <- cbind(Means_PL,SE_PL$se,N_PL)
+PL <- as.data.frame(PL)
+PL <- PL[-4]
+names(PL) <- c("Cluster","Mean","SE","N")  
+             
+SE_PW <-  ddply(Iris_New,~Cluster,summarise,se=se(Petal_Width))
+Means_PW <-  ddply(Iris_New,~Cluster,summarise,mean=mean(Petal_Width))
+N_PW <- table(Iris_New$Cluster)
+PW <- cbind(Means_PW,SE_PW$se,N_PW)
+PW <- as.data.frame(PW)
+PW <- PW[-4]
+names(PW) <- c("Cluster","Mean","SE","N")  
+
+plot_data <- rbind(SL,SW,PL,PW)
+plot_data$Feature <- c(rep("Sepal Length",3),rep("Sepal Width",3),rep("Petal Length",3),rep("Petal Width",3))
+plot_data$Feature <- factor(plot_data$Feature)
+plot_data$CI_L <- plot_data$Mean-plot_data$SE*qt(.975, df=plot_data$N-1)
+plot_data$CI_U <- plot_data$Mean+plot_data$SE*qt(.975, df=plot_data$N-1)
+plot_data$Cluster <- factor(plot_data$Cluster)
+
+p <- ggplot(plot_data, aes(x=Cluster, y=Mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=CI_L, ymax=CI_U),
+                      width=.1,position = position_dodge(0.5)) +
+        xlab("Cluster") + 
+        ylab("mm") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=1),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),  
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Sepal and Petal Size By Cluster")
+p + facet_grid(~Feature)
+@
+
+<<tidy=TRUE>>=
+summary(aov(Iris_New$Sepal_Length ~ as.factor(Iris_New$Cluster)))
+summary(aov(Iris_New$Sepal_Width ~ as.factor(Iris_New$Cluster)))
+summary(aov(Iris_New$Petal_Length ~ as.factor(Iris_New$Cluster)))
+summary(aov(Iris_New$Petal_Width ~ as.factor(Iris_New$Cluster)))
+@
+
+\subsubsection{Alternative Method}
+\textbf{\large{\textit{
+A more general approach is to cluster around "medoids."
+A medoid is the object of a cluster whose average dissimilarity to all the objects in the cluster is minimal. 
+In other words, it is the most centrally located object in the cluster.
+The pam( ) function in the cluster library can perform this calculation.
+In the following, a dissimilarity matrix based on Euclidean distance is created on the fly and used as input.
+The cluster information that is provided includes (from the documentation) the cardinality of the cluster (number of observations), the maximal and average dissimilarity between the observations in the cluster and the cluster's medoid, the diameter of the cluster (maximal dissimilarity between two observations of the cluster), and the separation of the cluster (minimal dissimilarity between an observation of the cluster and an observation of another cluster). 
+}}}
+<<tidy=TRUE>>=
+Iris_P <- pam(dist(Iris[,1:4],method="euclidean"),k=3,diss=TRUE)
+attributes(Iris_P)
+Iris_P$clustering
+Iris_P$clusinfo
+
+Iris_Class <- as.data.frame(cbind(Iris_P$clustering,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species,Iris_Class$Cluster)
+
+# The following table compares the clustering done by pam( ) and that done by kmeans( ).
+table(Iris_K$cluster,Iris_P$clustering)
+@
+
+\clearpage
+\subsection{Right Wing Data}
+\textbf{\large{\textit{
+A sample of 150 people were surveyed concerning their opinions about four controversial issues. 
+On a 10-point rating scale, ranging from Completely Disapprove (1) to Completely Approve (10), the respondents rated their opinions of: \newline
+\newline
+Gun Control \newline
+Prayer in the Schools \newline
+Death Penalty \newline
+Same Sex Marriage \newline
+\newline
+The sample also reported their annual income and their number of years of education. 
+The role of socioeconomic status in shaping opinions on controversial topics was the goal of the study. 
+}}}
+
+\subsubsection{Data}
+<<tidy=TRUE>>=
+# Get the use data from the working directory.
+RW_Data <- read.table('right_wing_data.csv',sep=',',header=TRUE)
+RW <- as.data.frame(scale(RW_Data))
+@
+
+\subsubsection{Relationship Between Income and Education}
+\textbf{\large{\textit{
+The relationship between income and education is unusual and suggests subgroups may exist in the data.
+Cluster analysis can help identify them.
+}}}
+<<tidy=TRUE>>=
+plot_data <- RW
+
+ggplot(plot_data, aes(x=educate,y=income)) +
+  geom_point(shape=19,size=1) +
+  geom_jitter() +
+  xlab("Education") + 
+  ylab("Income") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+        axis.text.y = element_text(colour = "black",size=12,face="bold"),
+        axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+        axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+        axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        plot.title = element_text(size=16, face="bold", 
+                                  margin = margin(0, 0, 20, 0),hjust=.5),
+        panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),  
+        plot.background = element_rect(fill = "white"),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),
+        legend.position = "bottom", 
+        legend.title = element_blank()) +
+ggtitle("Income as a Function of Education")
+@
+
+\subsubsection{Ward's Method}
+\textbf{\large{\textit{
+A hierarchical cluster analysis using Ward's method suggests from 2 to 6 clusters in the sample.
+}}}
+<<tidy=TRUE>>=
+RW_HC <- hclust(dist(RW[,1:6],method="euclidean"), method="ward.D2")
+
+RW_Clusters_H <- as.data.frame(cutree(RW_HC, k=6))
+names(RW_Clusters_H) <- c("Cluster_H")
+RW_New_HC <- as.data.frame(cbind(RW,RW_Clusters_H))
+aggregate(RW_New_HC,by=list(RW_New_HC$Cluster),mean)
+
+summary(aov(RW_New_HC$educate ~ as.factor(RW_New_HC$Cluster_H)))
+summary(aov(RW_New_HC$income ~ as.factor(RW_New_HC$Cluster_H)))
+summary(aov(RW_New_HC$gun ~ as.factor(RW_New_HC$Cluster_H)))
+summary(aov(RW_New_HC$prayer ~ as.factor(RW_New_HC$Cluster_H)))
+summary(aov(RW_New_HC$death ~ as.factor(RW_New_HC$Cluster_H)))
+summary(aov(RW_New_HC$samesex ~ as.factor(RW_New_HC$Cluster_H)))
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(RW_HC,theme_dendro=FALSE,size=4) +
+  xlab("People") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=4,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Ward's Method")
+@
+
+\subsubsection{Height Plot}
+\textbf{\large{\textit{
+A plot of the height at which joining occurs can sometimes provide insight into the number of clusters that best simplifies the data; 6 cluster appears to be best.
+}}}
+
+<<tidy=TRUE>>=
+H <- matrix(RW_HC$height,nrow=149)
+plot_data <- cbind(seq(1,149,1),H)
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Join","Height")
+
+ggplot(plot_data, aes(x=Join,y=Height)) +
+    geom_point(shape=19,size=2, color="black",na.rm=TRUE) +   
+    geom_line(size=1) +
+    scale_x_continuous(breaks=c(seq(0,150,10))) +
+    coord_cartesian(xlim = c(0,150), ylim = c(0,max(plot_data$Height))) +
+    xlab("Join Number") + 
+    ylab("Height") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Height Plot: Ward's Method")
+@
+
+\subsubsection{Single Linkage Method}
+\textbf{\large{\textit{
+The single linkage method does not work particularly well with these data, exhibiting substantial chaining that is typical when clusters are not circular or spherical.
+}}}
+<<tidy=TRUE>>=
+RW_SL <- hclust(dist(RW[,1:6],method="euclidean"), method="single")
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(RW_SL,theme_dendro=FALSE,size=4) +
+  xlab("People") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=4,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Single Linkage Method")
+@
+
+\subsubsection{Height Plot}
+\textbf{\large{\textit{
+A plot of the height at which joining occurs can sometimes provide insight into the number of clusters that best simplifies the data.
+}}}
+
+<<tidy=TRUE>>=
+H <- matrix(RW_HC$height,nrow=149)
+plot_data <- cbind(seq(1,149,1),H)
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Join","Height")
+
+ggplot(plot_data, aes(x=Join,y=Height)) +
+    geom_point(shape=19,size=2, color="black",na.rm=TRUE) +   
+    geom_line(size=1) +
+    scale_x_continuous(breaks=c(seq(0,150,10))) +
+    coord_cartesian(xlim = c(0,150), ylim = c(0,max(plot_data$Height))) +
+    xlab("Join Number") + 
+    ylab("Height") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Height Plot: Ward's Method")
+@
+
+\subsubsection{K-Means Clustering}
+\textbf{\large{\textit{
+We'll take a look at 6 clusters and see how they compare to the hierarchical method and also determine if they help with the income and education data.
+}}}
+<<tidy=TRUE>>=
+RW_K <- kmeans(RW[,1:6], centers=6,iter.max = 1000,nstart = 10)
+RW_K$centers
+RW_Clusters_K <- as.data.frame(RW_K$cluster)
+names(RW_Clusters_K) <- c("Cluster_K")
+RW_New_K <- as.data.frame(cbind(RW,RW_Clusters_K))
+aggregate(RW_New_K,by=list(RW_New_K$Cluster),mean)
+
+summary(aov(RW_New_K$educate ~ as.factor(RW_New_K$Cluster_K)))
+summary(aov(RW_New_K$income ~ as.factor(RW_New_K$Cluster_K)))
+summary(aov(RW_New_K$gun ~ as.factor(RW_New_K$Cluster_K)))
+summary(aov(RW_New_K$prayer ~ as.factor(RW_New_K$Cluster_K)))
+summary(aov(RW_New_K$death ~ as.factor(RW_New_K$Cluster_K)))
+summary(aov(RW_New_K$samesex ~ as.factor(RW_New_K$Cluster_K)))
+@
+
+\subsubsection{Plot of Within-Cluster Sums of Squares}
+\textbf{\large{\textit{
+A plot of the within-cluster sums of squares for different numbers of clusters with the K-Means method can be used as well to determine a good choice for number of clusters.
+Here too 6 clusters appears to be the best solution.
+}}}
+<<tidy=TRUE>>=
+wssplot(RW[,1:6],nc=20)
+@
+
+\subsubsection{How Well Do the Methods Agree?}
+<<tidy=TRUE>>=
+RW_New <- as.data.frame(cbind(RW,RW_Clusters_H,RW_Clusters_K))
+Cross_T <- table(RW_New$Cluster_H,RW_New$Cluster_K)
+@
+
+\begin{tabular}{| L{2.5cm} | L{2cm} | R{1.5cm} | R{1cm} | R{1.5cm} | R{1.5cm} | R{1.5cm} | R{1.5cm} |}
+\hline
+   &  & \multicolumn{6}{|c|}{K-Means Clusters} \\
+\hline
+  &   & \multicolumn{1}{|c|}{Cluster 1} & \multicolumn{1}{|c|}{Cluster 2} & \multicolumn{1}{|c|}{Cluster 3} & \multicolumn{1}{|c|}{Cluster 4} & \multicolumn{1}{|c|}{Cluster 5} & \multicolumn{1}{|c|}{Cluster 6}\\
+\hline
+\multirow{6}{*}{Ward's Clusters} & Cluster 1 & \Sexpr{Cross_T[1,1]} & \Sexpr{Cross_T[1,2]} & \Sexpr{Cross_T[1,3]} & \Sexpr{Cross_T[1,4]} & \Sexpr{Cross_T[1,5]} & \Sexpr{Cross_T[1,6]} \\ \cline{2-8}
+  & Cluster 2 & \Sexpr{Cross_T[2,1]} & \Sexpr{Cross_T[2,2]} & \Sexpr{Cross_T[2,3]} & \Sexpr{Cross_T[2,4]} & \Sexpr{Cross_T[2,5]} & \Sexpr{Cross_T[2,6]} \\ \cline{2-8}
+  & Cluster 3 & \Sexpr{Cross_T[3,1]} & \Sexpr{Cross_T[3,2]} & \Sexpr{Cross_T[3,3]} & \Sexpr{Cross_T[3,4]} & \Sexpr{Cross_T[3,5]} & \Sexpr{Cross_T[3,6]} \\ \cline{2-8}
+  & Cluster 4 & \Sexpr{Cross_T[4,1]} & \Sexpr{Cross_T[4,2]} & \Sexpr{Cross_T[4,3]} & \Sexpr{Cross_T[4,4]} & \Sexpr{Cross_T[4,5]} & \Sexpr{Cross_T[4,6]} \\ \cline{2-8}
+  & Cluster 5 & \Sexpr{Cross_T[5,1]} & \Sexpr{Cross_T[5,2]} & \Sexpr{Cross_T[5,3]} & \Sexpr{Cross_T[5,4]} & \Sexpr{Cross_T[5,5]} & \Sexpr{Cross_T[5,6]} \\ \cline{2-8}
+  & Cluster 6 & \Sexpr{Cross_T[6,1]} & \Sexpr{Cross_T[6,2]} & \Sexpr{Cross_T[6,3]} & \Sexpr{Cross_T[6,4]} & \Sexpr{Cross_T[6,5]} & \Sexpr{Cross_T[6,6]} \\
+\hline 
+\end{tabular}
+
+<<tidy=TRUE>>=
+ggplot(RW_New_HC, aes(x=educate,y=income,color=factor(Cluster_H))) +
+    geom_point(shape=19,size=1) +
+    geom_jitter() +
+    scale_color_manual(values=c("red", "blue", "green","orange","gray","black")) +
+    scale_y_continuous(breaks=c(seq(-1,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-1,3.5)) +
+    xlab("Education") + 
+    ylab("Income") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Income By Education: Ward's Clusters")
+@
+
+<<tidy=TRUE>>=
+ggplot(RW_New_K, aes(x=educate,y=income,color=factor(Cluster_K))) +
+    geom_point(shape=19,size=1) +
+    geom_jitter() +
+    scale_color_manual(values=c("red", "blue", "green","orange","gray","black")) +
+    scale_y_continuous(breaks=c(seq(-1,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-1,3.5)) +
+    xlab("Education") + 
+    ylab("Income") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Income By Education: K-Means Clusters")
+@
+
+<<tidy=TRUE>>=
+RW_New_K$Cluster_HC <- RW_New_HC$Cluster_H
+for(i in seq(1,length(RW_New_K[,1]))) {
+  RW_New_K[i,"Match"] <- "Mismatch"
+  if(RW_New_K[i,"Cluster_HC"]==6 & RW_New_K[i,"Cluster_K"]==1) {
+      RW_New_K[i,"Match"] <- "Match"
+  }
+  if(RW_New_K[i,"Cluster_HC"]==5 & RW_New_K[i,"Cluster_K"]==2) {
+      RW_New_K[i,"Match"] <- "Match"
+  } 
+  if(RW_New_K[i,"Cluster_HC"]==3 & RW_New_K[i,"Cluster_K"]==3) {
+      RW_New_K[i,"Match"] <- "Match"
+  }
+  if(RW_New_K[i,"Cluster_HC"]==2 & RW_New_K[i,"Cluster_K"]==4) {
+      RW_New_K[i,"Match"] <- "Match"
+  }  
+  if(RW_New_K[i,"Cluster_HC"]==1 & RW_New_K[i,"Cluster_K"]==5) {
+      RW_New_K[i,"Match"] <- "Match"
+  }  
+  if(RW_New_K[i,"Cluster_HC"]==4 & RW_New_K[i,"Cluster_K"]==6) {
+      RW_New_K[i,"Match"] <- "Match"
+  }  
+}
+
+ggplot(RW_New_K, aes(x=educate,y=income,color=factor(Match))) +
+    geom_point(shape=19,size=1) +
+    geom_jitter() +
+    scale_color_manual(values=c("blue", "red")) +
+    scale_y_continuous(breaks=c(seq(-1,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-1,3.5)) +
+    xlab("Education") + 
+    ylab("Income") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Income By Education: K-Means & Ward's Matches")
+@
+
+\subsubsection{Plot of Cluster Means on Original Variables}
+<<tidy=TRUE>>=
+SE_educate <-  ddply(RW_New_HC,~Cluster_H,summarise,se=se(educate))
+Means_educate <-  ddply(RW_New_HC,~Cluster_H,summarise,mean=mean(educate))
+N_educate <- table(RW_New_HC$Cluster_H)
+educate <- cbind(Means_educate,SE_educate$se,N_educate)
+educate <- as.data.frame(educate)
+educate <- educate[-4]
+names(educate) <- c("Cluster","Mean","SE","N")
+              
+SE_income <-  ddply(RW_New_HC,~Cluster_H,summarise,se=se(income))
+Means_income <-  ddply(RW_New_HC,~Cluster_H,summarise,mean=mean(income))
+N_income <- table(RW_New_HC$Cluster_H)
+income <- cbind(Means_income,SE_income$se,N_income)
+income <- as.data.frame(income)
+income <- income[-4]
+names(income) <- c("Cluster","Mean","SE","N")
+
+SE_gun <-  ddply(RW_New_HC,~Cluster_H,summarise,se=se(gun))
+Means_gun <-  ddply(RW_New_HC,~Cluster_H,summarise,mean=mean(gun))
+N_gun <- table(RW_New_HC$Cluster_H)
+gun <- cbind(Means_gun,SE_gun$se,N_gun)
+gun <- as.data.frame(gun)
+gun <- gun[-4]
+names(gun) <- c("Cluster","Mean","SE","N")
+
+SE_prayer <-  ddply(RW_New_HC,~Cluster_H,summarise,se=se(prayer))
+Means_prayer <-  ddply(RW_New_HC,~Cluster_H,summarise,mean=mean(prayer))
+N_prayer <- table(RW_New_HC$Cluster_H)
+prayer <- cbind(Means_prayer,SE_prayer$se,N_prayer)
+prayer <- as.data.frame(prayer)
+prayer <- prayer[-4]
+names(prayer) <- c("Cluster","Mean","SE","N")
+
+SE_death <-  ddply(RW_New_HC,~Cluster_H,summarise,se=se(death))
+Means_death <-  ddply(RW_New_HC,~Cluster_H,summarise,mean=mean(death))
+N_death <- table(RW_New_HC$Cluster_H)
+death <- cbind(Means_death,SE_death$se,N_death)
+death <- as.data.frame(death)
+death <- death[-4]
+names(death) <- c("Cluster","Mean","SE","N")
+
+SE_samesex <-  ddply(RW_New_HC,~Cluster_H,summarise,se=se(samesex))
+Means_samesex <-  ddply(RW_New_HC,~Cluster_H,summarise,mean=mean(samesex))
+N_samesex <- table(RW_New_HC$Cluster_H)
+samesex <- cbind(Means_samesex,SE_samesex$se,N_samesex)
+samesex <- as.data.frame(samesex)
+samesex <- samesex[-4]
+names(samesex) <- c("Cluster","Mean","SE","N")
+
+plot_data <- rbind(educate,income,gun,prayer,death,samesex)
+plot_data$Feature <- c(rep("Education",6),rep("Income",6),rep("Gun Control",6),
+                       rep("Prayer",6),rep("Death Penalty",6),rep("Same Sex Marriage",6))
+plot_data$Feature <- factor(plot_data$Feature,levels=c("Education","Income","Gun Control","Prayer",
+                                                       "Death Penalty","Same Sex Marriage"))
+plot_data$CI_L <- plot_data$Mean-plot_data$SE*qt(.975, df=plot_data$N-1)
+plot_data$CI_U <- plot_data$Mean+plot_data$SE*qt(.975, df=plot_data$N-1)
+plot_data$Cluster <- factor(plot_data$Cluster)
+
+p <- ggplot(plot_data, aes(x=Cluster, y=Mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=CI_L, ymax=CI_U),
+                      width=.1,position = position_dodge(0.5)) +
+        xlab("Ward's Cluster") + 
+        ylab("Outcomes (Z)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=1),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),  
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        geom_hline(yintercept=0) +
+        ggtitle("Mean Outcomes (Z) By Cluster (95% CI)")
+p + facet_wrap(~Feature , ncol=3)
+@
+
+<<tidy=TRUE>>=
+SE_educate <-  ddply(RW_New_K,~Cluster_K,summarise,se=se(educate))
+Means_educate <-  ddply(RW_New_K,~Cluster_K,summarise,mean=mean(educate))
+N_educate <- table(RW_New_K$Cluster_K)
+educate <- cbind(Means_educate,SE_educate$se,N_educate)
+educate <- as.data.frame(educate)
+educate <- educate[-4]
+names(educate) <- c("Cluster","Mean","SE","N")
+              
+SE_income <-  ddply(RW_New_K,~Cluster_K,summarise,se=se(income))
+Means_income <-  ddply(RW_New_K,~Cluster_K,summarise,mean=mean(income))
+N_income <- table(RW_New_K$Cluster_K)
+income <- cbind(Means_income,SE_income$se,N_income)
+income <- as.data.frame(income)
+income <- income[-4]
+names(income) <- c("Cluster","Mean","SE","N")
+
+SE_gun <-  ddply(RW_New_K,~Cluster_K,summarise,se=se(gun))
+Means_gun <-  ddply(RW_New_K,~Cluster_K,summarise,mean=mean(gun))
+N_gun <- table(RW_New_K$Cluster_K)
+gun <- cbind(Means_gun,SE_gun$se,N_gun)
+gun <- as.data.frame(gun)
+gun <- gun[-4]
+names(gun) <- c("Cluster","Mean","SE","N")
+
+SE_prayer <-  ddply(RW_New_K,~Cluster_K,summarise,se=se(prayer))
+Means_prayer <-  ddply(RW_New_K,~Cluster_K,summarise,mean=mean(prayer))
+N_prayer <- table(RW_New_K$Cluster_K)
+prayer <- cbind(Means_prayer,SE_prayer$se,N_prayer)
+prayer <- as.data.frame(prayer)
+prayer <- prayer[-4]
+names(prayer) <- c("Cluster","Mean","SE","N")
+
+SE_death <-  ddply(RW_New_K,~Cluster_K,summarise,se=se(death))
+Means_death <-  ddply(RW_New_K,~Cluster_K,summarise,mean=mean(death))
+N_death <- table(RW_New_K$Cluster_K)
+death <- cbind(Means_death,SE_death$se,N_death)
+death <- as.data.frame(death)
+death <- death[-4]
+names(death) <- c("Cluster","Mean","SE","N")
+
+SE_samesex <-  ddply(RW_New_K,~Cluster_K,summarise,se=se(samesex))
+Means_samesex <-  ddply(RW_New_K,~Cluster_K,summarise,mean=mean(samesex))
+N_samesex <- table(RW_New_K$Cluster_K)
+samesex <- cbind(Means_samesex,SE_samesex$se,N_samesex)
+samesex <- as.data.frame(samesex)
+samesex <- samesex[-4]
+names(samesex) <- c("Cluster","Mean","SE","N")
+
+plot_data <- rbind(educate,income,gun,prayer,death,samesex)
+plot_data$Feature <- c(rep("Education",6),rep("Income",6),rep("Gun Control",6),
+                       rep("Prayer",6),rep("Death Penalty",6),rep("Same Sex Marriage",6))
+plot_data$Feature <- factor(plot_data$Feature,levels=c("Education","Income","Gun Control","Prayer",
+                                                       "Death Penalty","Same Sex Marriage"))
+plot_data$CI_L <- plot_data$Mean-plot_data$SE*qt(.975, df=plot_data$N-1)
+plot_data$CI_U <- plot_data$Mean+plot_data$SE*qt(.975, df=plot_data$N-1)
+plot_data$Cluster <- factor(plot_data$Cluster)
+
+p <- ggplot(plot_data, aes(x=Cluster, y=Mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=CI_L, ymax=CI_U),
+                      width=.1,position = position_dodge(0.5)) +
+        xlab("K-Means Cluster") + 
+        ylab("Outcomes (Z)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=1),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),  
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        geom_hline(yintercept=0) +
+        ggtitle("Mean Outcomes (Z) By Cluster (95% CI)")
+p + facet_wrap(~Feature, ncol=3)
+@
+\end{document}

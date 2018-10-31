@@ -34,9 +34,9 @@
 \usepackage{threeparttable}
 
 \title{%
-Homework 3\\
+Homework 7\\
 \large Applied Mutlivariate Analysis}
-\date{September 22, 2018}
+\date{October 22, 2018}
 \author{Emorie Beck}
 
 \begin{document}
@@ -55,8 +55,10 @@ library(car)
 library(knitr)
 library(psych)
 library(kableExtra)
+library(MASS)
 library(vegan)
 library(smacof)
+library(scatterplot3d)
 library(ape)
 library(ade4)
 library(ecodist)
@@ -79,7 +81,7 @@ We know that President Trump is a polarizing figure within the United States, bu
 \item intolerant
 \item caring about ordinary people
 \item arrogant
-
+\end{enumerate}
 The data are contained in the file, trump.csv. For each country, the percentage of the sample that responded “yes” is provided.
 
 <<>>=
@@ -145,11 +147,11 @@ dat <- dat %>%
 
 
 \subsection{Part B}
-The percentage scale is bounded and a case might be made that differences at the extremes (e.g., the difference between 90\% and 95\%) are more important than equal differences in the middle (e.g., the difference between 45\% and 50\%). One way to provide this unequal emphasis is to convert the percentages to proportions and then to transform them to probits using the \verbatim{qnorm( )} function. This will stretch the scale at the extremes.
+The percentage scale is bounded and a case might be made that differences at the extremes (e.g., the difference between 90\% and 95\%) are more important than equal differences in the middle (e.g., the difference between 45\% and 50\%). One way to provide this unequal emphasis is to convert the percentages to proportions and then to transform them to probits using the qnorm( ) function. This will stretch the scale at the extremes.
 
 <<>>=
 dat <- dat %>% 
-  mutate(probit = ecotoxicology::PercentageToProbit(raw))
+  mutate(probit = ecotoxicology::PercentageToProbit(raw/100))
 @
 
 
@@ -170,25 +172,239 @@ nested.dat <- dat %>%
 Using the original ratings data, and metric multidimensional scaling, construct a plot of the stress values (for up to 6 dimensions). How many dimensions are suggested by this plot?
 
 <<>>=
-nested.dat %>% 
+nested.dat <- nested.dat %>% 
   full_join(crossing(type = nested.dat$type, dim = 1:6)) %>%
-  mutate(mds = map2(data, dim, ~smacofSym(.x, ndim = .y,verbose=FALSE,type="ordinal",itmax=1000)))
-  
+  mutate(mds = map2(d_mat, dim, ~smacofSym(.x, ndim = .y,verbose=FALSE,type="ordinal",itmax=1000)),
+         stress = map_dbl(mds, ~.$stress))
+
+nested.dat %>%
+  filter(type == "raw") %>%
+  ggplot(aes(x = dim, y = stress)) + 
+    geom_line() + 
+    geom_point() +
+    scale_x_continuous(limits = c(1,6), breaks = 1:6) +
+    labs(x = "Number of Dimensions", y = "Stress", title = "Question 4: Stress Plot") +
+    theme_classic() +
+    theme(plot.title = element_text(face = "bold", hjust = .5),
+          axis.text = element_text(face = "bold", color = "black"),
+          axis.title = element_text(face = "bold"))
 @
+
+There appear to be 3 dimensions.
 
 \section{Question 5}
 Construct Shepard plots for up to 4 dimensions. Is your decision about the number of dimensions in Question 4 supported by the Shepard plots?  
 
 <<>>=
+shep_extract_fun <- function(shep){
+  tibble(Dissimilarity = shep$x, Distance = shep$yf)
+}
 
+nested.dat <- nested.dat %>%
+  mutate(shep = map2(d_mat, mds, ~Shepard(.x,.y$conf)),
+         shep_val = map(shep, shep_extract_fun))
+
+nested.dat %>% 
+  unnest(shep_val) %>%
+  filter(dim <= 4 & type == "raw") %>%
+  ggplot(aes(x = Dissimilarity, y = Distance, color = factor(dim))) +
+    geom_point() +
+    facet_wrap(~dim) +
+    theme_classic() +
+    theme(legend.position = "none")
 @
+
+The Shepard plot also suggests 3 dimensions.
 
 \section{Question 6}
 Construct a graphical display of the multidimensional space using the number of dimensions identified in Question 4.
 
 <<>>=
+mds_3_dat <- (nested.dat %>%
+  filter(dim == 3 & type == "raw"))$mds[[1]]$conf %>%
+  data.frame
 
+scatterplot3d(x = mds_3_dat$D1, y = mds_3_dat$D2, z = mds_3_dat$D3,
+              xlab = "Dimension 1", ylab = "Dimension 2", zlab = "Dimension 3x")
 @
+
+\section{Question 7}
+Examine the multidimensional space and provide names for the dimensions.  
+<<fig.height=4, fig.width=8>>=
+mds_3_dat <- mds_3_dat %>% 
+  mutate(Country = str_remove_all(unique(dat$Country), " "))
+
+p1 <- mds_3_dat %>%
+  ggplot(aes(x = D1, y = D2, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p2 <- mds_3_dat %>%
+  ggplot(aes(x = D1, y = D3, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p3 <- mds_3_dat %>%
+  ggplot(aes(x = D2, y = D3, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+gridExtra::grid.arrange(p1, p2, p3, nrow = 1)
+@
+
+Dimension 1 might be general support for Trump. Dimension 2 might be egalitarianism. Dimension 3 could be Liberalism.
+
+\section{Question 8}
+Are there any clusters of countries that seem to emerge in the multidimensional space? Provide the same profile plot for each cluster as you provided for all countries in Question 1.
+Columbia, Germany, the Netherlands, Indonesia, Brazil, South Korea, Canada, and Tanzania seem to cluster together across all 3 dimensions.
+
+<<>>=
+dat %>%
+  mutate(Country = str_remove_all(Country, " "),
+         cluster = ifelse(Country %in% c("Colombia", "Germany", "Netherlands",
+         "Indonesia", "Brazil", "South Korea", "Canada", "Tanzania"), "Cluster", Country)) %>%
+  gather(key = item, value = value, -Country, -cluster) %>%
+  Rmisc::summarySE(., measurevar = "value", groupvars = "item") %>%
+  mutate(rank = rank(desc(value))) %>%
+  arrange(rank) %>%
+  mutate(item = factor(item, levels = unique(item))) %>%
+  ggplot(aes(x = item, y = value, ymin = value - ci, ymax = value + ci)) + 
+    geom_bar(aes(fill = item), color = "black", position = "dodge", stat = "identity") + 
+    geom_errorbar(position = "dodge", width = .1) + 
+    labs(y = "Mean Percentage", x = NULL) +
+    coord_flip() + 
+    theme_classic() +
+    theme(legend.position = "none")
+@
+
+
+
+\section{Question 9}
+Repeat the analyses using the standardized ratings. Comment on any differences that you observe.  
+<<fig.height=4, fig.width=8>>=
+# stress plot
+nested.dat %>%
+  filter(type == "z") %>%
+  ggplot(aes(x = dim, y = stress)) + 
+    geom_line() + 
+    geom_point() +
+    scale_x_continuous(limits = c(1,6), breaks = 1:6) +
+    labs(x = "Number of Dimensions", y = "Stress", title = "Question 9: Stress Plot") +
+    theme_classic() +
+    theme(plot.title = element_text(face = "bold", hjust = .5),
+          axis.text = element_text(face = "bold", color = "black"),
+          axis.title = element_text(face = "bold"))
+
+# shepard plot
+nested.dat %>% 
+  unnest(shep_val) %>%
+  filter(dim <= 4 & type == "z") %>%
+  ggplot(aes(x = Dissimilarity, y = Distance, color = factor(dim))) +
+    geom_point() +
+    facet_wrap(~dim) +
+    theme_classic() +
+    theme(legend.position = "none")
+
+# mds
+mds_3_dat_z <- (nested.dat %>%
+  filter(dim == 3 & type == "z"))$mds[[1]]$conf %>%
+  data.frame
+
+scatterplot3d(x = mds_3_dat_z$D1, y = mds_3_dat_z$D2, z = mds_3_dat_z$D3,
+              xlab = "Dimension 1", ylab = "Dimension 2", zlab = "Dimension 3x")
+
+mds_3_dat_z <- mds_3_dat_z %>% 
+  mutate(Country = str_remove_all(unique(dat$Country), " "))
+
+p1 <- mds_3_dat_z %>%
+  ggplot(aes(x = D1, y = D2, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p2 <- mds_3_dat_z %>%
+  ggplot(aes(x = D1, y = D3, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p3 <- mds_3_dat_z %>%
+  ggplot(aes(x = D2, y = D3, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+gridExtra::grid.arrange(p1, p2, p3, nrow = 1)
+@
+
+Nothing appears to change when using standardized scores, so the dimension names, etc. would be the same.
+
+\section{Question 10}
+Repeat the analyses using the probits. Comment on any differences that you observe.
+<<>>=
+# stress plot
+nested.dat %>%
+  filter(type == "probit") %>%
+  ggplot(aes(x = dim, y = stress)) + 
+    geom_line() + 
+    geom_point() +
+    scale_x_continuous(limits = c(1,6), breaks = 1:6) +
+    labs(x = "Number of Dimensions", y = "Stress", title = "Question 9: Stress Plot") +
+    theme_classic() +
+    theme(plot.title = element_text(face = "bold", hjust = .5),
+          axis.text = element_text(face = "bold", color = "black"),
+          axis.title = element_text(face = "bold"))
+
+# shepard plot
+nested.dat %>% 
+  unnest(shep_val) %>%
+  filter(dim <= 6 & type == "probit") %>%
+  ggplot(aes(x = Dissimilarity, y = Distance, color = factor(dim))) +
+    geom_point() +
+    facet_wrap(~dim) +
+    theme_classic() +
+    theme(legend.position = "none")
+@
+
+<<fig.height = 6, fig.width = 8>>=
+# mds
+mds_3_dat_p <- (nested.dat %>%
+  filter(dim == 4 & type == "probit"))$mds[[1]]$conf %>%
+  data.frame
+
+mds_3_dat_p <- mds_3_dat_p %>% 
+  mutate(Country = str_remove_all(unique(dat$Country), " "))
+
+p1 <- mds_3_dat_p %>%
+  ggplot(aes(x = D1, y = D2, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p2 <- mds_3_dat_p %>%
+  ggplot(aes(x = D1, y = D3, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p3 <- mds_3_dat_p %>%
+  ggplot(aes(x = D1, y = D4, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p4 <- mds_3_dat_p %>%
+  ggplot(aes(x = D2, y = D3, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p5 <- mds_3_dat_p %>%
+  ggplot(aes(x = D2, y = D4, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+p6 <- mds_3_dat_p %>%
+  ggplot(aes(x = D3, y = D4, label = Country)) + 
+    geom_text() + 
+    theme_classic()
+
+gridExtra::grid.arrange(p1, p2, p3, p4, p5, p6, nrow = 2)
+@
+Using Probit, 4 dimensions appears to be the best solution, both per the Shepard and stress plots. In this soltuion, the UK is finally low on something (Dimensions 1 and 4), suggesting that the fundamental nature of the dimensions has changed. Moreover, on Dimension 4, the countries that clustered together when using raw scores do not seem to cluster together on this dimension.  
 
 
 \end{document}
