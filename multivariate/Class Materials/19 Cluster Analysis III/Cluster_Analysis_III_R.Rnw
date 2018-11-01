@@ -1,0 +1,898 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Cluster Analysis II}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(ggplot2)
+library(vegan)
+library(smacof)
+library(ape)
+library(ade4)
+library(scatterplot3d)
+library(cluster)
+library(factoextra)
+library(ggdendro)
+library(plyr)
+library(fpc)
+library(clusterGenomics)
+library(clustertend)
+library(e1071)
+library(Gmedian)
+library(protoclust)
+library(dbscan)
+library(ppclust)
+library(vegan)
+@
+
+\subsection{Data Entry}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+Iris<-read.table('iris.csv',sep=',',header=TRUE)
+Iris <- as.data.frame(Iris)
+Iris$Species[Iris$Species=="1"] <- "Setosa"
+Iris$Species[Iris$Species=="2"] <- "Versicolor"
+Iris$Species[Iris$Species=="3"] <- "Virginica"
+Iris_Dist <- dist(Iris[,1:4],method="euclidean")
+@
+
+\clearpage
+\section{Additional Clustering Methods}
+\textbf{\large{\textit{
+Additional clustering methods attempt to improve upon limitations in classical methods: \newline
+\begin{addmargin}[3em]{0em}
+\begin{itemize}
+\item
+Partitioning Around Medoids (PAM)
+\item
+Minimax Clustering
+\item
+Density-Based Clustering (DBSCAN)
+\item
+Fuzzy Sets
+\item
+Minimum Spanning Trees
+\end{itemize}
+\end{addmargin}
+}}}
+
+\subsection{Partitioning Around Medoids}
+\textbf{\large{\textit{
+A medoid is the object of a cluster whose average dissimilarity to all the objects in the cluster is minimal. 
+In other words, it is the most centrally located or representative object in the cluster.
+The goal is to find k medoids that minimize the sum of the dissimilarities of the observations to their closest medoid.
+The pam( ) function in the cluster library can perform this calculation with the number of clusters required as input.\newline
+\newline
+The cluster information that is provided includes size of the cluster, the maximal and average dissimilarity between the observations in the cluster and the cluster's medoid, the maximal dissimilarity between two observations of the cluster (called the diameter of the cluster), and the minimal dissimilarity between an observation of the cluster and an observation of another cluster (called the separation of the cluster). 
+The silhouette scores and coefficients are also provided (described later).
+}}}
+<<tidy=TRUE>>=
+Iris_P <- pam(Iris[,1:4],k=3,diss=FALSE,metric = "euclidean")
+Iris_P$clustering
+Iris_P$clusinfo
+Iris_P$medoids
+Iris_P$id.med
+Iris_P$silinfo
+
+Iris_Class <- as.data.frame(cbind(Iris_P$clustering,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species,Iris_Class$Cluster)
+
+# The following table compares the clustering done by pam( ) and that done by kmeans( ).
+Iris_K <- kmeans(Iris[,1:4],centers=3,iter.max = 1000,nstart = 10)
+table(Iris_K$cluster,Iris_P$clustering)
+@
+
+\subsubsection{Dimensional Plot for Iris Data}
+<<tidy=TRUE>>=
+# Use PCA to show potential clustering along two dimensions.
+PCA <- principal(Iris[,1:4],nfactors=2,rotate="varimax",scores=TRUE)
+Iris_Cluster <- Iris_P$clustering
+plot_data <- cbind(Iris,PCA$scores,Iris_Cluster,Iris$Species)
+plot_data$Cluster_F <- factor(plot_data$Iris_Cluster,levels=c(1,2,3),labels=c("Cluster 1",
+                              "Cluster 2","Cluster 3"))
+plot_data$Species_F <- factor(plot_data$Species)
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=RC1,y=RC2,color=Cluster_F,shape=Species_F)) +
+    geom_point(size=3) +
+    scale_color_manual(values=c("red", "blue", "green4","orange","black")) +
+    scale_shape_manual(values = c(15, 16, 17, 18)) +
+    scale_y_continuous(breaks=c(seq(-3,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-3,3.5)) +
+    xlab("Component 1") + 
+    ylab("Component 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Component Plot by Species")
+@
+
+\subsection{Minimax Clustering}
+\textbf{\large{\textit{
+Minimax clustering is an alternative hierarchical method developed by Bien and Tibshirani (2011).
+It has some resemblance to the medoid approach in that at each step the method identifies the most highly
+representative object (the prototype) for the cluster that has been formed. 
+The linkage in this method is the radius of the smallest enclosing ball, centered at a point chosen from the two clusters being considered for joining. 
+This is done by identifying the object whose farthest distance from another object (max) is the closest (min).
+This central object is the prototype for the newly formed cluster. \newline
+\newline
+One desirable feature of this method, apart from identifying prototypes for each cluster, is that when a  dendrogram is cut at a particular height, H, every observation in the dataset is within H of its cluster's prototype. \newline
+\newline
+Bien, J., \& Tibshirani, R. (2011). Prototype selection for interpretable classification. Annals of Applied Statistics, 5, 2403-2424.
+}}}
+
+<<tidy=TRUE>>=
+Iris_Proto <- protoclust(Iris_Dist)
+
+Iris_Proto$protos
+
+clustnumber<- protocut(Iris_Proto, k=3)[[1]]
+protocut(Iris_Proto, k=3)[[2]]
+Iris_Class <- as.data.frame(cbind(clustnumber,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(Iris_Proto,theme_dendro=FALSE) +
+  xlab("Iris Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=5,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Iris Cluster Dendogram: Minimax Linkage")
+@
+
+\subsubsection{Dimensional Plot for Iris Data}
+<<tidy=TRUE>>=
+# Use PCA to show potential clustering along two dimensions.
+PCA <- principal(Iris[,1:4],nfactors=2,rotate="varimax",scores=TRUE)
+Iris_Cluster <- clustnumber
+plot_data <- cbind(Iris,PCA$scores,Iris_Cluster,Iris$Species)
+plot_data$Cluster_F <- factor(plot_data$Iris_Cluster,levels=c(1,2,3),labels=c("Cluster 1",
+                              "Cluster 2","Cluster 3"))
+plot_data$Species_F <- factor(plot_data$Species)
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=RC1,y=RC2,color=Cluster_F,shape=Species_F)) +
+    geom_point(size=3) +
+    scale_color_manual(values=c("red", "blue", "green4","orange","black")) +
+    scale_shape_manual(values = c(15, 16, 17, 18)) +
+    scale_y_continuous(breaks=c(seq(-3,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-3,3.5)) +
+    xlab("Component 1") + 
+    ylab("Component 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Component Plot by Species")
+@
+
+\subsection{Density-Based Clustering}
+\textbf{\large{\textit{
+One limitation to hierarchical and partitioning methods is that they work best for circular, spherical, or convex clusters.
+When clusters have more unusual shapes, then these traditional methods struggle.
+Density-based clustering can provide a solution for finding unusual cluster shapes. 
+The most popular algorithm is called DBSCAN, which stands for density-based spatial clustering and application with noise.
+The latter part is important because the method recognizes that some objects may not fit neatly into any clusters and resemble noise. \newline
+\newline
+The goal of DBSCAN is to identify dense regions.
+Two parameters are required for DBSCAN: epsilon ("eps") and minimum points ("MinPts"). 
+The parameter, eps, is the radius of neighborhood around a point, x. 
+The area enclosed by this radius is called the $\epsilon$-neighborhood of x. 
+The parameter, MinPts, is the minimum number of neighbors that must be within $\epsilon$-neighborhood.
+Using these parameters, we can define different kinds of points.
+A core point has a neighbor count greater than or equal to MinPts.
+A border point has neighbors less than MinPts, but it belongs to the  $\epsilon$-neighborhood of another point.
+A noise point (also called an outlier) is neither a core nor a border point. \newline
+\newline
+These point definitions are then used to define three additional features: direct density reachable, density reachable, and density connected.
+A point "A" is directly density reachable from another point "B" if "A" is in the $\epsilon$-neighborhood of "B" and "B" is a core point.
+A point "A" is density reachable from "B" if there are a set of core points leading from "B" to "A."
+Two points "A" and "B" are density connected if there is a core point "C", such that both "A" and "B" are density reachable from "C." \newline
+\newline
+The DBSCAN algorithm works as follow: \newline
+\newline
+For each point, $x_i$, compute the distance between $x_i$ and the other points. 
+Find all neighbor points within distance eps of the starting point ($x_i$). 
+Each point, with a neighbor count greater than or equal to MinPts, is marked as a core point.
+For each core point, if it is not already assigned to a cluster, create a new cluster. 
+Find recursively all its density-connected points and assign them to the same cluster as the core point.
+Iterate through the remaining unvisited points in the dataset.
+Those points that do not belong to any cluster are treated as noise. 
+}}}
+
+<<tidy=TRUE>>=
+dbscan::kNNdistplot(Iris[,1:4], k =  15)
+@
+
+<<tidy=TRUE>>=
+Iris_Density <- fpc::dbscan(Iris_Dist,eps=5, MinPts = 10,method="dist")
+Iris_Cluster <- Iris_Density$cluster
+
+Iris_Class <- as.data.frame(cbind(Iris_Cluster,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+\subsubsection{Dimensional Plot for Iris Data}
+<<tidy=TRUE>>=
+# Use PCA to show potential clustering along two dimensions.
+PCA <- principal(Iris[,1:4],nfactors=2,rotate="varimax",scores=TRUE)
+Iris_Cluster <- Iris_Density$cluster
+plot_data <- cbind(Iris,PCA$scores,Iris_Cluster,Iris$Species)
+plot_data$Cluster_F <- factor(plot_data$Iris_Cluster,levels=c(0,1,2),labels=c("Cluster 1",
+                              "Cluster 2","Cluster 3"))
+plot_data$Species_F <- factor(plot_data$Species)
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=RC1,y=RC2,color=Cluster_F,shape=Species_F)) +
+    geom_point(size=3) +
+    scale_color_manual(values=c("red", "blue", "green4","orange","black")) +
+    scale_shape_manual(values = c(15, 16, 17, 18)) +
+    scale_y_continuous(breaks=c(seq(-3,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-3,3.5)) +
+    xlab("Component 1") + 
+    ylab("Component 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Component Plot by Species")
+@
+
+\subsubsection{Odd Shapes Example}
+<<tidy=TRUE>>=
+data("multishapes", package = "factoextra")
+odd_shapes <- multishapes[, 1:2]
+plot_data <- as.data.frame(odd_shapes)
+names(plot_data) <- c("X","Y")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=X,y=Y)) +
+    geom_point(shape=19,size=2) +
+    scale_y_continuous(breaks=c(seq(-3.5,1.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-1.5,1.5,.5))) +
+    coord_cartesian(xlim = c(-1.5,1.5), ylim = c(-3.5,1.5)) +
+    xlab("X") + 
+    ylab("Y") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Unusual Cluster Shapes")
+@
+
+<<tidy=TRUE>>=
+odd_shapes_fit <- fpc::dbscan(odd_shapes, eps = 0.15, MinPts = 5)
+plot_data <- cbind(odd_shapes,odd_shapes_fit$cluster)
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("X","Y","Cluster")
+plot_data$Cluster_F <- factor(plot_data$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=X,y=Y,color=Cluster_F)) +
+    geom_point(shape=19,size=2) +
+    scale_color_manual(values=c("red", "blue", "green4","orange","black","violet")) +  
+    scale_y_continuous(breaks=c(seq(-3.5,1.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-1.5,1.5,.5))) +
+    coord_cartesian(xlim = c(-1.5,1.5), ylim = c(-3.5,1.5)) +
+    xlab("X") + 
+    ylab("Y") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Unusual Cluster Shapes: DBSCAN")
+@
+
+<<tidy=TRUE>>=
+odd_shapes_fit <- kmeans(odd_shapes,centers=5,iter.max = 1000,nstart = 10)
+plot_data <- cbind(odd_shapes,odd_shapes_fit$cluster)
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("X","Y","Cluster")
+plot_data$Cluster_F <- factor(plot_data$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=X,y=Y,color=Cluster_F)) +
+    geom_point(shape=19,size=2) +
+    scale_color_manual(values=c("red", "blue", "green","orange","black","violet")) +  
+    scale_y_continuous(breaks=c(seq(-3.5,1.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-1.5,1.5,.5))) +
+    coord_cartesian(xlim = c(-1.5,1.5), ylim = c(-3.5,1.5)) +
+    xlab("X") + 
+    ylab("Y") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Unusual Cluster Shapes: K-Means")
+@
+
+\subsection{Fuzzy Clustering}
+\textbf{\large{\textit{
+Fuzzy clustering is different from other methods we have covered because data objects are treated as members of all clusters with varying degrees of fuzzy membership, indexed by a probability between 0 and 1. 
+Objects closer to the centers of clusters have higher degrees of membership than objects nearer the borders of clusters.
+This provides a way to gauge the certainty or confidence with which objects can be classified into categories. \newline
+\newline
+The Fuzzy C-Means (FCM) clustering algorithm is typically attributed to Bezdek (1974, 1981).  
+In the algorithm the parameter, m, specifies the amount of 'fuzziness' of the clustering result.
+The default value is 2. 
+As m increases, fuzzier clusters are produced. 
+When m is 1, FCM produces the same results as the K-Means procedure. \newline
+\newline
+Bezdek, J.C. (1974). Cluster validity with fuzzy sets. Journal of Cybernetics, 3, 58-73. 
+\newline
+Bezdek J.C. (1981).  Pattern recognition with fuzzy objective function algorithms. New York: Plenum.
+}}}
+
+<<tidy=TRUE>>=
+Iris_Fuzzy <- fcm(Iris[,1:4], centers=3, m=2, dmetric="euclidean",iter.max = 1000, nstart=10)
+Iris_Fuzzy$u
+Iris_Fuzzy$v
+Iris_Fuzzy$d
+Iris_Fuzzy$cluster
+Iris_Fuzzy$csize
+Iris_Fuzzy$best.start
+
+Iris_Class <- as.data.frame(cbind(Iris_Fuzzy$cluster,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+\subsubsection{Dimensional Plot for Iris Data}
+<<tidy=TRUE>>=
+# Use PCA to show potential clustering along two dimensions.
+PCA <- principal(Iris[,1:4],nfactors=2,rotate="varimax",scores=TRUE)
+Iris_Cluster <- Iris_Fuzzy$cluster
+plot_data <- cbind(Iris,PCA$scores,Iris_Cluster,Iris$Species)
+plot_data$Cluster_F <- factor(plot_data$Iris_Cluster,levels=c(1,2,3),labels=c("Cluster 1",
+                              "Cluster 2","Cluster 3"))
+plot_data$Species_F <- factor(plot_data$Species)
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=RC1,y=RC2,color=Cluster_F,shape=Species_F)) +
+    geom_point(size=3) +
+    scale_color_manual(values=c("red", "blue", "green","orange","black")) +
+    scale_shape_manual(values = c(15, 16, 17, 18)) +
+    scale_y_continuous(breaks=c(seq(-3,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-3,3.5)) +
+    xlab("Component 1") + 
+    ylab("Component 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Component Plot by Species")
+@
+
+\subsection{Minimum Spanning Trees}
+\textbf{\large{\textit{
+A dissimilarity matrix can be represented in graph theory as an undirected graph with objects as vertices (or nodes) and distances as edge weights. 
+A minimum spanning tree (MST) is then the subset of the edges that connect all the vertices together without any cycles and with the minimum possible sum of edge weights. 
+In simple terms, if the data have a cluster structure, a minimum spanning tree will have numerous interconnected paths within a cluster but few paths between clusters. \newline
+\newline
+The restriction that there be no cycles can be relaxed and successive layers of minimum edges added to the graph.
+This can highlight clustering in the data to the extent that within-cluster edges outnumber between-cluster edges.
+}}}
+<<tidy=TRUE>>=
+Iris_MST <- ade4::mstree(dist(Iris[,1:4],method="euclidean"), ngmax = 1)
+s.label(Iris[,1:4], xlim=c(50,70),ylim=c(10,50),addaxes = TRUE, neig = Iris_MST,clabel=.5,pch=16)
+
+Iris_MST <- ade4::mstree(dist(Iris[,1:4],method="euclidean"), ngmax = 2)
+s.label(Iris[,1:4], xlim=c(50,70),ylim=c(10,50),addaxes = TRUE, neig = Iris_MST,clabel=.5,pch=16)
+
+Iris_MST <- ade4::mstree(dist(Iris[,1:4],method="euclidean"), ngmax = 3)
+s.label(Iris[,1:4], xlim=c(50,70),ylim=c(10,50),addaxes = TRUE, neig = Iris_MST,clabel=.5,pch=16)
+
+Iris_MST <- ade4::mstree(dist(Iris[,1:4],method="euclidean"), ngmax = 4)
+s.label(Iris[,1:4], xlim=c(50,70),ylim=c(10,50),addaxes = TRUE, neig = Iris_MST,clabel=.5,pch=16)
+
+Iris_MST <- ade4::mstree(dist(Iris[,1:4],method="euclidean"), ngmax = 10)
+s.label(Iris[,1:4], xlim=c(50,70),ylim=c(10,50),addaxes = TRUE, neig = Iris_MST,clabel=.5,pch=16)
+
+Iris_MST <- ade4::mstree(dist(Iris[,1:4],method="euclidean"), ngmax = 20)
+s.label(Iris[,1:4], xlim=c(50,70),ylim=c(10,50),addaxes = TRUE, neig = Iris_MST,clabel=.5,pch=16)
+
+Iris_MST <- ade4::mstree(dist(Iris[,1:4],method="euclidean"), ngmax = 40)
+s.label(Iris[,1:4], xlim=c(50,70),ylim=c(10,50),addaxes = TRUE, neig = Iris_MST,clabel=.5,pch=16)
+@
+
+\section{Methods to Determine Cluster Quality or Number}
+\textbf{\large{\textit{
+The "quality" of a clustering solution can be assessed in a number of ways that often reflect the goal of a particular clustering method.
+}}}
+
+\subsection{Silhouette Coefficient}
+\textbf{\large{\textit{
+The silhouette score is calculated using two values for each object, $a_i$ and $b_i$.
+The value, $a_i$, is the average distance between $Object_i$ and all other objects in the same cluster.
+The value, $b_i$, is the smallest average distance of $Object_i$ to all objects in another cluster.
+These two values are sometimes called cohesion and separation, respectively.
+The silhouette score (sometimes called its width), $s_i$, is defined as: \newline
+\begin{equation*}
+	s_{i} = \dfrac{b_i - a_i}{max(a_i,b_i)} \\
+\end{equation*}
+\newline
+It can take on values between -1 and 1, with higher values indicating that an object is well matched to its cluster and a poor match to any neighboring clusters. \newline
+\newline
+The average silhouette score is provided for each cluster and for the overall solution.
+The overall average, sometimes called the silhouette coefficient, is an index of cluster quality. 
+Coefficients that approach 1 represent very clear evidence that the chosen cluster number produces a good cluster solution.
+Some common benchmarks for the average cluster silhouette coefficient: \newline
+\newline
+\begin{addmargin}[3em]{0em}
+\begin{itemize}
+\item
+.71 to 1.00: A strong structure has been found
+\item
+.51 to .70:	A reasonable structure has been	found
+\item
+.26 to .50:	The structure is weak and could be artificial
+\item
+< .25: No substantial structure has been found \newline
+\end{itemize}
+\end{addmargin}
+The average score for different numbers of clusters can be plotted to give a visual display of cluster quality.
+The number of clusters with the highest average is the best solution.
+A range of clusters can be examined using the pamk( ) function form the fpc library, with the optimal number of clusters identified using the silhouette coefficient. 
+}}}
+
+<<tidy=TRUE>>=
+plot_data <- cbind(Iris_P$silinfo$widths[,3],Iris_P$silinfo$widths[,1],seq(1,length(Iris[,1]),1))
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Silhouette","Cluster","Object")
+plot_data$Cluster_F <- factor(plot_data$Cluster, levels=c(1,2,3),labels=c("Cluster 1","Cluster 2","Cluster 3"))
+
+
+ggplot(plot_data, aes(x=Object, y=Silhouette,fill=Cluster_F,color=Cluster_F)) + 
+    geom_bar(stat="identity") +
+    scale_fill_manual(values=c("red","green","blue")) +
+    scale_color_manual(values=c("red","green","blue")) +  
+    coord_cartesian(xlim = c(1,150), ylim = c(0,1)) +
+    scale_y_continuous(breaks=seq(0,1,.1)) + 
+    scale_x_continuous(breaks=seq(0,150,10)) +   
+    xlab("Objects") + 
+    ylab("Silhouette Score") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90,hjust=1),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+    ggtitle("Silhouette Score by Cluster")
+@
+
+<<tidy=TRUE>>=
+pamk.best <- pamk(Iris[,1:4])
+pamk.best
+cat("Number of clusters estimated by optimum average silhouette width:", pamk.best$nc)
+@
+
+\subsection{Cophenetic Correlation}
+\textbf{\large{\textit{
+The cophenetic distance between two observations that have been clustered hierarchically is defined to be the intergroup dissimilarity at which the two observations are first combined into a single cluster. 
+Note that this distance has many ties and restrictions.
+The correlation between the original distances and the cophenetic distances is an index of how well a dendrogram preserves the pairwise distances between the original objects. 
+}}}
+<<tidy=TRUE>>=
+d1 <- dist(Iris[,1:4],method="euclidean")
+Iris_HC <- hclust(d1, "average")
+d2 <- cophenetic(Iris_HC)
+cor(d1, d2)
+
+Iris_HC <- hclust(d1, "single")
+d2 <- cophenetic(Iris_HC)
+cor(d1, d2)
+
+Iris_HC <- hclust(d1, "complete")
+d2 <- cophenetic(Iris_HC)
+cor(d1, d2)
+
+Iris_HC <- hclust(d1, "centroid")
+d2 <- cophenetic(Iris_HC)
+cor(d1, d2)
+
+Iris_HC <- hclust(d1, "ward.D2")
+d2 <- cophenetic(Iris_HC)
+cor(d1, d2)
+@
+
+\subsection{Agglomerative Coefficient}
+\textbf{\large{\textit{
+For each object i, m(i) is its dissimilarity to the first cluster it is merged with, divided by the dissimilarity of the merger in the final step of the algorithm. 
+The agglomerative coefficient is the average of all 1-m(i). 
+This coefficient takes on values of 0 to 1.
+It grows with the number of observations, so this measure cannot be used to compare data sets of very different sizes.
+}}}
+<<tidy=TRUE>>=
+d1 <- dist(Iris[,1:4],method="euclidean")
+Iris_HC <- hclust(d1, "average")
+coef.hclust(Iris_HC)
+
+Iris_HC <- hclust(d1, "single")
+coef.hclust(Iris_HC)
+
+Iris_HC <- hclust(d1, "complete")
+coef.hclust(Iris_HC)
+
+Iris_HC <- hclust(d1, "ward.D2")
+coef.hclust(Iris_HC)
+@
+
+\subsection{Pseudo F or Calinski-Harabasz Index}
+\textbf{\large{\textit{
+The Calinski-Harabasz index, also known as the Pseudo-F statistic, is used to help identify the proper number of clusters: \newline
+\begin{equation*}
+	Pseudo \hspace{2mm} F = \dfrac{\dfrac{SS_{BC}}{C-1}}{\dfrac{SS_{WC}}{N-C}}\\
+\end{equation*}
+\newline
+It is best used with a method that assumes interval-level data because it resembles in form the calculation of an ANOVA, with the clusters representing the between-group structure and objects within the clusters representing the error structure.
+The calinhara( ) function is part of the fpc package.
+}}}
+<<tidy=TRUE>>=
+Pseudo_F <- matrix(NA,nrow=10,ncol=2)
+for (j in 2:10) {
+  Iris_K <- kmeans(Iris[,1:4], centers=j)
+  Pseudo_F[j,1] <- j
+  Pseudo_F[j,2] <- calinhara(Iris[,1:4],Iris_K$cluster)
+}
+@
+
+<<tidy=TRUE>>=
+plot_data <- Pseudo_F[2:10,]
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Number","Pseudo_F")
+
+ggplot(plot_data, aes(x=Number,y=Pseudo_F)) +
+    geom_point(shape=19,size=2, color="black",na.rm=TRUE) +   
+    geom_line(size=1) +
+    scale_x_continuous(breaks=c(seq(2,10,1))) +
+    scale_y_continuous(breaks=c(seq(0,600,50))) +  
+    coord_cartesian(xlim = c(2,10), ylim = c(0,600)) +
+    xlab("Number of Clusters") + 
+    ylab("Pseudo F") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Calinski-Harabasz Index (Pseudo-F)")
+@
+
+\subsection{Hopkins Statistic}
+\textbf{\large{\textit{
+This statistic examines whether objects in a data set differ significantly from the assumption that they are uniformly distributed in the multidimensional space. 
+It compares the distances, $x_i$, between the real objects and their nearest neighbors to the distances, $y_i$, between artificial objects and their nearest neighbors, with the artificial objects uniformly generated over the data space. 
+The H statistic is defined as: \newline
+\begin{equation*}
+	H = \dfrac{\sum\limits_{i = 1}^N x_i}{\sum\limits_{i = 1}^N x_i + \sum\limits_{i = 1}^N y_i} \\
+\end{equation*}
+\newline
+Values close to .5 indicate data are uniformly distributed.
+As H approaches 0, the data exhibit increasing clustering.
+}}}
+<<tidy=TRUE>>=
+Iris_M <- as.matrix(Iris[,1:4])
+hopkins(Iris_M, n=149, byrow = FALSE, header = FALSE)
+@
+
+\subsection{Duda-Hart Statistic}
+\textbf{\large{\textit{
+The Duda\-Hart test indicates if a data set should be split into two clusters.
+Variants exist for different clustering methods.
+The one used here appears suitable for interval level data for which sums of squares would be an appropriate calculation.
+The dh value calculated here is the ratio of the within-cluster sum of squares for two clusters to the overall sum of squares.
+The dudahart2( ) function is part of the fpc package.
+This is a very basic kind of test, but would indicate if the clustering effort should even be started.
+}}}
+<<tidy=TRUE>>=
+Iris_K <- kmeans(Iris[,1:4], centers=2)
+Duda_Hart <- dudahart2(Iris[,1:4],Iris_K$cluster,alpha=0.001)
+Duda_Hart
+@
+
+\subsection{Gap Statistic}
+\textbf{\large{\textit{
+The gap statistic (Tibshirani et al., 2001) compares the within-cluster dispersion to that expected under an appropriate reference null distribution, which assumes random dispersion (e.g., uniform or Gaussian on the range of the original variables or a simplified space [e.g., PC]). 
+The latter is defined by bootstrapping from the null reference distribution.  
+As the obtained WSS curve departs ("gap") from that expected under the reference curve, there is evidence for non-random lumpiness in the data.  
+The gap statistic can be applied to any clustering method and distance measure.  The choice for the reference distribution can be important. \newline
+\newline
+For each number of clusters k, it compares log(W(k)) with E[log(W(k))] where the latter is defined via bootstrapping (i.e., simulating from a reference distribution).
+The technique compares the change in within-cluster dispersion with that expected under an appropriate reference null distribution. \newline
+\newline
+Tibshirani, R., Walther, G. \& Hastie, T. (2001). Estimating the number of data clusters via the Gap statistic. Journal of the Royal Statistical Society B, 63, 411-423.
+}}}
+<<tidy=TRUE>>=
+Iris_Gap <- clusGap(Iris[,1:4], FUN = kmeans, nstart = 20, K.max = 10, B = 500)
+Iris_Gap <- clusGap(Iris[,1:4], FUN = pam, K.max = 8, B = 500)
+
+print(Iris_Gap, method="Tibs2001SEmax")
+@
+
+<<tidy=TRUE>>=
+plot_data <- Iris_Gap$Tab[,3:4]
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Gap","SE")
+plot_data$Number <- seq(1,8)
+
+ggplot(plot_data, aes(x=Number,y=Gap)) +
+    geom_point(shape=19,size=2, color="black",na.rm=TRUE) +   
+    geom_line(size=1) +
+    geom_errorbar(aes(ymin=plot_data$Gap-1.96*plot_data$SE, 
+                      ymax=plot_data$Gap+1.96*plot_data$SE),
+                  width=.1,position = position_dodge(0.5)) +
+    scale_x_continuous(breaks=c(seq(1,8,1))) +
+    scale_y_continuous(breaks=c(seq(0,.6,.1))) +  
+    coord_cartesian(xlim = c(1,8), ylim = c(0,.6)) +
+    xlab("Number of Clusters") + 
+    ylab("Gap") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Gap Statistic (with 95% CI) by Cluster Size")
+@
+
+\subsection{Rand Coefficient}
+\textbf{\large{\textit{
+The Rand coefficient can be used to compare two clustering methods.
+The simple Rand coefficient is given by: \newline
+\begin{equation*}
+	R = \dfrac{a + b}{\binom{N}{2}} \\
+\end{equation*}
+\newline
+in which a is the number of times a pair of objects is classified together across the two methods and b is the number of times a pair of objects is classified in different clusters across two methods.
+The denominator is the number of unique pairs of objects.
+There is a corrected version of the Rand Coefficient that takes chance agreement into account (in much the same way that Cohen's kappa is a chance-corrected agreement statistic).
+That version is reported by the cluster.stats( ) function from the fpc library.
+}}}
+
+<<tidy=TRUE>>=
+Iris_HC_1 <- hclust(d1, "single")
+C1 <- cutree(Iris_HC_1,k=3)
+Iris_HC_2 <- hclust(d1, "ward.D2")
+C2 <- cutree(Iris_HC_2,k=3)
+Iris_HC_3 <- hclust(d1, "average")
+C3 <- cutree(Iris_HC_2,k=3)
+CS_1_2 <- cluster.stats(Iris_Dist,C2,C1,silhouette = TRUE, G2 = FALSE, G3 = FALSE,
+                              wgap=TRUE, sepindex=TRUE, sepprob=0.1,
+                              sepwithnoise=TRUE,
+                              compareonly = FALSE,
+                              aggregateonly = FALSE)
+CS_1_2$corrected.rand
+
+CS_2_3 <- cluster.stats(Iris_Dist,C2,C3,silhouette = TRUE, G2 = FALSE, G3 = FALSE,
+                              wgap=TRUE, sepindex=TRUE, sepprob=0.1,
+                              sepwithnoise=TRUE,
+                              compareonly = FALSE,
+                              aggregateonly = FALSE)
+CS_2_3$corrected.rand
+@
+
+\section{Gower Index}
+\textbf{\large{\textit{
+It is not unusual to have measures on interval, ordinal, and nominal scales in the same data set.
+The Gower distance is a way to combine them all for use in the same cluster analysis.
+For each variable type, a particular distance metric that works well for that type is used and resulting distances scaled to fall between 0 and 1. 
+A weighted linear combination of these distances for each pair of objects is calculated to create the final distance matrix. 
+The weights are most often chosen to produce a simple average.
+The Gower distance is always a number between 0 (identical) and 1 (maximally dissimilar).
+The gower package can be used to get Gower distances using the gower\_dist( ) function.
+The dist.ktab( ) function from the ade4 package can also be used.
+}}}
+
+\end{document}

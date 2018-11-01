@@ -1,0 +1,170 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 9\\
+\large Applied Mutlivariate Analysis}
+\date{November 1, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(MASS)
+library(vegan)
+library(smacof)
+library(scatterplot3d)
+library(ape)
+library(ade4)
+library(ecodist)
+library(cluster)
+library(factoextra)
+library(ggdendro)
+library(lme4)
+library(plyr)
+library(tidyverse)
+@
+
+
+
+\subsection{data}
+The file, Set\_7\_A.csv, contains data for 183 participants in a Pew Center Political Survey conducted in April 2017. Participants were asked their opinions about government spending using the following question stem:  
+
+"If you were making up the budget for the federal government this year, would you increase spending, decrease spending or keep  spending the same for \_\_\_\_\_\_\_\_\_"?
+
+The spending areas considered were:
+\begin{itemize}
+\item Scientific research
+\item Militarydefense
+\item Government assistance for the unemployed
+\item Medicare
+\item Environmental protection
+\item Economic assistance to needy people around the world
+\item Education
+\end{itemize}
+
+Responses were coded 1 = Decrease spending, 2 = Keep spending the same, and 3 = Increase spending.
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework9"
+
+datA <- sprintf("%s/Set_7_A.csv", wd) %>% read.csv(., stringsAsFactors = F) 
+datB <- sprintf("%s/Set_7_B.csv", wd) %>% read.csv(., stringsAsFactors = F) 
+
+head(datA)
+head(datB)
+@
+
+\section{Question 1}
+First, use Ward’s procedure with Euclidean distance to determine how many clusters of respondents best describe this sample. Use the following procedures to arrive at the best choice:  
+
+\subsection{Part A}
+Run Ward’s procedure on a file that has been re-ordered using values for the military spending variable. Save the cluster memberships for a two-cluster solution. Repeat this procedure after re-ordering the file using values for the environmental protection variable. Repeat this procedure after re-ordering the file using values for the education variable. When you are done, you will have three new cluster membership variables, each from a Ward’s method applied to a different ordered version of the file. Create a cross-classification table for each pair of cluster membership variables. Are cases classified consistently regardless of how the data were ordered?
+
+<<>>=
+
+@
+
+\subsection{Part B}
+Repeat this process, but for a three-cluster solution.
+
+<<>>=
+
+@
+
+\subsection{Part C}
+Repeat this process, but for a four-cluster solution.
+
+<<>>=
+
+@
+
+\subsection{Part D}
+Repeat this process, but for a five-cluster solution.
+
+<<>>=
+
+@
+
+\subsection{Part E}
+(e) Of these solutions, which one provides the highest number of clusters while being completely immune to the ordering of the variables?
+
+The cluster memberships from each re-ordering cannot be directly compared because they have the respondents in different orders. Make sure you put the cluster memberships in a consistent order (use the ID variable) before creating the cross- classification tables.
+
+\section{Question 2}
+For the chosen number of clusters from Question 1, create a bar graph of the cluster means for each of the spending variables (include 95\% confidence intervals). Based on these graphs, provide a description of each cluster’s spending attitude profile.
+
+<<>>=
+
+@
+
+\section{Question 3}
+Using K-means clustering, create a plot of the within-cluster sums of squares for cluster solutions up to 10. Does the number of clusters from this plot suggest the same number of clusters identified by Ward’s procedure?
+
+<<>>=
+
+@
+
+\section{Question 4}
+For the chosen number of clusters from Question 1, conduct a K-means clustering of the data. Provide a cross-classification table for the Ward’s and K-means procedures. Do the two procedures identify the same clusters?
+
+<<>>=
+
+@
+
+\section{Question 5}
+5. The file, Set\_7\_B.csv, contains additional information about these respondents. Use this file to better define the nature of the clusters identified in Question 4. The variables included in Set\_7\_B are age, home area (rural, urban, suburban), level of trust in the government, gun control attitude, sex, highest level of education, race, annual income, political party affiliation, and political ideology. Using these variables, what are the defining features of each cluster? Focus on those variables that do the best job of distinguishing the groups.
+
+<<>>=
+
+@
+
+
+\end{document}
