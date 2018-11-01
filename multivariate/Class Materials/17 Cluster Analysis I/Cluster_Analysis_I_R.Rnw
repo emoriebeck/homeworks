@@ -1,0 +1,607 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Cluster Analysis I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(ggplot2)
+library(vegan)
+library(smacof)
+library(ape)
+library(ade4)
+library(scatterplot3d)
+library(cluster)
+library(factoextra)
+library(ggdendro)
+@
+
+\clearpage
+\section{Simple Case}
+\textbf{\large{\textit{
+Let's begin with a very simple problem: 5 cases that are arranged in two-dimensional space for which Euclidean distance is easily visualized.
+To emphasize the distances a bit we can use squared Euclidean distance.
+}}}
+<<tidy=TRUE>>=
+Data <- matrix(c(2,3,4,6,7,2,2,5,4,6),nrow=5,ncol=2,byrow=FALSE)
+row.names(Data) <- c("Object 1","Object 2","Object 3","Object 4","Object 5")
+Data
+Data_Dist <- (dist(Data,method="euclidean"))^2
+Data_Dist
+@
+
+\clearpage
+\subsection{Single Linkage}
+\textbf{\large{\textit{
+The dissimilarity between two clusters (A and B) is the minimum of all possible distances between the cases in Cluster A and the cases in Cluster B.
+}}}
+
+<<tidy=TRUE>>=
+hc_1<-hclust(Data_Dist, method="single")
+hc_1$merge
+hc_1$height
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_1,theme_dendro=FALSE,size=4) +
+  xlab("Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Single Linkage")
+@
+
+\clearpage
+\subsection{Complete Linkage}
+\textbf{\large{\textit{
+The dissimilarity between two clusters (A and B) is the maximum of all possible distances between the cases in Cluster A and the cases in Cluster B.
+}}}
+
+<<tidy=TRUE>>=
+hc_2<-hclust(Data_Dist, method="complete")
+hc_2$merge
+hc_2$height
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_2,theme_dendro=FALSE) +
+  xlab("Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Complete Linkage")
+@
+
+\clearpage
+\subsection{Average Linkage}
+\textbf{\large{\textit{
+The dissimilarity between two clusters (A and B) is the average of all possible distances between the cases in Cluster A and the cases in Cluster B.
+}}}
+
+<<tidy=TRUE>>=
+hc_3<-hclust(Data_Dist, method="average")
+hc_3$merge
+hc_3$height
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_3,theme_dendro=FALSE) +
+  xlab("Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Average Linkage")
+@
+
+\clearpage
+\subsection{Centroid Method}
+\textbf{\large{\textit{
+The dissimilarity between two clusters (A and B) is the distance between the centroid for the cases in Cluster A and the centroid for the cases in Cluster B.
+}}}
+
+<<tidy=TRUE>>=
+hc_4<-hclust(Data_Dist, method="centroid")
+hc_4$merge
+hc_4$height
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_4,theme_dendro=FALSE) +
+  xlab("Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Centroid Method")
+@
+
+\clearpage
+\subsection{Ward's Method}
+\textbf{\large{\textit{
+The dissimilarity between two clusters (A and B) is the loss of information from joining the clusters, measured by the increase in error sum of squares. \newline
+\newline
+The sum of squares for a cluster is the sum of squared deviations of each case from the centroid for the cluster.  
+The error sum of squares is the total of these for all clusters. 
+The two clusters among all possible combinations that have the minimum increase in error sum of squares are joined.  \newline
+\newline
+Two versions are available. 
+The Ward D method should be chosen if squared Euclidean distances are used.
+The Ward D2 method will produce the traditional Ward solution starting from Euclidean distances.
+}}}
+
+<<tidy=TRUE>>=
+hc_5<-hclust(Data_Dist, method="ward.D")
+hc_5$merge
+hc_5$height
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_5,theme_dendro=FALSE) +
+  xlab("Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Ward's Method (D)")
+@
+
+<<tidy=TRUE>>=
+Data_Dist <- (dist(Data,method="euclidean"))
+hc_5<-hclust(Data_Dist, method="ward.D2")
+hc_5$merge
+hc_5$height
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_5,theme_dendro=FALSE) +
+  xlab("Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cluster Dendogram: Ward's Method (D2)")
+@
+
+
+\clearpage
+\section{Iris Data}
+\textbf{\large{\textit{
+An important question is how well the different clustering methods can recover a group structure when it is known in advance. 
+That can lend insight into the ability of the methods to identify any group structure when that structure is not known in advance. \newline
+\newline
+A classic test data set was introduced by R. A. Fisher (1936): three species of iris, varying in their petal length, petal width, sepal length, and sepal width.
+}}}
+
+<<tidy=TRUE>>=
+# Get the drug use data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+Iris<-read.table('iris.csv',sep=',',header=TRUE)
+Iris <- as.data.frame(Iris)
+
+Iris$Species[Iris$Species=="1"] <- "Setosa"
+Iris$Species[Iris$Species=="2"] <- "Versicolor"
+Iris$Species[Iris$Species=="3"] <- "Virginica"
+
+Iris
+@
+
+\clearpage
+\subsection{Descriptives and ANOVA}
+\textbf{\large{\textit{
+The basic features of the data can be seen in descriptive information and analyses of variance.
+A principal component analysis also provides a convenient way to capture and display most of the important variation in the data.
+}}}
+<<tidy=TRUE>>=
+describeBy(Iris[,c(1:4)],group=Iris$Species,digits=2)
+
+# Check if the species are different in their sepal and petal measurements.
+anova(aov(Iris$Sepal_Length ~ as.factor(Species),data=Iris))
+anova(aov(Iris$Sepal_Width ~ as.factor(Species),data=Iris))
+anova(aov(Iris$Petal_Length ~ as.factor(Species),data=Iris))
+anova(aov(Iris$Petal_Width ~ as.factor(Species),data=Iris))
+
+# Use PCA to show potential clustering along two dimensions.
+PCA <- principal(Iris[,1:4],nfactors=2,rotate="varimax",scores=TRUE)
+PCA
+Iris <- cbind(Iris,PCA$scores)
+@
+
+<<tidy=TRUE>>=
+ggplot(Iris, aes(x=RC1,y=RC2,color=factor(Species))) +
+    geom_point(shape=19,size=3) +
+    scale_color_manual(values=c("red", "blue", "green")) +
+    scale_y_continuous(breaks=c(seq(-3,3.5,.5))) +
+    scale_x_continuous(breaks=c(seq(-2,2.5,.5))) +
+    coord_cartesian(xlim = c(-2,2.5), ylim = c(-3,3.5)) +
+    xlab("Component 1") + 
+    ylab("Component 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Component Plot by Species")
+@
+
+\clearpage
+\subsection{Distance Calculation}
+<<tidy=TRUE>>=
+# Use Euclidean distance for subsequent clustering.
+Iris_Dist <- dist(Iris[,1:4],method="euclidean")
+@
+
+\subsection{Clustering Methods}
+\textbf{\large{\textit{
+Each of the clustering methods can be applied to the iris data.
+Given the known structure of the data, the ability to recover the three species will help identify clustering methods that may be particularly useful.
+}}}
+
+\subsubsection{Single Lingage}
+<<tidy=TRUE>>=
+hc_1<-hclust(Iris_Dist, method="single")
+
+clustnumber<- cutree(hc_1, k=3)
+Iris_Class <- as.data.frame(cbind(clustnumber,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_1,theme_dendro=FALSE) +
+  xlab("Iris Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=5,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Iris Cluster Dendogram: Single Linkage")
+@
+
+\clearpage
+\subsubsection{Complete Lingage}
+<<tidy=TRUE>>=
+hc_2<-hclust(Iris_Dist, method="complete")
+
+clustnumber<- cutree(hc_2, k=3)
+Iris_Class <- as.data.frame(cbind(clustnumber,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_2,theme_dendro=FALSE) +
+  xlab("Iris Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=5,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Iris Cluster Dendogram: Complete Linkage")
+@
+
+\clearpage
+\subsubsection{Average Linkage}
+<<tidy=TRUE>>=
+hc_3<-hclust(Iris_Dist, method="average")
+
+clustnumber<- cutree(hc_3, k=3)
+Iris_Class <- as.data.frame(cbind(clustnumber,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_3,theme_dendro=FALSE) +
+  xlab("Iris Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=5,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Iris Cluster Dendogram: Average Linkage")
+@
+
+\clearpage
+\subsubsection{Centroid Method}
+<<tidy=TRUE>>=
+hc_4<-hclust(Iris_Dist, method="centroid")
+
+clustnumber<- cutree(hc_4, k=3)
+Iris_Class <- as.data.frame(cbind(clustnumber,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_4,theme_dendro=FALSE) +
+  xlab("Iris Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=5,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Iris Cluster Dendogram: Centroid Method")
+@
+
+\clearpage
+\subsubsection{Ward's Method (D2)}
+<<tidy=TRUE>>=
+hc_5<-hclust(Iris_Dist, method="ward.D2")
+
+clustnumber<- cutree(hc_5, k=3)
+Iris_Class <- as.data.frame(cbind(clustnumber,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_5,theme_dendro=FALSE) +
+  xlab("Iris Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=5,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Iris Cluster Dendogram: Ward's Method (D2)")
+@
+
+\clearpage
+\subsubsection{Ward's Method (D)}
+
+<<tidy=TRUE>>=
+Iris_Dist <- dist(Iris[,1:4],method="euclidean")^2
+
+hc_5<-hclust(Iris_Dist, method="ward.D")
+
+clustnumber<- cutree(hc_5, k=3)
+Iris_Class <- as.data.frame(cbind(clustnumber,Iris$Species))
+names(Iris_Class) <- c("Cluster","Species")
+table(Iris_Class$Species)
+table(Iris_Class$Cluster)
+table(Iris_Class$Species,Iris_Class$Cluster)
+@
+
+<<tidy=TRUE>>=
+ggdendrogram(hc_5,theme_dendro=FALSE) +
+  xlab("Iris Objects") +
+  ylab("Height") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=5,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16,angle=90),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Iris Cluster Dendogram: Ward's Method (D)")
+@
+\end{document}
