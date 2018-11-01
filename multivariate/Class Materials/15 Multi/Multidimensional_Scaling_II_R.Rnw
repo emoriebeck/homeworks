@@ -1,0 +1,727 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Multidimensional Scaling II}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(ggplot2)
+library(vegan)
+library(smacof)
+library(ape)
+library(ade4)
+library(ecodist)
+library(scatterplot3d)
+@
+
+\subsection{Data Files}
+\textbf{\large{\textit{
+The data come from a 2017 C-SPAN survey of 91 historians who were asked to rank the presidents from George Washington through Barak Obama on 10 characteristics: \newline
+\begin{addmargin}[3em]{0em}
+\begin{enumerate}[leftmargin=!,labelindent=5pt,itemindent=-3pt,label=(\alph*)]
+\item
+Public persuasion (PP)
+\item
+Crisis leadership (CL)
+\item
+Economic management (EM)
+\item
+Moral authority (MA)
+\item
+International relations (IR)
+\item
+Administrative skills (AS)
+\item
+Relations with Congress (RC)
+\item
+Vision/Setting an agenda (VSA)
+\item
+Pursued equal justice for all (PEJ)
+\item
+Performance within context of times (PCT) \newline
+\end{enumerate}
+\end{addmargin}
+The composite ranks (across the 91 historians) are used in the analyses that follow.
+}}}
+<<tidy=TRUE>>=
+# Get the drug use data from the working directory.
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+Presidents<-read.table('presidents.csv',sep=',',header=TRUE)
+Presidents <- as.data.frame(Presidents)
+row.names(Presidents)<-Presidents$President
+
+# The euclidean distances are created from the ranks.
+Presidents_Dist<-dist(Presidents[,2:ncol(Presidents)],method="euclidean",diag=TRUE)
+Presidents_Dist
+
+# If the ratings are provided on quite different scales, then they should be standardized
+# before distances are calculated. Here is way to do that and modify the names if
+# files are later combined. Standardization is not needed here because the data are
+# ranks and so all scales have identical standard deviations.
+Presidents_Z <- scale(Presidents[,2:ncol(Presidents)])
+Presidents_Z <- as.data.frame(Presidents_Z)
+names(Presidents_Z) <- paste(names(Presidents[-1]), "_Z", sep = "")
+Presidents_Dist_Z<-dist(scale(Presidents[,2:ncol(Presidents)]),method="euclidean",diag=TRUE)
+# Presidents_Dist_Z
+
+# Raw ranks can be converted to normalized ranks as follows. This
+# can be useful if there are missing data and thus different numbers
+# of objects ranked across scales. This step is also unnecessary for
+# for the current data because all objects were ranked for all
+# scales.
+Presidents_r <- Presidents[,2:ncol(Presidents)]-1
+Presidents_NR <- matrix(NA,ncol=(length(Presidents_r[1,])),nrow=length(Presidents_r[,1]))
+for(j in seq(1,ncol(Presidents_r))) {
+  for(i in seq(1,nrow(Presidents_r))) {
+   Presidents_NR[i,j] <- Presidents_r[i,j]/(42)
+  }
+}
+
+Presidents_NR <- as.data.frame(Presidents_NR)
+names(Presidents_NR) <- paste(names(Presidents[-1]), "_NR", sep = "")
+Presidents_Dist_NR<-dist(Presidents_NR,method="euclidean",diag=TRUE)
+
+Presidents_All <- cbind(Presidents,Presidents_Z,Presidents_NR)
+# cor(Presidents_All[-1],,use="pairwise.complete.obs")
+
+cor(Presidents[,2:11])
+@
+
+\textbf{\large{\textit{
+The president ranks are best thought of as ordinal level, so a non-metric MDS is most appropriate.
+}}}
+
+\section{Stress Plot}
+\textbf{\large{\textit{
+Stress is defined as:
+\begin{equation*}
+	Stress = \sqrt{\dfrac{\sum\limits_{i=1}^k \sum\limits_{j=1}^k (d_{ij}-\delta_{ij})^2}{\sum\limits_{i=1}^k \sum\limits_{j=1}^k d_{ij}^2}}  \hspace{2mm} (i \neq j)
+\end{equation*}
+Here we run the smacofSym( ) function iteratively for 1 to 6 dimensions in order to get the stress values for plotting.
+The stress plot can help us determine the best number of dimensions to describing the data.
+}}}
+<<tidy=TRUE>>=
+mds_stress <- matrix(NA,nrow=6,ncol=2)
+for (i in 1:6) {
+  mds_1 <- smacofSym(Presidents_Dist, ndim = i,verbose=FALSE,type="ordinal",itmax=1000)
+  mds_stress[i,1] <- i
+  mds_stress[i,2] <- mds_1$stress
+}
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(mds_stress)
+names(plot_data) <- c("D","Stress")
+
+ggplot(plot_data, aes(x=D,y=Stress)) +
+    geom_point(shape=19,size=3, color="black",na.rm=TRUE) +   
+    geom_line(size=1) +
+    scale_y_continuous(breaks=c(seq(0,.15,.05))) +
+    scale_x_continuous(breaks=c(seq(1,6,1))) +
+    coord_cartesian(xlim = c(1,6), ylim = c(0,.15)) +
+    xlab("Number of Dimensions") + 
+    ylab("Stress") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Stress Plot for President Data")
+@
+
+\section{Shepard Plots}
+\textbf{\large{\textit{
+Shepard plots for up to 4 dimensions.
+}}}
+<<tidy=TRUE>>=
+mds_2 <- smacofSym(Presidents_Dist, ndim = 1,verbose=FALSE,type="ordinal",itmax=1000)
+Presidents_1_fits <- Shepard(Presidents_Dist,mds_2$conf)
+mds_2 <- smacofSym(Presidents_Dist, ndim = 2,verbose=FALSE,type="ordinal",itmax=1000)
+Presidents_2_fits <- Shepard(Presidents_Dist,mds_2$conf)
+mds_2 <- smacofSym(Presidents_Dist, ndim = 3,verbose=FALSE,type="ordinal",itmax=1000)
+Presidents_3_fits <- Shepard(Presidents_Dist,mds_2$conf)
+mds_2 <- smacofSym(Presidents_Dist, ndim = 4,verbose=FALSE,type="ordinal",itmax=1000)
+Presidents_4_fits <- Shepard(Presidents_Dist,mds_2$conf)
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Presidents_1_fits)
+
+ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=2, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2.5,.25))) +
+    scale_x_continuous(breaks=c(seq(0,130,10))) +
+    coord_cartesian(xlim = c(0,130), ylim = c(0,2.5)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plot: One-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Presidents_2_fits)
+
+ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=2, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2.5,.25))) +
+    scale_x_continuous(breaks=c(seq(0,130,10))) +
+    coord_cartesian(xlim = c(0,130), ylim = c(0,2.5)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plot: Two-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Presidents_3_fits)
+
+ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=2, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2.5,.25))) +
+    scale_x_continuous(breaks=c(seq(0,130,10))) +
+    coord_cartesian(xlim = c(0,130), ylim = c(0,2.5)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plot: Three-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Presidents_4_fits)
+
+ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=2, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2.5,.25))) +
+    scale_x_continuous(breaks=c(seq(0,130,10))) +
+    coord_cartesian(xlim = c(0,130), ylim = c(0,2.5)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plot: Four-Dimensional Space")
+@
+ 
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(Presidents_1_fits)
+plot_data <- rbind(plot_data,Presidents_2_fits)
+plot_data <- rbind(plot_data,Presidents_3_fits)
+plot_data <- rbind(plot_data,Presidents_4_fits)
+plot_data$D <- c(rep(1,43),rep(2,43),rep(3,43),rep(4,43))
+
+p <- ggplot(plot_data, aes(x=x,y=yf)) +
+    geom_point(shape=19,size=1, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(0,2.5,.25))) +
+    scale_x_continuous(breaks=c(seq(0,130,10))) +
+    coord_cartesian(xlim = c(0,130), ylim = c(0,2.5)) +
+    xlab("Dissimilarity") + 
+    ylab("Distance") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Shepard Plots as a Function of Dimensions")
+p + facet_wrap(~ D, nrow = 2)
+@
+
+\section{Scatterplots}
+<<tidy=TRUE>>=
+mds_3 <- smacofSym(Presidents_Dist, ndim = 3,verbose=FALSE,type="ordinal",itmax=1000)
+plot_data <- as.data.frame(mds_3$conf)
+names(plot_data) <- c("D1","D2","D3")
+plot_data$Name <- row.names(plot_data)
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=D1,y=D2)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(-.5,.75,.25))) +
+    scale_x_continuous(breaks=c(seq(-1.25,1.25,.25))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=3) +
+    coord_cartesian(xlim = c(-1.25,1.25), ylim = c(-.5,.75)) +
+    xlab("Dimension 1") + 
+    ylab("Dimension 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Three-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=D1,y=D3)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(-.5,.75,.25))) +
+    scale_x_continuous(breaks=c(seq(-1.25,1.25,.25))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=3) +
+    coord_cartesian(xlim = c(-1.25,1.25), ylim = c(-.5,.75)) +
+    xlab("Dimension 1") + 
+    ylab("Dimension 3") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Three-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=D2,y=D3)) +
+    geom_point(shape=19,size=3, color="red",na.rm=TRUE) +   
+    scale_y_continuous(breaks=c(seq(-.5,.75,.25))) +
+    scale_x_continuous(breaks=c(seq(-.5,.75,.25))) +
+    geom_text(aes(label=Name),hjust=-.25, vjust=0,size=3) +
+    coord_cartesian(xlim = c(-.5,.75), ylim = c(-.5,.75)) +
+    xlab("Dimension 2") + 
+    ylab("Dimension 3") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Three-Dimensional Space")
+@
+
+<<tidy=TRUE>>=
+mds_points <- as.data.frame(mds_3$conf)
+with(mds_points, {
+   s3d <- scatterplot3d(mds_points$D1,mds_points$D2,mds_points$D3,
+                 color="blue", pch=16,   
+                 type="h",                  
+                 main="Three Dimensional Scatterplot of Presidents MDS",
+                 xlab="Dimension 1",
+                 ylab="Dimension 2",
+                 zlab="Dimension 3")
+    s3d.coords <- s3d$xyz.convert(mds_points$D1,mds_points$D2,mds_points$D3) 
+    text(s3d.coords$x, s3d.coords$y, labels=row.names(mds_points),
+         cex=.75, pos=4)          
+})
+
+@
+
+\section{Additional Functions and Output}
+\textbf{\large{\textit{
+The isoMDS( ) function in the MASS package along with the stressplot( ) function in the vegan package can produce nice looking Shepard plots.
+These include linear and nonmetric fit indices. 
+The former is the usual linear squared multiple correlation.
+The latter is 1 minus the stress squared.
+}}}
+<<tidy=TRUE>>=
+mds_4 <-isoMDS(Presidents_Dist,k=1)
+stressplot(mds_4,Presidents_Dist,pch=16)
+mds_4 <-isoMDS(Presidents_Dist,k=2)
+stressplot(mds_4,Presidents_Dist,pch=16)
+mds_4 <-isoMDS(Presidents_Dist,k=3)
+stressplot(mds_4,Presidents_Dist,pch=16)
+mds_4 <-isoMDS(Presidents_Dist,k=4)
+stressplot(mds_4,Presidents_Dist,pch=16)
+@
+
+\textbf{\large{\textit{
+The metaMDS( ) function in the vegan package can provide some other useful features.
+In particular it runs the analysis from multiple start points to find the best solution and insure that a local minimum has not been found.
+}}}
+<<tidy=TRUE>>=
+mds_4 <-metaMDS(Presidents_Dist,k=1,distance="euclidean",autotransform = FALSE,trymax=100)
+stressplot(mds_4,pch=16)
+mds_4 <-metaMDS(Presidents_Dist,k=2,distance="euclidean",autotransform = FALSE,trymax=100)
+stressplot(mds_4,pch=16)
+mds_4 <-metaMDS(Presidents_Dist,k=3,distance="euclidean",autotransform = FALSE,trymax=100)
+stressplot(mds_4,pch=16)
+mds_4 <-metaMDS(Presidents_Dist,k=4,distance="euclidean",autotransform = FALSE,trymax=100)
+stressplot(mds_4,pch=16)
+@
+
+\textbf{\large{\textit{
+The smacof package provides a permutation test that can be used to determine if the obtained stress value is different from what would be expected based on random data.
+It also provides a jackknife function that gives an indication of stability for the solution.
+}}} 
+
+<<tidy=TRUE>>=
+mds_5 <- smacofSym(Presidents_Dist, ndim = 3,verbose=FALSE,type="ordinal",itmax=1000)
+mds_5 
+perm_mds_5 <- permtest(mds_5,nrep=1000,verbose=FALSE)
+perm_mds_5
+perm_stress <- as.data.frame(perm_mds_5$stressvec)
+
+jackfit <- jackknife(mds_5,itmax=1000)
+jackfit
+
+jackknife_D1 <- matrix(jackfit$jackknife.conf[,1,1],nrow=43,ncol=1)
+
+for(i in seq(2,43)) {
+  jackknife_D1 <- cbind(jackknife_D1,jackfit$jackknife.conf[,1,i])
+}
+
+jackknife_D2 <- matrix(jackfit$jackknife.conf[,2,1],nrow=43,ncol=1)
+
+for(i in seq(2,43)) {
+  jackknife_D2 <- cbind(jackknife_D1,jackfit$jackknife.conf[,2,i])
+}
+
+jackknife_D3 <- matrix(jackfit$jackknife.conf[,3,1],nrow=43,ncol=1)
+
+for(i in seq(2,43)) {
+  jackknife_D3 <- cbind(jackknife_D1,jackfit$jackknife.conf[,3,i])
+}
+
+jackknife_var <- matrix(apply(jackknife_D1,1,var),nrow=43)
+jackknife_var <- cbind(jackknife_var,apply(jackknife_D2,1,var))
+jackknife_var <- cbind(jackknife_var,apply(jackknife_D3,1,var))
+jackknife_var <- as.data.frame(jackknife_var)
+jackknife_var$President <- row.names(Presidents)
+describe(jackknife_var[,1:3])
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(perm_mds_5$stressvec)
+names(plot_data) <- c("Stress")
+plot_data$Stress_obs <- rep(perm_mds_5$stress.obs,1000)
+
+Actual_Stress <- perm_mds_5$stress.obs
+
+ggplot(plot_data, aes(x=Stress)) + 
+      geom_histogram(bins=round((max(plot_data[,"Stress"])-
+                     min(plot_data[,"Stress"]))/(2*IQR(plot_data[,"Stress"])*
+                    length(plot_data[,"Stress"])^(-1/3)))
+                    ,color = "black",fill="grey",
+                    size=.5,na.rm=TRUE) +
+    #scale_x_continuous(breaks=c(seq(0,.30,.05))) +
+    #coord_cartesian(xlim = c(0,.3), ylim = c(0,120)) +
+    xlab("Stress") + 
+    ylab("Frequency") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+      annotate("text",x=.26,y=100,label=paste("Actual Stress = ",toString(round(Actual_Stress,3))),
+                hjust=0,size=5,color="red") +   
+  ggtitle("Permutation Stress Distribution")
+
+@
+
+<<tidy=TRUE>>=
+jackknife_long <- matrix(NA,nrow=43*43,ncol=6)
+colnames(jackknife_long) <- c("President","D1","D2","D3","Iteration","Group")
+jackknife_long <- as.data.frame(jackknife_long)
+
+for(i in seq(1,43)) {
+  jackknife_long[((i-1)*43+1):(i*43),1] <- 0
+  jackknife_long[((i-1)*43+1):(i*43),2:4] <- jackfit$jackknife.conf[,,i]
+  jackknife_long[((i-1)*43+1):(i*43),5] <- i  
+  jackknife_long[((i-1)*43+1):(i*43),6] <- 1  
+}
+
+for(i in seq(1,43)) {
+  jackknife_long[((i-1)*43+1):(i*43),1] <- row.names((Presidents)) 
+}
+
+plot_data <- as.data.frame(jackknife_long)
+
+plot_data_2 <- as.data.frame(cbind(rep(0,43),jackfit$comparison.conf,rep(44,43),rep(2,43)))
+names(plot_data_2) <- c("President","D1","D2","D3","Iteration","Group")
+plot_data_2$President <- row.names(Presidents)
+
+plot_data_3 <- as.data.frame(cbind(rep(0,43),jackfit$smacof.conf,rep(45,43),rep(3,43)))
+names(plot_data_3) <- c("President","D1","D2","D3","Iteration","Group")
+plot_data_3$President <- row.names(Presidents)
+
+plot_data <- rbind(plot_data,plot_data_2,plot_data_3)
+plot_data$Group <- as.factor(plot_data$Group)
+
+ggplot(plot_data, aes(x=D1,y=D2,color=Group)) +
+    geom_point(aes(shape=Group,color=Group,size=Group)) +  
+    scale_color_manual(values=c("black", "red", "blue")) +
+    scale_shape_manual(values=c(15, 16, 17)) +  
+    scale_size_manual(values=c(1,2,3)) +
+    scale_y_continuous(breaks=c(round(seq(-.6,.6,.1),2))) +
+    scale_x_continuous(breaks=c(round(seq(-1.2,1.2,.2),2))) +
+    geom_text(data=subset(plot_data, Group==2),aes(D1,D2,label=President),hjust=-.25, vjust=0,size=3) +
+    coord_cartesian(xlim = c(-1.2,1.2), ylim = c(-.6,.6)) +
+    xlab("Dimension 1") + 
+    ylab("Dimension 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "none", 
+          legend.title = element_blank()) +
+    annotate("text",x=-1.1,y=.6,label="Jackknife",color="black",hjust=0) + 
+    annotate("text",x=-1.1,y=.55,label="Jackknife Mean",color="red",hjust=0) + 
+    annotate("text",x=-1.1,y=.5,label="Original",color="blue",hjust=0) + 
+  ggtitle("Three-Dimensional Space: Jackknife")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=D1,y=D3,color=Group)) +
+    geom_point(aes(shape=Group,color=Group,size=Group)) +  
+    scale_color_manual(values=c("black", "red", "blue")) +
+    scale_shape_manual(values=c(15, 16, 17)) +  
+    scale_size_manual(values=c(1,2,3)) +
+    scale_y_continuous(breaks=c(round(seq(-.6,.6,.1),2))) +
+    scale_x_continuous(breaks=c(round(seq(-1.2,1.2,.2),2))) +
+    geom_text(data=subset(plot_data, Group==2),aes(D1,D3,label=President),hjust=-.25, vjust=0,size=3) +
+    coord_cartesian(xlim = c(-1.2,1.2), ylim = c(-.6,.6)) +
+    xlab("Dimension 1") + 
+    ylab("Dimension 3") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "none", 
+          legend.title = element_blank()) +
+    annotate("text",x=-1.1,y=.6,label="Jackknife",color="black",hjust=0) + 
+    annotate("text",x=-1.1,y=.55,label="Jackknife Mean",color="red",hjust=0) + 
+    annotate("text",x=-1.1,y=.5,label="Original",color="blue",hjust=0) + 
+  ggtitle("Three-Dimensional Space: Jackknife")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=D2,y=D3,color=Group)) +
+    geom_point(aes(shape=Group,color=Group,size=Group)) +  
+    scale_color_manual(values=c("black", "red", "blue")) +
+    scale_shape_manual(values=c(15, 16, 17)) +  
+    scale_size_manual(values=c(1,2,3)) +
+    scale_y_continuous(breaks=c(round(seq(-.6,.6,.1),2))) +
+    scale_x_continuous(breaks=c(round(seq(-.6,.6,.1),2))) +
+    geom_text(data=subset(plot_data, Group==2),aes(D2,D3,label=President),hjust=-.25, vjust=0,size=3) +
+    coord_cartesian(xlim = c(-.6,.6), ylim = c(-.6,.6)) +
+    xlab("Dimension 2") + 
+    ylab("Dimension 3") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "none", 
+          legend.title = element_blank()) +
+    annotate("text",x=-.6,y=.6,label="Jackknife",color="black",hjust=0) + 
+    annotate("text",x=-.6,y=.55,label="Jackknife Mean",color="red",hjust=0) + 
+    annotate("text",x=-.6,y=.5,label="Original",color="blue",hjust=0) + 
+  ggtitle("Three-Dimensional Space: Jackknife")
+@
+\section{Follow-Up Analyses}
+\textbf{\large{\textit{
+One way to gain insight into the meaning of the dimensions is to correlate the original mean ratings with the coordinates of the MDS solution.
+}}}
+<<tidy=TRUE>>=
+Presidents_2 <- as.data.frame(cbind(Presidents,mds_3$conf))
+cor(Presidents_2[,2:length(Presidents_2)],use="pairwise.complete.obs")
+@
+
+\end{document}

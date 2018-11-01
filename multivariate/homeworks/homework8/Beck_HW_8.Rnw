@@ -1,0 +1,169 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 7\\
+\large Applied Mutlivariate Analysis}
+\date{October 22, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(MASS)
+library(vegan)
+library(smacof)
+library(scatterplot3d)
+library(ape)
+library(ade4)
+library(ecodist)
+library(cluster)
+library(factoextra)
+library(ggdendro)
+library(lme4)
+library(plyr)
+library(tidyverse)
+@
+
+
+
+\subsection{data}
+I’ve just obtained a zoo! Well, at least all of the animals from a zoo; the land was lost because of failure to pay property taxes and the owner decided to get out of the zoo business. I’ve always wanted to own a zoo, but I don’t know beans about it. My first job is to organize the creatures in some sensible way so that the staff can care for them easily and visitors can find what they want to see without too much random walking around.
+
+The file, Set\_6.csv, contains one animal per row. The columns are 20 different features that define the animals. All are self-explanatory except the last one (catsize). This is an indicator of whether the animal is smaller than a typical housecat or larger than a typical housecat. All variables are binary with 0 indicating the absence of the feature (e.g., does not produce milk) and 1 indicating the presence of the feature (e.g., has fins).
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework8"
+
+dat <- sprintf("%s/Set_6(1).csv", wd) %>% 
+  read.csv(., stringsAsFactors = F) 
+
+head(dat)
+@
+
+\section{Question 1}
+Analyze these data using each of the following hierarchical clustering procedures: single linkage, complete linkage, average linkage, centroid method, Ward’s method.
+
+<<>>=
+
+# create a fucntion for creating the dendrograms
+plot_fun <- function(cl, m){
+  ggdendrogram(cl,theme_dendro=FALSE,size=4) +
+    labs(x = "Objects", y = "Heights", title = m) + 
+    theme_classic() +
+    theme(plot.title = element_text(face = "bold", hjust = .5))
+}
+
+nested.mods <- tribble(
+  ~method_arg, ~Method, ~data,
+  "single", "Single Linkage", dat,
+  "complete",  "Complete Linkage", dat,
+  "average", "Average Linkage", dat,
+  "centroid", "Centroid Method", dat,
+  "ward.D2", "Ward's Method", dat
+) %>%
+  mutate(dist = map(data, ~(dist(.,method="euclidean"))^2),
+         cl = map2(dist, method_arg, ~hclust(.x, method=.y)), 
+         merge = map(cl, ~data.frame(.$merge)),
+         pl = map2(cl, Method, plot_fun))
+
+# merges
+nested.mods %>% unnest(merge) %>%
+  group_by(Method) %>% 
+  mutate(m_num = 1:n()) %>%
+  gather(key = x, value = value, X1, X2) %>%
+  select(-method_arg) %>%
+  unite(tmp, Method, x, sep = ".") %>%
+  spread(tmp, value)
+
+do.call("grid.arrange", nested.mods$pl)
+@
+
+\section{Question 2}
+Choose the method that you believe provides the easiest interpretation of the data. Based on that method, how many sections or major areas do I need to build in my zoo so that I can house similar animals together? Provide a justification for this conclusion.
+
+In this case, Ward's Method appears to provide the most interpretable clusters, suggesting 3 clusters before you start seeing greater losses in accuracy.
+
+<<>>=
+new.dat <- dat
+new.dat$clustnumber <- cutree((nested.mods %>% filter(method_arg == "ward.D2"))$cl[[1]], k=3)
+@
+
+
+\section{Question 3}
+Based on the dominant features of the clusters you have identified, try to name the major clusters.
+
+<<>>=
+new.dat %>% gather(feature, value, -clustnumber) %>%
+  filter(value == 1) %>%
+  group_by(clustnumber, feature) %>%
+  summarize(prop = n()/40) %>%
+  spread(clustnumber, prop) %>%
+  arrange(desc(`1`), desc(`2`), desc(`3`)) %>%
+  kable(., "latex", booktab = T, digits = 2) %>%
+  kable_styling(full_width = F) %>%
+  add_footnote("Note: values represent propotions of across each of the features within a cluster")
+@
+
+Based on this, it appears the first cluster is mammals, the second is amphibians and water animals, and the third are birds.
+
+\section{Question 4}
+Just for fun. I am really going to get in trouble for one of the animals I will have in my zoo. The previous owner gave me a big discount on the animal collection provided I take this one, which was causing him all kinds of grief. Can you identify it?
+
+<<>>=
+case <- (dat %>%
+  mutate(casenum = 1:n()) %>%
+  filter(predator == 1 & toothed == 1 & domestic == 0 & catsize == 1 & venomous == 1))$casenum
+@
+
+Based on this, case \# \Sexpr{case} is likely to cause all kinds of grief. 
+
+
+\end{document}
