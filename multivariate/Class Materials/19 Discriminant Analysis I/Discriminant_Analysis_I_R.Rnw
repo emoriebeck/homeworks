@@ -1,0 +1,520 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Discriminant Analysis I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(plyr)
+library(dawai)
+library(candisc)
+library(biotools)
+library(DiscriMiner)
+library(ade4)
+library(MVN)
+library(biotools)
+library(klaR)
+library(GGally)
+library(reshape2)
+library(MVN)
+library(qqplotr)
+library(flipMultivariates)
+@
+
+\subsection{Data}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+Iris <- read.table('iris.csv',sep=',',header=TRUE)
+Iris <- as.data.frame(Iris)
+Iris$Species_Num <- Iris$Species
+Iris$Species[Iris$Species=="1"] <- "Setosa"
+Iris$Species[Iris$Species=="2"] <- "Versicolor"
+Iris$Species[Iris$Species=="3"] <- "Virginica"
+# Centered versions of the predictors.
+Iris$SL_C <- scale(Iris$Sepal_Length, center = TRUE,scale=FALSE)
+Iris$SW_C <- scale(Iris$Sepal_Width, center = TRUE,scale=FALSE) 
+Iris$PL_C <- scale(Iris$Petal_Length, center = TRUE,scale=FALSE) 
+Iris$PW_C <- scale(Iris$Petal_Width, center = TRUE,scale=FALSE) 
+# Residuals
+Iris$SL_R <- lm(Sepal_Length ~ as.factor(Species_Num), data=Iris)$residuals
+Iris$SW_R <- lm(Sepal_Width ~ as.factor(Species_Num), data=Iris)$residuals
+Iris$PL_R <- lm(Petal_Length ~ as.factor(Species_Num), data=Iris)$residuals
+Iris$PW_R <- lm(Petal_Width ~ as.factor(Species_Num), data=Iris)$residuals
+@
+
+\clearpage
+\section{The Iris Data}
+\textbf{\large{\textit{
+The Fisher iris data provides familiar territory for introducing basic concepts.  
+We know there are three species in the data set and we know that four measures were taken on each flower.  
+What is the best linear combination of those four measures for maximizing the separation of the three species?
+How many linear combinations do we need to produce good separation?
+}}}
+
+\subsection{Basic Visualization}
+\textbf{\large{\textit{
+The basic nature of the data is easily viewed with some simple graphics.
+}}}
+<<tidy=TRUE>>=
+ggpairs(Iris[11:14],
+      lower = list(continuous = "smooth"),
+      upper = list(continuous = "cor"),
+      columnLabels=c("Sepal Length","Sepal Width","Petal Length","Petal Width")) +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=9,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Correlations Among Iris Features (Residuals)")
+@
+
+<<tidy=TRUE>>=
+plot_data <- melt(data = Iris[,1:5], id.vars = "Species",
+                  measure.vars = c("Sepal_Length", "Sepal_Width",
+                                   "Petal_Length","Petal_Width"))
+plot_data <- as.data.frame(plot_data)
+plot_data$variable <- factor(plot_data$variable,levels=c("Sepal_Length",
+                             "Sepal_Width","Petal_Length","Petal_Width"),
+                             labels=c("Sepal Length",
+                             "Sepal Width","Petal Length","Petal Width"))
+
+p <- ggplot(plot_data, aes(x=Species, y=value)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Measurement (mm)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Iris Features by Species")
+p + facet_grid(~variable)
+@
+
+\subsection{Group Differences}
+\textbf{\large{\textit{
+A univariate look at the data will provide some clues about likely variables of influence in the discriminant analysis.
+}}}
+<<tidy=TRUE>>=
+Iris_MANOVA <- manova(as.matrix(Iris[,1:4])~Iris$Species)
+Iris_Wilks<-summary(Iris_MANOVA,test=c("Pillai", "Wilks", "Hotelling-Lawley","Roy"))
+summary(Iris_MANOVA)
+summary.aov(Iris_MANOVA)
+@
+
+\subsection{Basic Function}
+\textbf{\large{\textit{
+There are several packages that provide discriminant analysis, but they vary in the specific results they can produce.
+The two most common functions are lda( ) from the MASS package and candisc( ) from the candisc package.
+They are illustrated here; some others that provide a few additional useful results are shown later.
+}}}
+<<tidy=TRUE>>=
+Iris_LDA <- lda(Species_Num ~ Sepal_Length + Sepal_Width + Petal_Length + Petal_Width,  data = Iris)
+@
+
+\textbf{\large{\textit{
+Note that candisc( ) uses a multivariate linear model object from the lm( ) function.
+}}}
+<<tidy=TRUE>>=
+Iris_MLM <- lm(cbind(Sepal_Length,Sepal_Width,Petal_Length,Petal_Width)~as.factor(Species),data=Iris)
+Iris_CDA <- candisc(Iris_MLM, data=Iris)
+@
+
+\subsection{Standardized and Unstandardized Discriminant Function}
+\textbf{\large{\textit{
+The nature of the functions produced by lda( ) is a source of considerable confusion.
+The documentation describes them as standardized coefficients that would be applied to the centered but not standardized variables.
+That would usually be the definition for unstandardized weights and the call for raw coefficients from candisc( ) confirms that interpretation.
+The candisc( ) also produces true standardized coefficients that allow determining the relative contribution of the variables to group discrimination, even if the variables are on different scales.
+The candisc( ) function produces the structure matrix as well representing the correlations between the original discriminating variables and the discriminant functions.
+Note a potential problem if you use several packages on the same data.
+They may use slightly different estimation algorithms and even if they do not, they may reflect some functions (reversing the signs).
+}}}
+<<tidy=TRUE>>=
+Iris_LDA$scaling
+
+Iris_CDA$coeffs.raw
+Iris_CDA$coeffs.std
+Iris_CDA$structure
+@
+
+\subsection{Eigenvalues, Lambda, and Canonical Correlations}
+\textbf{\large{\textit{
+Classic discriminant analysis is a special case of canonical correlation analysis and within that context it can be useful to examine the canonical correlations and eigenvalues.
+These are most useful in estimating the magnitude of discrimination of the functions by calculating the percentage of total discrimination that is due to each function.
+A closely related issue is the statistical significant of the functions. \newline
+\newline
+The candisc( ) function readily provides the eigenvalues and squared canonical correlations.
+They are related to eachother.
+The ratio of the squared canonical correlation to (1-squared canonical correlation) is the eigenvalue for that function.
+Wilks' lambda, used in tests of significance, is the product of (1-squared canonical correlation) for a set of functions.
+Tests of significance in discriminant analysis are made in a step-wise fashion.
+First, the entire set is tested for significance by calculating Wilks' lambda (the produce of all 1-squared canonical correlations) and estimating an F ratio (or sometimes a chi-square).
+If this test is significant, then we can conclude that there is significant discrimination possible.
+Then the first (and most important) function is excluded and the remainder are tested.
+If this is not significant, then the first function was the only source of discrimination.
+If this is significant, then the first and at least the the second are significant sources of discrimination.
+The second is next excluded and the inferences follow in the same fashion.
+If the remainder are not significant, the the first and second were the only sources of significance.
+}}}
+<<tidy=TRUE>>=
+Iris_CDA$rank
+Iris_CDA$eigenvalues
+Iris_CDA$canrsq
+Iris_CDA$pct
+Iris_CDA
+@
+
+\subsection{Homogeneity Assumption}
+\textbf{\large{\textit{
+We assume in discriminant analysis that the separate group variance-covariance matrices are homogeneous.
+Box's test can be used to test this assumption.
+Note, however, that it is also sensitive to violations of multivariate normality.
+}}}
+<<tidy=TRUE>>=
+boxM(Iris[,1:4], Iris$Species)
+boxM(Iris[,1:4], Iris$Species)$cov
+boxM(Iris[,1:4], Iris$Species)$pooled
+@
+
+\subsection{Multivariant Normality Assumption}
+\textbf{\large{\textit{
+The classification part of discriminant analysis (as well as any significance tests for the discriminant functions) rely on the multivariate normality assumption.
+The tests are performed on the residualized data so that species differences do not affect the results.
+Note that a violation of multivariate normality will also affect the test of homogeneity of covariance matrices.
+}}}
+<<tidy=TRUE>>=
+mvn(Iris[,11:14],mvnTest="mardia")
+@
+
+<<tidy=TRUE>>=
+CV <- cov(Iris[,11:14])
+D2_1 <- mahalanobis(Iris[,11:14],center=colMeans(Iris[,11:14]),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=4)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=4)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=4)) +
+    scale_y_continuous(breaks=seq(0,18,2)) +
+    scale_x_continuous(breaks=seq(0,18,1)) +
+    coord_cartesian(xlim = c(0,18), ylim =c(0,18)) +
+    xlab(expression("Expected Values from" * ~ chi[4]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[4]^2))
+@
+
+<<tidy=TRUE>>=
+Iris_QQ <- scale(Iris[11:14])
+Data_long <- melt(Iris_QQ)
+Data_long <- as.data.frame(Data_long)
+names(Data_long) <- c("Index","feature","value")
+Data_long$feature_F <- factor(Data_long$feature,levels=c("SL_R","SW_R","PL_R","PW_R"),
+                         labels = c("Sepal Length","Sepal Width","Petal Length","Petal Width"))
+p <- ggplot(Data_long, aes(sample=value)) +
+        stat_qq_band() + stat_qq_line() + stat_qq(distribution=qnorm,size=1) +
+        scale_y_continuous(breaks=seq(-4,4,1)) +
+        scale_x_continuous(breaks=seq(-4,4,1)) +
+        coord_cartesian(xlim = c(-4,4), ylim =c(-4,4)) +
+        xlab("Theoretical Quantiles") + 
+        ylab("Sample Quantiles") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),  
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+      ggtitle("Q-Q Plots for Iris Features")
+p + facet_wrap(~feature_F)
+@
+\subsection{Predicted Group Membership}
+\textbf{\large{\textit{
+Originally, Fisher proposed the construction of as many classification functions are there were groups, with classification determined by the group with the highest classification score.
+The Fisher classification functions are available in the DiscriMiner package as a value that can be requested from the linDA( )  function.
+}}}
+<<tidy=TRUE>>=
+Iris_Fisher <- linDA(Iris[,1:4], Iris$Species, prior = NULL, validation = NULL,learn = NULL, test = NULL, prob = FALSE)
+Iris_Fisher$functions
+Iris_Fisher$scores
+Iris_Fisher$classification
+@
+
+\textbf{\large{\textit{
+Another approach available in the biotools package calculates the Mahalanobis distances of an object from the group centroids for each group and classifies it in the nearest.
+}}}
+<<tidy=TRUE>>=
+Iris_Mahal <- D2.disc(Iris[,1:4], iris[, 5])
+Iris_Mahal$D2
+@
+
+\clearpage
+\textbf{\large{\textit{
+The most common approach uses a Bayesian model, takes prior probabilities into account, and calculates the posterior probabilities for group membership.
+Cases are classified into the group for which they have the highest posterior probability.
+This information can be provided by both the lda( ) and candisc( ) functions.
+The lda( ) function provides the posterior probabilities. 
+The candisc ( ) function shows the classification group and can also provide function means for the groups.
+The linDA( ) function from the DiscriMiner package directly gives the misclassification rate and a confusion table.
+}}}
+<<tidy=TRUE>>=
+Iris_Predicted <- predict(Iris_LDA)
+Iris_Predicted$class
+Iris_Predicted$posterior
+Iris_Predicted$x
+
+Iris_CDA$scores
+Iris_CDA$means
+
+Iris_Fisher$error_rate
+Iris_Fisher$confusion
+@
+
+\subsection{Cross-Validation}
+\textbf{\large{\textit{
+The basic predict( ) function when applied to the entire data set will simply provide the classification from the model and the ability to determine the percentage correct classification.
+The jackknife procedure [use CV=TRUE in lda()] will leave each case out in turn, estimate the discriminant analysis with the remaining cases, and then use that information to classify the left out case. 
+This approach insures that each case is classified with information it did not contribute to in the estimation.
+A traditional cross-validation uses part of the sample (or a separate sample) to estimate the discriminant functions and then applies that solution to the remaining cases.
+Each is illustrated here.
+}}}
+\subsubsection{Simple Prediction}
+<<tidy=TRUE>>=
+table(Original=Iris$Species_Num,Predicted=predict(Iris_LDA)$class)
+Proportion_of_Correct_Classification <- sum(diag(table(Original=Iris$Species_Num,Predicted=predict(Iris_LDA)$class)))/sum(table(Original=Iris$Species_Num,Predicted=predict(Iris_LDA)$class))
+Proportion_of_Correct_Classification
+@
+
+\subsubsection{Leave-One-Out}
+<<tidy=TRUE>>=
+Iris_Jack <- lda(Species ~ Sepal_Length + Sepal_Width + Petal_Length + Petal_Width,
+    data = Iris, CV=TRUE)
+table(Original=Iris$Species_Num,Predicted=Iris_Jack$class)
+Proportion_of_Correct_Classification <- sum(diag(table(Original=Iris$Species_Num,Predicted=Iris_Jack$class)))/sum(table(Original=Iris$Species_Num,Predicted=Iris_Jack$class))
+Proportion_of_Correct_Classification
+@
+
+\subsubsection{Two-Sample Cross-Validation}
+<<tidy=TRUE>>=
+training_sample <- sample(1:150, 75)
+ 
+Iris_Train <- lda(Species ~ Sepal_Length + Sepal_Width + Petal_Length + Petal_Width,
+    data = Iris, CV=FALSE,subset=training_sample)
+
+Iris_Predict <- predict(Iris_Train,newdata=Iris[-training_sample,])
+Iris_Original <- as.data.frame(Iris[-training_sample,5])
+Iris_Cross <- cbind(Iris_Original,Iris_Predict$class)
+names(Iris_Cross) <- c("Original_Species","Predicted_Species")
+table(Original=Iris_Cross$Original_Species,Predicted=Iris_Cross$Predicted_Species)
+Proportion_of_Correct_Classification <- sum(diag(table(Original=Iris_Cross$Original_Species,Predicted=Iris_Cross$Predicted_Species)))/sum(table(Original=Iris_Cross$Original_Species,Predicted=Iris_Cross$Predicted_Species))
+Proportion_of_Correct_Classification
+@
+
+\subsection{Visualization}
+<<tidy=TRUE>>=
+Iris_LDA_Values <- predict(Iris_LDA)
+LDA_Means <- as.data.frame(aggregate(Iris_LDA_Values$x, by=list(Iris_LDA_Values$class),
+  FUN=mean, na.rm=TRUE))
+@
+
+<<tidy=TRUE>>=
+plot_data <- rbind(cbind(Iris_LDA_Values$x[,1],Iris_LDA_Values$class),
+                   cbind(Iris_LDA_Values$x[,2],Iris_LDA_Values$class))
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Score","Class")
+plot_data$Class_F <- factor(plot_data$Class,levels=c(1,2,3),
+                             labels=c("Setosa",
+                             "Versicolor","Virginica"))
+plot_data$Function <- c(rep("Function 1",150),rep("Function 2",150))
+
+p <- ggplot(plot_data, aes(x=Class_F, y=Score)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Function Score") +
+        xlab("Species") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Function Scores by Discriminant Function")
+p + facet_grid(~Function)
+@
+
+\textbf{\large{\textit{
+The different discrimination is evident when the discriminant function scores are examined in analyses of variance.
+}}}
+
+<<tidy=TRUE>>=
+summary(aov(Iris_LDA_Values$x[,1]~Iris$Species))
+summary(aov(Iris_LDA_Values$x[,2]~Iris$Species))
+@
+
+<<tidy=TRUE>>=
+plot_data <- cbind(Iris_LDA_Values$x[,1],Iris_LDA_Values$x[,2],Iris_LDA_Values$class,Iris$Species_Num)
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("DS1","DS2","Class","Species")
+plot_data$Class_F <- factor(plot_data$Class,levels=c(1,2,3),
+                             labels=c("Setosa",
+                             "Versicolor","Virginica"))
+plot_data$Species_F <- factor(plot_data$Species,levels=c(1,2,3),
+                             labels=c("Setosa",
+                             "Versicolor","Virginica"))
+
+ggplot(plot_data, aes(x=DS1,y=DS2,color=Class_F)) +
+    geom_point(shape=19,size=2, na.rm=TRUE) +   
+    geom_point(LDA_Means,mapping=aes(x=LDA_Means[1,2], y=LDA_Means[1,3]), size=5,
+               color="red", fill="red", shape=22) + 
+    geom_point(LDA_Means,mapping=aes(x=LDA_Means[2,2], y=LDA_Means[2,3]), size=5,
+               color="blue", fill="blue", shape=22) +     
+    geom_point(LDA_Means,mapping=aes(x=LDA_Means[3,2], y=LDA_Means[3,3]), size=5,
+               color="green4", fill="green4", shape=22) +   
+    scale_y_continuous(breaks=c(seq(-3,3,1))) +
+    scale_x_continuous(breaks=c(round(seq(-10,10,2),2))) +
+    scale_color_manual(values=c("red", "blue", "green4")) +
+    geom_text(aes(label=Species_F),hjust=-.25, vjust=0,size=2.5) +
+    coord_cartesian(xlim = c(-10,10), ylim = c(-3,3)) +
+    xlab("Discriminant Function 1") + 
+    ylab("Discriminant Function 2") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Discriminant Function Scores by Species")
+@
+
+
+<<tidy=TRUE>>=
+Sys.time()-how_long
+@
+
+\end{document}
