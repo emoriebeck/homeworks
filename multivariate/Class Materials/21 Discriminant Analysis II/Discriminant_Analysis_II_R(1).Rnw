@@ -1,0 +1,1064 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Discriminant Analysis II}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(plyr)
+library(dawai)
+library(candisc)
+library(biotools)
+library(DiscriMiner)
+library(ade4)
+library(MVN)
+library(biotools)
+library(klaR)
+library(GGally)
+library(reshape2)
+library(MVN)
+library(qqplotr)
+library(gridExtra)
+library(caret)
+@
+
+
+\subsection{Data}
+\textbf{\large{\textit{
+In this hypothetical example, data from 500 graduate students seeking jobs were examined. 
+Available for each student were three predictors: GRE(V+Q), Years to Finish the Degree, and Number of Publications. 
+The outcome measure was categorical: "Got a job" versus "Did not get a job."
+}}}
+
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+Job<-read.table('get_a_job.csv',sep=',',header=TRUE)
+Job <- as.data.frame(Job)
+Job$job_num <- Job$job
+Job$job[Job$job=="1"] <- "No Job"
+Job$job[Job$job=="2"] <- "Job"
+# Residuals
+Job$gre_R <- lm(gre ~ as.factor(job), data=Job)$residuals
+Job$pubs_R <- lm(pubs ~ as.factor(job), data=Job)$residuals
+Job$years_R <- lm(years ~ as.factor(job), data=Job)$residuals
+
+@
+
+\clearpage
+\section{Job Search Data}
+\textbf{\large{\textit{
+These hypothetical data simulate the factors that might contribute to successfully getting an academic job.
+}}}
+
+\subsection{Basic Visualization}
+\textbf{\large{\textit{
+The basic nature of the data is easily viewed with some simple graphics.
+}}}
+<<tidy=TRUE>>=
+ggpairs(Job[7:9],
+      lower = list(continuous = "smooth"),
+      upper = list(continuous = "cor"),
+      columnLabels=c("GRE","Publications","Years")) +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=9,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Correlations Among Job Search Features (Residuals)")
+@
+
+<<tidy=TRUE>>=
+p1 <- ggplot(Job, aes(x=job, y=gre)) + 
+        geom_boxplot(fill="gray") +
+        ylab("GRE Total") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("GRE Total")
+
+p2 <- ggplot(Job, aes(x=job, y=pubs)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Publications") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Publications")
+
+p3 <- ggplot(Job, aes(x=job, y=years)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Years to Complete") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Years")
+grid.arrange(p1,p2,p3,nrow=1)
+@
+
+\subsection{Group Differences}
+\textbf{\large{\textit{
+A univariate look at the data will provide some clues about likely variables of influence in the discriminant analysis.
+}}}
+<<tidy=TRUE>>=
+Job_MANOVA <- manova(as.matrix(Job[,1:3])~as.factor(Job$job))
+Job_Wilks<-summary(Job_MANOVA,test=c("Wilks"))
+summary(Job_MANOVA)
+summary.aov(Job_MANOVA)
+@
+
+
+\subsection{Basic Function}
+\textbf{\large{\textit{
+There are several packages that provide discriminant analysis, but they vary in the specific results they can produce.
+The two most common functions are lda( ) from the MASS package and candisc( ) from the candisc package.
+They are illustrated here; some others that provide a few additional useful results are shown later.
+}}}
+<<tidy=TRUE>>=
+Job_LDA <- lda(Job$job_num ~ gre + pubs + years,  data = Job)
+@
+
+\textbf{\large{\textit{
+Note that candisc( ) uses a multivariate linear model object from the lm( ) function.
+}}}
+<<tidy=TRUE>>=
+Job_MLM <- lm(cbind(gre,pubs,years)~as.factor(job),data=Job)
+Job_CDA <- candisc(Job_MLM, data=Job)
+@
+
+\subsection{Standardized and Unstandardized Discriminant Function}
+\textbf{\large{\textit{
+The nature of the functions produced by lda( ) is a source of considerable confusion.
+The documentation describes them as standardized coefficients that would be applied to the centered but not standardized variables.
+That would usually be the definition for unstandardized weights and the call for raw coefficients from candisc( ) confirms that interpretation.
+The candisc( ) also produces true standardized coefficients that allow determining the relative contribution of the variables to group discrimination, even if the variables are on different scales.
+The candisc( ) function produces the structure matrix as well representing the correlations between the original discriminating variables and the discriminant functions.
+Note a potential problem if you use several packages on the same data.
+They may use slightly different estimation algorithms and even if they do not, they may reflect some functions (reversing the signs).
+}}}
+<<tidy=TRUE>>=
+Job_LDA$scaling
+
+Job_CDA$coeffs.raw
+Job_CDA$coeffs.std
+Job_CDA$structure
+@
+
+\subsection{lda( ) method options}
+\textbf{\large{\textit{
+The lda( ) function has a method option that provides several varieties of discriminant analysis.
+The "moment" option provides the standard analysis.
+The "mle" option provides maximum likelihood estimates.
+The "mve" option provides a robust solution that estimates the means and covariance matrices based on a subsample of the data that is relatively free of extreme data points.
+The "t" option also provides robust estimates that are based on a t distribution.
+These are illustrated here.
+}}}
+<<tidy=TRUE>>=
+Job_LDA_1 <- lda(Job$job_num ~ gre + pubs + years,  method="mle", data = Job)
+Job_LDA_1$scaling
+Job_LDA_2 <- lda(Job$job_num ~ gre + pubs + years,  method="mve", data = Job)
+Job_LDA_2$scaling
+Job_LDA_3 <- lda(Job$job_num ~ gre + pubs + years,  method="t", data = Job)
+Job_LDA_3$scaling
+@
+
+\subsection{Predicted Group Membership}
+\textbf{\large{\textit{
+Originally, Fisher proposed the construction of as many classification functions as there were groups, with classification determined by the group with the highest classification score.
+The Fisher classification functions are available in the DiscriMiner package as a value that can be requested from the linDA( )  function.
+}}}
+
+<<tidy=TRUE>>=
+Job_Fisher <- linDA(Job[,1:3], Job$job, prior = NULL, validation = NULL,learn = NULL, test = NULL, prob = FALSE)
+Job_Fisher$functions
+head(Job_Fisher$scores)
+head(Job_Fisher$classification)
+Job_Fisher$confusion
+1-Job_Fisher$error_rate
+@
+
+\textbf{\large{\textit{
+Another approach available in the biotools package calculates the Mahalanobis distances of an object from the group centroids for each group and classifies it in the nearest.
+}}}
+<<tidy=TRUE>>=
+Job_Mahal <- D2.disc(Job[,1:3], Job[, 4])
+head(Job_Mahal$D2)
+Job_Mahal$confusion.matrix
+Proportion_of_Correct_Classification <- sum(diag(Job_Mahal$confusion.matrix))/sum(Job_Mahal$confusion.matrix)
+Proportion_of_Correct_Classification
+@
+
+\textbf{\large{\textit{
+The most common approach uses a Bayesian model, takes prior probabilities into account, and calculates the posterior probabilities for group membership.
+Cases are classified into the group for which they have the highest posterior probability.
+This information can be provided by both the lda( ) and candisc( ) functions.
+The lda( ) function provides the posterior probabilities. 
+The candisc ( ) function shows the classification group and can also provide function means for the groups.
+The linDA( ) function from the DiscriMiner package directly gives the misclassification rate and a confusion table.
+}}}
+<<tidy=TRUE>>=
+Job_Predicted <- predict(Job_LDA)
+Job_LDA$svd
+Job_LDA$counts
+Job_LDA$prior
+Job_Predicted$class
+head(Job_Predicted$posterior)
+Job_P <- cbind(Job_Predicted$x,Job_Predicted$posterior,Job_Predicted$class)
+head(Job_P)
+
+table(Original=Job$job_num,Predicted=predict(Job_LDA)$class)
+Proportion_of_Correct_Classification <- sum(diag(table(Original=Job$job_num,Predicted=predict(Job_LDA)$class)))/sum(table(Original=Job$job_num,Predicted=predict(Job_LDA)$class))
+Proportion_of_Correct_Classification
+
+Job_CDA$eigenvalues
+head(Job_CDA$scores)
+Job_CDA$means
+
+Job_linDA <- linDA(Job[,1:3], Job[,4], prior = NULL, validation = NULL,
+    learn = NULL, test = NULL, prob = FALSE)
+Job_linDA$confusion
+1-Job_linDA$error_rate
+@
+
+\subsection{Eigenvalues, Lambda, and Canonical Correlations}
+\textbf{\large{\textit{
+Classic discriminant analysis is a special case of canonical correlation analysis and within that context it can be useful to examine the canonical correlations and eigenvalues.
+These are most useful in estimating the magnitude of discrimination of the functions by calculating the percentage of total discrimination that is due to each function.
+A closely related issue is the statistical significant of the functions. \newline
+\newline
+The candisc( ) function readily provides the eigenvalues and squared canonical correlations.
+They are related to each other.
+The ratio of the squared canonical correlation to (1-squared canonical correlation) is the eigenvalue for that function : \newline
+\begin{equation*}
+	\lambda_j = \dfrac{r_j^2}{1-r_j^2} \\
+\end{equation*}
+The eigenvalues can be used to determine the proportion of group separation provided by each discriminant function: \newline
+\begin{equation*}
+	proportion_j = \dfrac{\lambda_j}{\sum\limits_{d = 1}^D \lambda_d} \\
+\end{equation*}
+Wilks' lambda, used in tests of significance, is the product of (1-squared canonical correlation) for a set of functions: \newline
+\begin{equation*}
+	\varLambda_j = \prod\limits_{d = j}^D (1-r_d^2) \\
+\end{equation*}
+Tests of significance in discriminant analysis are made in a step-wise fashion.
+First, the entire set is tested for significance by calculating Wilks' lambda (the produce of all 1-squared canonical correlations) and estimating an F ratio (or sometimes a chi-square).
+If this test is significant, then we can conclude that there is significant discrimination possible.
+Then the first (and most important) function is excluded and the remainer are tested.
+If this is not significant, then the first function was the only source of discrimination.
+If this is significant, then the first and at least the second are significant sources of discrimination.
+The second is next excluded and the inferences follow in the same fashion.
+If the remainder are not significant, the first and second were the only sources of significance.
+}}}
+<<tidy=TRUE>>=
+Job_CDA$rank
+Job_CDA$eigenvalues
+Job_CDA$canrsq
+Job_CDA$pct
+Job_CDA
+@
+
+\subsection{Homogeneity Assumption}
+\textbf{\large{\textit{
+We assume in discriminant analysis that the separate group variance-covariance matrices are homogeneous. 
+This assumption underlies tests used to determine the number of significant functions.  
+Box's test can be used to test this assumption. 
+}}}
+
+<<tidy=TRUE>>=
+boxM(Job[,1:3], Job$job)
+boxM(Job[,1:3], Job$job)$cov
+boxM(Job[,1:3], Job$job)$pooled
+@
+
+\subsection{Multivariate Normality Assumption}
+\textbf{\large{\textit{
+The classification part of discriminant analysis (as well as any significance tests for the discriminant functions) rely on the multivariate normality assumption.
+The tests are performed on the residualized data so that species differences do not affect the results.
+Note that a violation of multivariate normality will also affect the test of homogeneity of covariance matrices.
+}}}
+<<tidy=TRUE>>=
+mvn(Job[,7:9],mvnTest="mardia")
+@
+
+<<tidy=TRUE>>=
+CV <- cov(Job[,7:9])
+D2_1 <- mahalanobis(Job[,7:9],center=colMeans(Job[,7:9]),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=3)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=3)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=3)) +
+    scale_y_continuous(breaks=seq(0,18,2)) +
+    scale_x_continuous(breaks=seq(0,18,1)) +
+    coord_cartesian(xlim = c(0,18), ylim =c(0,18)) +
+    xlab(expression("Expected Values from" * ~ chi[3]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[3]^2))
+@
+
+<<tidy=TRUE>>=
+Job_QQ <- scale(Job[,7:9])
+Data_long <- melt(Job_QQ)
+Data_long <- as.data.frame(Data_long)
+names(Data_long) <- c("Index","feature","value")
+Data_long$feature_F <- factor(Data_long$feature,levels=c("gre_R","pubs_R","years_R"),
+                         labels = c("GRE","Publications","Years"))
+p <- ggplot(Data_long, aes(sample=value)) +
+        stat_qq_band() + stat_qq_line() + stat_qq(distribution=qnorm,size=1) +
+        scale_y_continuous(breaks=seq(-4,4,1)) +
+        scale_x_continuous(breaks=seq(-4,4,1)) +
+        coord_cartesian(xlim = c(-4,4), ylim =c(-4,4)) +
+        xlab("Theoretical Quantiles") + 
+        ylab("Sample Quantiles") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),  
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+      ggtitle("Q-Q Plots for Job Search Features")
+p + facet_wrap(~feature_F)
+@
+
+\subsection{Quadratic Model}
+\textbf{\large{\textit{
+When the homogeneity of covariance matrices assumption is not met, an alternative quadratic model can be fit instead using the qda( ) function.
+This method produces matrices that transform the observations for each group so that the within-groups covariance matrix is spherical (proportional to an identity matrix).
+An alternative is bootstrapping with the standard analysis.
+This approach is described later.
+}}}
+<<tidy=TRUE>>=
+# By specifying the jackknife procedure, the classification results can be
+# obtained directly.
+Job_QDA <- qda(Job$job_num ~ gre + pubs + years,  data = Job, CV=TRUE)
+head(Job_QDA$posterior)
+Job_QDA$class
+table(Original=Job$job_num,Predicted=Job_QDA$class)
+Proportion_of_Correct_Classification <- sum(diag(table(Original=Job$job_num,Predicted=Job_QDA$class)))/sum(table(Original=Job$job_num,Predicted=Job_QDA$class))
+Proportion_of_Correct_Classification
+@
+
+<<tidy=TRUE>>=
+# With CV=FALSE, the function gives the scaling matrices and
+# the predict function is used to get the classifications.
+Job_QDA <- qda(Job$job_num ~ gre + pubs + years,  data = Job, CV=FALSE)
+Job_QDA_P <- predict(Job_QDA)
+head(Job_QDA_P$posterior)
+Job_QDA_P$class
+table(Original=Job$job_num,Predicted=Job_QDA_P$class)
+Proportion_of_Correct_Classification <- sum(diag(table(Original=Job$job_num,Predicted=Job_QDA_P$class)))/sum(table(Original=Job$job_num,Predicted=Job_QDA_P$class))
+Proportion_of_Correct_Classification
+@
+
+\subsection{Cross-Validation}
+\textbf{\large{\textit{
+The basic predict( ) function when applied to the entire data set will simply provide the classification from the model and the ability to determine the percentage correct classification.
+The jackknife procedure [use CV=TRUE in lda()] will leave each case out in turn, estimate the discriminant analysis with the remaining cases, and then use that information to classify the left out case. 
+This approach insures that each case is classified with information it did not contribute to in the estimation.
+A traditional cross-validation uses part of the sample (or a separate sample) to estimate the discriminant functions and then applies that solution to the remaining cases.
+Each is illustrated here.
+}}}
+
+\subsubsection{Simple Prediction}
+<<tidy=TRUE>>=
+table(Original=Job$job_num,Predicted=predict(Job_LDA)$class)
+Proportion_of_Correct_Classification <- sum(diag(table(Original=Job$job_num,Predicted=predict(Job_LDA)$class)))/sum(table(Original=Job$job_num,Predicted=predict(Job_LDA)$class))
+Proportion_of_Correct_Classification
+@
+
+\subsubsection{Leave-One-Out}
+\textbf{\large{\textit{
+The jackknife procedure will leave each case out in turn, estimate the discriminant analysis with the remaining cases, and then use that information to classify the left-out case. 
+This approach insures that each case is classified with information it did not contribute to in the estimation.
+}}}
+<<tidy=TRUE>>=
+Job_Jack <- lda(job_num ~ gre + pubs + years, data = Job, CV=TRUE)
+Jack_T <- table(Original=Job$job_num,Predicted=Job_Jack$class)
+Proportion_of_Correct_Classification <- sum(diag(Jack_T))/sum(Jack_T)
+Proportion_of_Correct_Classification
+@
+
+\subsubsection{Separate-Samples Cross-Validation}
+\textbf{\large{\textit{
+The most convincing cross-validation uses part of the sample (or a separate sample) to estimate the discriminant functions and then applies that solution to the remaining cases.  Here the sample is split into random halves. The first sample (called the training set) is used to derive the discriminant functions. Those functions are then used on the second set to classify cases. \newline
+\newline
+A single cross-validation is open to variability, especially as the sample sizes decrease.
+This variability can be made apparent with the bootstrapping procedure described later.
+If sample sizes are very large, the entire sample can be split into multiple subsamples, called folds, and a K-fold cross-validation conducted.
+This uses, in turn, one of the subsamples as the validation group with the remaining subsamples used as the training sample.
+The mean classification can be taken across the multiple validations and variability can be directly estimated.
+}}}
+<<tidy=TRUE>>=
+training_sample <- sample(1:500, 250)
+Job_Train <- lda(job_num ~ gre + pubs + years, data = Job, CV=FALSE,subset=training_sample)
+Job_Predict <- predict(Job_Train,newdata=Job[-training_sample,])
+Job_Original <- as.data.frame(Job[-training_sample,6])
+Job_Cross <- cbind(Job_Original,Job_Predict$class)
+names(Job_Cross) <- c("Original","Predicted")
+table(Original=Job_Cross$Original,Predicted=Job_Cross$Predicted)
+Proportion_of_Correct_Classification <- sum(diag(table(Original=Job_Cross$Original,Predicted=Job_Cross$Predicted)))/sum(table(Original=Job_Cross$Original,Predicted=Job_Cross$Predicted))
+Proportion_of_Correct_Classification
+@
+
+\subsection{Classification Quality}
+\textbf{\large{\textit{
+In addition to the proportion correct classification, there are several other common ways to assess classification quality.
+One
+}}}
+
+\subsubsection{Klecka's Tau}
+\textbf{\large{\textit{
+Klecka's tau ($\tau$) is sometimes calculated for classification results: \newline
+\begin{equation*}
+	\tau = \dfrac{N_o - \sum\limits_{i = 1}^G p_in_i}{N - \sum\limits_{i = 1}^G p_in_i} \\
+\end{equation*}
+$N_o$ is the observed number of correct classifications, $n_i$ is the number of cases in group i, $p_i$ is the proportion of the total sample expected to be in group i, G is the number of groups, and N is the total sample size.
+}}}
+
+<<tidy=TRUE>>=
+Class_T <- table(Original=Job$job_num,Predicted=predict(Job_LDA)$class)
+Class_T
+Proportion_of_Correct_Classification <- sum(diag(Class_T))/sum(Class_T)
+Proportion_of_Correct_Classification
+# Marginals (O = Observed, P = Predicted)
+MO1 <- sum(Class_T[1,])
+MO2 <- sum(Class_T[2,])
+MP1 <- MO1
+MP2 <- MO2
+# Total observations
+N <- sum(Class_T)
+# Observed agreement
+O <- sum(diag(Class_T))
+# Expected agreement
+E <- (MO1*MP1/N) + (MO2*MP2/N)
+# Klecka's tau
+Tau <- (O-E)/(N-E)
+Tau
+@
+
+\subsubsection{Classification Significance}
+\textbf{\large{\textit{
+The total number of correct classifications that would occur by chance (302, 60.4\%) can be tested against the actual number of correct classifications given the discriminant analysis model (439, 87.8\%, for the simple prediction of all cases). 
+A t-test can be calculated:\newline
+\newline
+\begin{equation*}
+	t = \dfrac{439-302}{\sqrt{500(.604)(1-.604)}} = 12.53 \\
+\end{equation*}
+\newline
+Where the denominator is the standard error of the number of correct classifications by chance (the null hypothesis).
+}}}
+
+<<tidy=TRUE>>=
+t <- (O-E)/sqrt(N*(E/N)*(1-E/N))
+@
+
+\textbf{\large{\textit{
+The difference between chance expected and actual classification can be tested with a chi-square as well. 
+:\newline
+\newline
+\begin{equation*}
+	\chi^2 = \sum\limits_{i = 1}^C \dfrac{(f_{o_i}-f_{e_i})^2}{f_{e_i}} \\
+\end{equation*}
+\begin{equation*}
+	\chi^2 = \dfrac{(439-302)^2}{302} + \dfrac{(61-198)^2}{198} = 156.94 \\
+\end{equation*}
+\newline
+Because this is a single degree of freedom test, $t^2$ = $\chi^2$.
+}}}
+
+<<tidy=TRUE>>=
+chi_squared <- (((O-E)^2)/E)+((((500-O)-(500-E))^2)/(500-E))
+chi_squared
+@
+
+\textbf{\large{\textit{
+For comparison, here is the classic $\chi^2$, which does not assume that the predicted marginals are the same as the obtained marginals.
+}}}
+
+<<tidy=TRUE>>=
+O1 <- Class_T[1,1]
+O2 <- Class_T[1,2]
+O3 <- Class_T[2,1]
+O4 <- Class_T[2,2]
+E1 <- (sum(Class_T[1,])*sum(Class_T[,1]))/N
+E2 <- (sum(Class_T[2,])*sum(Class_T[,1]))/N
+E3 <- (sum(Class_T[2,])*sum(Class_T[,1]))/N
+E4 <- (sum(Class_T[2,])*sum(Class_T[,2]))/N
+chi_squared <- (((O1-E1)^2)/E1)+(((O2-E2)^2)/E2)+(((O3-E3)^2)/E3)+(((O4-E4)^2)/E4)
+@
+
+\subsubsection{Other Indices}
+\textbf{\large{\textit{
+The confusionMatrix( ) function from the caret package provides quite a number of other indices.
+Of note, it provides Cohen's kappa, a chance-corrected agreement statistic.
+If the data are arranged in a confusion table as follows: \newline
+}}}
+\begin{tabular}{| L{2cm} | C{2cm} | C{2.75cm} | C{2.75cm} | C{2cm} |}
+\hline
+  &   & \multicolumn{2}{|c|}{Actual} & \\
+\hline
+  &   & \multicolumn{1}{|c|}{\textit{Absent}}  & \multicolumn{1}{|c|}{\textit{Present}} & \multicolumn{1}{|c|}{\textit{Marginal}} \\
+\hline
+\multirow{2}{*}{Prediction} & Absent & d & c & Row 1 = d+c \\ \cline{2-5}
+ & Present & b & a & Row 2 = b+a  \\ 
+\hline 
+ & Marginal & Column 1 = d+b & Column 2 = c+a & N=a+b+c+d  \\ 
+\hline 
+\end{tabular}
+\textbf{\large{\textit{
+\newline
+\newline
+Cohen's $\kappa$ is defined as: \newline
+\begin{equation*}
+	\kappa = \dfrac{N_o - N_e}{N - N_e} = \dfrac{p_o - p_e}{1 - p_e} \\
+\end{equation*}
+$N_o$ is the number of correct classifications (the sum of the main diagonal: d+a).
+$N_e$ is the number of correct classifications expected by chance.
+This is calculated using the marginals: [(Row 1 x Column 1)+(Row 2 x Column 2)]/N.
+N is the total sample size. 
+Or, $\kappa$ can be estimated with proportions, $p_o$ and $p_e$. \newline
+\newline
+The other indices reported are likewise a function of elements in the table.
+They are commonly used when there are only two groups (as here).
+When there are more than two groups, then these are also reported, but for all combinations of each group versus the combination of the remaining groups. 
+Some of the more useful are precision, recall, and F1. \newline
+\newline
+Precision is defined as: \newline
+\begin{equation*}
+	Precision = \dfrac{a}{a + b} \\
+\end{equation*}
+This index answers the question, "What percentage of predicted events are correct?" \newline
+\newline
+Recall is defined as: \newline
+\begin{equation*}
+	Recall = \dfrac{a}{a + c} \\
+\end{equation*}
+This index answers the question, "What percentage of events were correctly predicted?" \newline
+\newline
+Precision and recall are negatively related; as one increases, the other decreases.
+An index that combines them is F1, defined as: \newline
+\begin{equation*}
+	F1 = \dfrac{2*Precision*Recall}{Precision + Recall} \\
+\end{equation*}
+This is the harmonic mean of precision and recall. \newline
+\newline
+Some of the remaining indices are often useful. 
+These are the most common. \newline
+\newline
+Sensitivity is defined as: \newline
+\begin{equation*}
+	Sensitivity = \dfrac{a}{a + c} \\
+\end{equation*}
+Sensitivity is the same as recall: "What percentage of events were correctly predicted?" \newline
+\newline
+Specificity is defined as: \newline
+\begin{equation*}
+	Specificity = \dfrac{d}{b + d} \\
+\end{equation*}
+This index answers the question: "What percentage of event absences were correctly predicted?" \newline
+\newline
+Prevalence is defined as: \newline
+\begin{equation*}
+	Prevalence = \dfrac{a + c}{a + b + c + d} \\
+\end{equation*}
+This index aswers the question: "What is the proportion of actual events in the sample?" \newline
+\newline
+Detection Rate is defined as: \newline
+\begin{equation*}
+	Detection \hspace{2mm} Rate = \dfrac{a}{a + b + c + d} \\
+\end{equation*}
+This index answers the question: "What proportion of the entire sample are correctly predicted events?" \newline
+\newline
+Detection Prevalence is defined as: \newline
+\begin{equation*}
+	Detection \hspace{2mm} Prevalence = \dfrac{a + b}{a + b + c + d} \\
+\end{equation*}
+This index answers the question: "What proportion of the entire sample are predicted events?"
+}}}
+
+<<tidy=TRUE>>=
+Job_Predicted <- factor(Job_Jack$class, levels=c(1,2),labels=c("No Job","Job"))
+Job_Actual <- factor(Job$job_num, levels=c(1,2),labels=c("No Job","Job"))
+confusionMatrix(Job_Predicted, Job_Actual, positive="Job", mode="everything")
+@
+
+\subsection{Visualization}
+\textbf{\large{\textit{
+There are a number of ways to visualize the analysis.
+A few examples are given here.
+}}}
+<<tidy=TRUE>>=
+Job_LDA_Values <- predict(Job_LDA)
+LDA_Means <- as.data.frame(aggregate(Job_LDA_Values$x, by=list(Job_LDA_Values$class),
+  FUN=mean, na.rm=TRUE))
+names(LDA_Means) <- c("Class","Mean")
+LDA_Means$Class_F <- factor(LDA_Means$Class,levels=c("1","2"),labels=c("No Job","Job"))
+@
+
+<<tidy=TRUE>>=
+plot_data <- cbind(Job_LDA_Values$x[,1],Job_LDA_Values$class)
+          
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Score","Class")
+plot_data$Class_F <- factor(plot_data$Class,levels=c(1,2),
+                             labels=c("No Job",
+                             "Job"))
+plot_data$Job_F <- factor(Job$job_num,levels=c(1,2),
+                             labels=c("No Job",
+                             "Job"))
+
+ggplot(plot_data, aes(x=Job_F, y=Score)) + 
+        geom_boxplot(fill="gray") +
+        scale_y_continuous(breaks=c(seq(-3.25,3.25,.5))) +
+        coord_cartesian(xlim = c(1,2), ylim = c(-3.25,3.25)) +  
+        ylab("Function Score") +
+        xlab("Job Search Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Discriminant Function Scores")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x=Class_F,y=Score,color=Job_F)) +
+    geom_jitter(width=.15,height=.15,shape=19,size=1.25,
+                na.rm=TRUE) +
+    scale_color_manual("Job Search Outcome",values=c("red", "blue")) +
+    scale_y_continuous(breaks=c(seq(-3.5,3.5,.5))) +
+    coord_cartesian(xlim = c(1,2), ylim = c(-3.5,3.5)) +
+    xlab("Job Search Classification") + 
+    ylab("Function Score") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_text(colour = "black",size=12,face="bold")) +
+    ggtitle("Discriminant Function Scores \nby Job Search Classification \n and Job Search Outcome")
+@
+\textbf{\large{\textit{
+The different discrimination is evident when the discriminant function scores are examined in analyses of variance.
+}}}
+
+<<tidy=TRUE>>=
+summary(aov(Job_LDA_Values$x[,1]~as.factor(Job$job)))
+@
+
+<<tidy=TRUE>>=
+plot_data <- cbind(Job_LDA_Values$class,Job$job)
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Class","Job")
+plot_data$Score <- as.numeric(Job_LDA_Values$x[,1])
+plot_data$Class_F <- factor(plot_data$Class,levels=c(1,2),
+                             labels=c("No Job",
+                             "Job"))
+
+ggplot(plot_data, aes(x=Score,fill=Job)) +
+    geom_histogram(color="white", alpha=1,bins=25,size=.5,position="dodge") +
+    scale_fill_manual(values=c("blue", "red")) +
+    scale_x_continuous(breaks=seq(-3.5,3.5,.5)) +
+    coord_cartesian(xlim = c(-3.5,3.5), ylim =c(0,50)) + 
+    xlab("Discriminant Function 1") + 
+    ylab("Count") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Discriminant Function Scores by Job Search Outcome")
+@
+
+\section{Bootstrap Analysis}
+\textbf{\large{\textit{
+If the assumptions underlying the discriminant analysis (homogeneous covariance matrices, multivariate normality) are not viable, an alternative approach can be taken that does not make these assumptions: bootstrapping.
+In the bootstrapping approach, we assume that whatever population the sample came from, it is representative of that population.
+Therefore we can sample randomly from it, with replacement, to get repeated samples of the same size on which we can repeat the analyses.
+The resulting empirical distributions of key indices (coefficients, proportion classified correctly, tau) can be examined and confidence intervals placed to assist inferences.
+}}}
+
+<<tidy=TRUE>>=
+# A function that will conduct the linear discriminant analysis
+# using resamples of the data.  The first formula is for the
+# lda( ) model, using the jackknife procedure, in order to get
+# classification results. The second forumula is for the
+# candisc( ) function in order to get discriminant function
+# coefficients and structure coefficients. A total of 11
+# values from each analysis are returned for illustration in
+# bootstrap distributions: raw function coefficients for
+# gre, pubs, and years; standardized coefficients for gre,
+# pubs and years; structure coefficients for gre, pubs, and
+# years; proportion of correct classification, ; and tau.
+lda_boot <- function(formula_1,formula_2,data,indices) {
+  boot_data <- data[indices,]
+  boot_fit_1 <- lda(formula_1, data=boot_data,CV=TRUE)
+  boot_MLM <- lm(formula_2,data=boot_data)
+  boot_fit_2 <- candisc(boot_MLM, data=boot_data)
+  results <- rbind(boot_fit_2$coeffs.raw,boot_fit_2$coeffs.std,boot_fit_2$structure)
+  T <- table(Original=boot_data$job_num,Predicted=boot_fit_1$class)
+  PC <- sum(diag(T))/sum(T)
+  MO1 <- sum(T[1,])
+  MO2 <- sum(T[2,])
+  MP1 <- MO1
+  MP2 <- MO2
+  N <- sum(T)
+  O <- sum(diag(T))
+  E <- (MO1*MP1/N) + (MO2*MP2/N)
+  Tau <- (O-E)/(N-E)
+  results <- rbind(results,PC,Tau)
+  return(results)
+}
+@
+
+<<tidy=TRUE>>=
+# Select the data from the original file that will be passed to
+# the bootstrapping function.
+boot_input <- Job[,c(1:3,6)]
+
+# Call the boot( ) function from the boot library and
+# request 10000 resamples.
+boot_results <- boot(data=boot_input, statistic=lda_boot, R=10000,
+                     formula_1=job_num~gre+pubs+years,
+                     formula_2=cbind(gre,pubs,years)~as.factor(job_num))
+
+# Plot the bootstrapping results using the default
+# plot( ) function.
+plot(boot_results, index=1)
+plot(boot_results, index=2)
+plot(boot_results, index=3)
+plot(boot_results, index=4)
+plot(boot_results, index=5)
+plot(boot_results, index=6)
+plot(boot_results, index=7)
+plot(boot_results, index=8)
+plot(boot_results, index=9)
+plot(boot_results, index=10)
+plot(boot_results, index=11)
+@
+
+\subsection{Confidence Intervals}
+\textbf{\large{\textit{
+Several different confidence intervals can be used in bootstrapping.
+They are extracted and assembled in one matrix here.
+}}}
+
+<<tidy=TRUE>>=
+CI_Boot <- matrix(NA,nrow=11,ncol=8)
+for(i in seq(1,4,1)) {
+  for(j in seq(1,11,1)) {
+    if(i==1) {
+      CI_Boot[j,(i*2-1)] <- boot.ci(boot_results, type="norm", index=j)$normal[2]
+      CI_Boot[j,(i*2)] <- boot.ci(boot_results, type="norm", index=j)$normal[3] 
+    } else if(i==2) {
+     CI_Boot[j,(i*2-1)] <- boot.ci(boot_results, type="basic", index=j)$basic[4]
+      CI_Boot[j,(i*2)] <- boot.ci(boot_results, type="basic", index=j)$basic[5] 
+    } else if(i==3) {
+     CI_Boot[j,(i*2-1)] <- boot.ci(boot_results, type="perc", index=j)$perc[4]
+     CI_Boot[j,(i*2)] <- boot.ci(boot_results, type="perc", index=j)$perc[5] 
+    } else {
+     CI_Boot[j,(i*2-1)] <- boot.ci(boot_results, type="bca", index=j)$bca[4]
+     CI_Boot[j,(i*2)] <- boot.ci(boot_results, type="bca", index=j)$bca[5] 
+    }
+  }
+}
+@
+
+\begin{tabular}{| L{2.4cm} | R{1.2cm} | R{1.2cm} | R{1.2cm} | R{1.2cm} | R{1.2cm} | R{1.2cm} | R{1.2cm} | R{1.2cm} |}
+\hline
+\multicolumn{9}{|c|}{Bootstrap Confidence 95\% Intervals} \\
+\hline
+   & \multicolumn{2}{|c|}{Normal} & \multicolumn{2}{|c|}{Basic} & \multicolumn{2}{|c|}{Percentile} & \multicolumn{2}{|c|}{BCA} \\
+\hline
+\multicolumn{1}{|c|}{Effect} & \multicolumn{1}{|c|}{Lower CL} & \multicolumn{1}{|c|}{Upper CL} & \multicolumn{1}{|c|}{Lower CL} & \multicolumn{1}{|c|}{Upper CL} & \multicolumn{1}{|c|}{Lower CL} & \multicolumn{1}{|c|}{Upper CL} & \multicolumn{1}{|c|}{Lower CL} & \multicolumn{1}{|c|}{Upper CL} \\
+\hline
+GRE B & \Sexpr{round(CI_Boot[1,1],4)} & \Sexpr{round(CI_Boot[1,2],4)} & \Sexpr{round(CI_Boot[1,3],4)} & \Sexpr{round(CI_Boot[1,4],4)} & \Sexpr{round(CI_Boot[1,5],4)} & \Sexpr{round(CI_Boot[1,6],4)} & \Sexpr{round(CI_Boot[1,7],4)} & \Sexpr{round(CI_Boot[1,8],4)} \\ 
+\hline
+Publications B & \Sexpr{round(CI_Boot[2,1],4)} & \Sexpr{round(CI_Boot[2,2],4)} & \Sexpr{round(CI_Boot[2,3],4)} & \Sexpr{round(CI_Boot[2,4],4)} & \Sexpr{round(CI_Boot[2,5],4)} & \Sexpr{round(CI_Boot[2,6],4)} & \Sexpr{round(CI_Boot[2,7],4)} & \Sexpr{round(CI_Boot[2,8],4)} \\ 
+\hline
+Years B & \Sexpr{round(CI_Boot[3,1],4)} & \Sexpr{round(CI_Boot[3,2],4)} & \Sexpr{round(CI_Boot[3,3],4)} & \Sexpr{round(CI_Boot[3,4],4)} & \Sexpr{round(CI_Boot[3,5],4)} & \Sexpr{round(CI_Boot[3,6],4)} & \Sexpr{round(CI_Boot[3,7],4)} & \Sexpr{round(CI_Boot[3,8],4)} \\ 
+\hline
+GRE $\beta$ & \Sexpr{round(CI_Boot[4,1],4)} & \Sexpr{round(CI_Boot[4,2],4)} & \Sexpr{round(CI_Boot[4,3],4)} & \Sexpr{round(CI_Boot[4,4],4)} & \Sexpr{round(CI_Boot[4,5],4)} & \Sexpr{round(CI_Boot[4,6],4)} & \Sexpr{round(CI_Boot[4,7],4)} & \Sexpr{round(CI_Boot[4,8],4)} \\ 
+\hline
+Publications $\beta$ & \Sexpr{round(CI_Boot[5,1],4)} & \Sexpr{round(CI_Boot[5,2],4)} & \Sexpr{round(CI_Boot[5,3],4)} & \Sexpr{round(CI_Boot[5,4],4)} & \Sexpr{round(CI_Boot[5,5],4)} & \Sexpr{round(CI_Boot[5,6],4)} & \Sexpr{round(CI_Boot[5,7],4)} & \Sexpr{round(CI_Boot[5,8],4)} \\ 
+\hline
+Years $\beta$ & \Sexpr{round(CI_Boot[6,1],4)} & \Sexpr{round(CI_Boot[6,2],4)} & \Sexpr{round(CI_Boot[6,3],4)} & \Sexpr{round(CI_Boot[6,4],4)} & \Sexpr{round(CI_Boot[6,5],4)} & \Sexpr{round(CI_Boot[6,6],4)} & \Sexpr{round(CI_Boot[6,7],4)} & \Sexpr{round(CI_Boot[6,8],4)} \\ 
+\hline
+GRE Structure & \Sexpr{round(CI_Boot[7,1],4)} & \Sexpr{round(CI_Boot[7,2],4)} & \Sexpr{round(CI_Boot[7,3],4)} & \Sexpr{round(CI_Boot[7,4],4)} & \Sexpr{round(CI_Boot[7,5],4)} & \Sexpr{round(CI_Boot[7,6],4)} & \Sexpr{round(CI_Boot[7,7],4)} & \Sexpr{round(CI_Boot[7,8],4)} \\ 
+\hline
+Pub. Structure & \Sexpr{round(CI_Boot[8,1],4)} & \Sexpr{round(CI_Boot[8,2],4)} & \Sexpr{round(CI_Boot[8,3],4)} & \Sexpr{round(CI_Boot[8,4],4)} & \Sexpr{round(CI_Boot[8,5],4)} & \Sexpr{round(CI_Boot[8,6],4)} & \Sexpr{round(CI_Boot[8,7],4)} & \Sexpr{round(CI_Boot[8,8],4)} \\ 
+\hline
+Years Structure & \Sexpr{round(CI_Boot[9,1],4)} & \Sexpr{round(CI_Boot[9,2],4)} & \Sexpr{round(CI_Boot[9,3],4)} & \Sexpr{round(CI_Boot[9,4],4)} & \Sexpr{round(CI_Boot[9,5],4)} & \Sexpr{round(CI_Boot[9,6],4)} & \Sexpr{round(CI_Boot[9,7],4)} & \Sexpr{round(CI_Boot[9,8],4)} \\ 
+\hline
+Classification & \Sexpr{round(CI_Boot[10,1],4)} & \Sexpr{round(CI_Boot[10,2],4)} & \Sexpr{round(CI_Boot[10,3],4)} & \Sexpr{round(CI_Boot[10,4],4)} & \Sexpr{round(CI_Boot[10,5],4)} & \Sexpr{round(CI_Boot[10,6],4)} & \Sexpr{round(CI_Boot[10,7],4)} & \Sexpr{round(CI_Boot[10,8],4)} \\ 
+\hline
+Tau & \Sexpr{round(CI_Boot[11,1],4)} & \Sexpr{round(CI_Boot[11,2],4)} & \Sexpr{round(CI_Boot[11,3],4)} & \Sexpr{round(CI_Boot[11,4],4)} & \Sexpr{round(CI_Boot[11,5],4)} & \Sexpr{round(CI_Boot[11,6],4)} & \Sexpr{round(CI_Boot[11,7],4)} & \Sexpr{round(CI_Boot[11,8],4)} \\ 
+\hline
+\end{tabular}
+
+\subsection{Outlier Elimination Function}
+\textbf{\large{\textit{
+Occasionally the bootstrapping process will produce extreme outliers due to the vagaries of random sampling.
+Those outliers can create problems for histograms.
+This function identifies and eliminates outliers from the data frame to be used in a histogram.
+It tallies the number of eliminated outliers so that can be indicated on the histogram.
+}}}
+
+<<tidy=TRUE>>=
+outlier_detect <- function(data,Z=4) {
+  data_2a <- matrix(NA,nrow=(length(data[1])))
+  data_2b <- matrix(NA,nrow=(length(data[1])))  
+  data_3 <- scale(data)
+  counter_a <- 0
+  counter_b <- 0
+  for(i in seq(1,length(data),1)) {
+    if(abs(data_3[i])<=Z) {
+      counter_a <- counter_a+1
+      data_2a[counter_a] <- data[i]
+    } else {
+      counter_b <- counter_b+1
+      data_2b[counter_b] <- data[i]
+    }
+  }
+  data_2a <- na.omit(data_2a)
+  data_2b <- na.omit(data_2b)
+  results <- list(data_2a,data_2b,counter_a,counter_b)
+  return(results)
+}
+@
+
+\subsection{Simple Bootstrapping with \\ Bias-Corrected and Accelerated Confidence Intervals}
+\textbf{\large{\textit{
+Of the several ways to calculate bootstrap confidence intervals, the bias corrected and accelerated is the most commonly recommended.
+}}}
+
+<<tidy=TRUE>>=
+Effects <- c("GRE: Raw", "Publications: Raw", "Years: Raw",
+             "GRE: Standardized", "Publications: Standardized", "Years: Standardized",
+             "GRE: Structure", "Publications: Structure", "Years: Structure",
+             "Prop. Correct","Tau")
+
+Outlier_Z <- 4
+
+# Number of bins specified using the Friedman-Diaconis rule.
+for (j in seq(1,11,1)) {
+  trimmed_data <- outlier_detect(boot_results$t[,j],Outlier_Z)
+  plot_data <- as.data.frame(trimmed_data[[1]])
+  names(plot_data) <- c("t")
+  plot <- ggplot(plot_data, aes(x = t)) +
+      geom_histogram(bins=round((max(plot_data$t)-min(plot_data$t))/(2*IQR(plot_data$t)*length(plot_data$t)^(-1/3)))
+                     ,color = "grey30",fill="grey",
+                     size=.01,na.rm=TRUE)
+  
+  p <-  ggplot(plot_data, aes(x = t)) +
+      geom_histogram(bins=round((max(plot_data$t)-min(plot_data$t))/(2*IQR(plot_data$t)*length(plot_data$t)^(-1/3)))
+                     ,color = "grey30",fill="grey",
+                     size=.25,na.rm=TRUE) +
+      xlab("Bootstrap Values") + 
+      ylab("Frequency") +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+          geom_vline(xintercept=boot.ci(boot_results, type="bca", index=j)$bca[4],size=1.25,color="red") +
+          geom_vline(xintercept=boot.ci(boot_results, type="bca", index=j)$bca[5],size=1.25,color="red") +
+          geom_vline(xintercept=boot_results$t0[j],size=1.25,color="blue") +
+          annotate("text",x=boot_results$t0[j]+(max(plot_data$t)-min(plot_data$t))/32,y=0,
+                   label = paste("Original Value = ",
+                   toString(round(10*boot_results$t0[j],3)/10),sep=""),color="blue",
+                   angle=90,hjust=0) + 
+          annotate("text",x=min(plot_data$t),y=max(ggplot_build(plot)$data[[1]]$count),
+                   label = paste("Outliers (|Z| > ",
+                   toString(round(Outlier_Z,2)),") = ",toString(trimmed_data[[4]]),sep=""),
+                   color="black",
+                   angle=0,hjust=0,size=3) +  
+          ggtitle(paste("Bootstrap Confidence Intervals \nBCa Method (",toString(Effects[j]),")",sep=""))
+print(p)
+}  
+@
+
+<<tidy=TRUE>>=
+Sys.time()-how_long
+@
+\end{document}
