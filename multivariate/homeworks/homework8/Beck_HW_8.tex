@@ -189,7 +189,7 @@ Analyze these data using each of the following hierarchical clustering procedure
   \hlstr{"centroid"}\hlstd{,} \hlstr{"Centroid Method"}\hlstd{, dat,}
   \hlstr{"ward.D2"}\hlstd{,} \hlstr{"Ward's Method"}\hlstd{, dat}
 \hlstd{)} \hlopt{%>%}
-  \hlkwd{mutate}\hlstd{(}\hlkwc{dist} \hlstd{=} \hlkwd{map}\hlstd{(data,} \hlopt{~}\hlstd{(}\hlkwd{dist}\hlstd{(.,}\hlkwc{method}\hlstd{=}\hlstr{"euclidean"}\hlstd{))}\hlopt{^}\hlnum{2}\hlstd{),}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{dist} \hlstd{=} \hlkwd{map}\hlstd{(data,} \hlopt{~}\hlstd{(}\hlkwd{dist}\hlstd{(.,}\hlkwc{method}\hlstd{=}\hlstr{"binary"}\hlstd{))}\hlopt{^}\hlnum{2}\hlstd{),}
          \hlkwc{cl} \hlstd{=} \hlkwd{map2}\hlstd{(dist, method_arg,} \hlopt{~}\hlkwd{hclust}\hlstd{(.x,} \hlkwc{method}\hlstd{=.y)),}
          \hlkwc{merge} \hlstd{=} \hlkwd{map}\hlstd{(cl,} \hlopt{~}\hlkwd{data.frame}\hlstd{(.}\hlopt{$}\hlstd{merge)),}
          \hlkwc{pl} \hlstd{=} \hlkwd{map2}\hlstd{(cl, Method, plot_fun))}
@@ -254,7 +254,7 @@ Based on the dominant features of the clusters you have identified, try to name 
 \hlstd{new.dat} \hlopt{%>%} \hlkwd{gather}\hlstd{(feature, value,} \hlopt{-}\hlstd{clustnumber)} \hlopt{%>%}
   \hlkwd{filter}\hlstd{(value} \hlopt{==} \hlnum{1}\hlstd{)} \hlopt{%>%}
   \hlkwd{group_by}\hlstd{(clustnumber, feature)} \hlopt{%>%}
-  \hlkwd{summarize}\hlstd{(}\hlkwc{prop} \hlstd{=} \hlkwd{n}\hlstd{()}\hlopt{/}\hlnum{40}\hlstd{)} \hlopt{%>%}
+  \hlkwd{summarize}\hlstd{(}\hlkwc{prop} \hlstd{=} \hlkwd{n}\hlstd{()}\hlopt{/}\hlkwd{nrow}\hlstd{(dat))} \hlopt{%>%}
   \hlkwd{spread}\hlstd{(clustnumber, prop)} \hlopt{%>%}
   \hlkwd{arrange}\hlstd{(}\hlkwd{desc}\hlstd{(`1`),} \hlkwd{desc}\hlstd{(`2`),} \hlkwd{desc}\hlstd{(`3`))} \hlopt{%>%}
   \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktab} \hlstd{= T,} \hlkwc{digits} \hlstd{=} \hlnum{2}\hlstd{)} \hlopt{%>%}
@@ -267,29 +267,29 @@ Based on the dominant features of the clusters you have identified, try to name 
 \toprule
 feature & 1 & 2 & 3\\
 \midrule
-backbone & 1.00 & 0.57 & 0.50\\
-toothed & 1.00 & 0.52 & NA\\
-breathes & 1.00 & 0.50 & 0.50\\
-milk & 1.00 & 0.05 & NA\\
-hair & 0.95 & 0.12 & NA\\
+backbone & 0.41 & 0.22 & 0.20\\
+breathes & 0.41 & 0.09 & 0.30\\
+milk & 0.41 & 0.01 & NA\\
+toothed & 0.40 & 0.21 & NA\\
+hair & 0.39 & NA & 0.04\\
 \addlinespace
-tail & 0.85 & 0.52 & 0.50\\
-catsize & 0.78 & 0.18 & 0.15\\
-four\_legs & 0.75 & 0.20 & NA\\
-predator & 0.52 & 0.65 & 0.22\\
-domestic & 0.20 & 0.05 & 0.08\\
+tail & 0.35 & 0.20 & 0.20\\
+catsize & 0.32 & 0.06 & 0.06\\
+four\_legs & 0.31 & 0.07 & NA\\
+predator & 0.22 & 0.24 & 0.10\\
+domestic & 0.08 & 0.01 & 0.04\\
 \addlinespace
-two\_legs & 0.18 & NA & 0.50\\
-aquatic & 0.12 & 0.62 & 0.15\\
-fins & 0.10 & 0.32 & NA\\
-airborne & 0.05 & 0.15 & 0.40\\
-eggs & NA & 0.98 & 0.50\\
+two\_legs & 0.07 & NA & 0.20\\
+aquatic & 0.06 & 0.24 & 0.06\\
+fins & 0.04 & 0.13 & NA\\
+airborne & 0.02 & NA & 0.22\\
+eggs & 0.01 & 0.28 & 0.30\\
 \addlinespace
-six\_legs & NA & 0.25 & NA\\
-venomous & NA & 0.20 & NA\\
-eight\_legs & NA & 0.05 & NA\\
-five\_legs & NA & 0.02 & NA\\
-feathers & NA & NA & 0.50\\
+venomous & NA & 0.06 & 0.02\\
+six\_legs & NA & 0.02 & 0.08\\
+eight\_legs & NA & 0.02 & NA\\
+five\_legs & NA & 0.01 & NA\\
+feathers & NA & NA & 0.20\\
 \bottomrule
 \multicolumn{4}{l}{\textsuperscript{a} Note: values represent propotions}\\
 \multicolumn{4}{l}{of across each of the features}\\

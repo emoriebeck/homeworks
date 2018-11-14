@@ -109,7 +109,7 @@ nested.mods <- tribble(
   "centroid", "Centroid Method", dat,
   "ward.D2", "Ward's Method", dat
 ) %>%
-  mutate(dist = map(data, ~(dist(.,method="euclidean"))^2),
+  mutate(dist = map(data, ~(dist(.,method="binary"))^2),
          cl = map2(dist, method_arg, ~hclust(.x, method=.y)), 
          merge = map(cl, ~data.frame(.$merge)),
          pl = map2(cl, Method, plot_fun))
@@ -144,7 +144,7 @@ Based on the dominant features of the clusters you have identified, try to name 
 new.dat %>% gather(feature, value, -clustnumber) %>%
   filter(value == 1) %>%
   group_by(clustnumber, feature) %>%
-  summarize(prop = n()/40) %>%
+  summarize(prop = n()/nrow(dat)) %>%
   spread(clustnumber, prop) %>%
   arrange(desc(`1`), desc(`2`), desc(`3`)) %>%
   kable(., "latex", booktab = T, digits = 2) %>%
