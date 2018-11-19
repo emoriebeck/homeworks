@@ -1,0 +1,280 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 9\\
+\large Applied Mutlivariate Analysis}
+\date{November 1, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(MASS)
+library(vegan)
+library(smacof)
+library(scatterplot3d)
+library(ape)
+library(ade4)
+library(ecodist)
+library(cluster)
+library(factoextra)
+library(ggdendro)
+library(lme4)
+library(plyr)
+library(tidyverse)
+@
+
+
+
+\subsection{data}
+The file, Set\_7\_A.csv, contains data for 183 participants in a Pew Center Political Survey conducted in April 2017. Participants were asked their opinions about government spending using the following question stem:  
+
+"If you were making up the budget for the federal government this year, would you increase spending, decrease spending or keep  spending the same for \_\_\_\_\_\_\_\_\_"?
+
+The spending areas considered were:
+\begin{itemize}
+\item Scientific research
+\item Militarydefense
+\item Government assistance for the unemployed
+\item Medicare
+\item Environmental protection
+\item Economic assistance to needy people around the world
+\item Education
+\end{itemize}
+
+Responses were coded 1 = Decrease spending, 2 = Keep spending the same, and 3 = Increase spending.
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework9"
+
+datA <- sprintf("%s/Set_7_A.csv", wd) %>% read.csv(., stringsAsFactors = F) 
+datB <- sprintf("%s/Set_7_B.csv", wd) %>% read.csv(., stringsAsFactors = F) 
+
+head(datA)
+head(datB)
+@
+
+\section{Question 1}
+First, use Ward’s procedure with Euclidean distance to determine how many clusters of respondents best describe this sample. Use the following procedures to arrive at the best choice:  
+
+\subsection{Part A-D}
+Run Ward’s procedure on a file that has been re-ordered using values for the military spending variable. Save the cluster memberships for a two-cluster solution. Repeat this procedure after re-ordering the file using values for the environmental protection variable. Repeat this procedure after re-ordering the file using values for the education variable. When you are done, you will have three new cluster membership variables, each from a Ward’s method applied to a different ordered version of the file. Create a cross-classification table for each pair of cluster membership variables. Are cases classified consistently regardless of how the data were ordered? 
+
+Repeat this process, but for a three-cluster solution.
+
+<<>>=
+dist_fun <- function(dat){dist(dat %>% select(-ID))}
+cut_fun_w <- function(dat, C, k){dat$CW <- cutree(C, k = k); dat}
+cut_fun_k <- function(dat, C, k){dat$CK <- C$cluster; dat}
+
+nested.models <- tribble(
+  ~k, ~order, ~data,
+  2, "Spend_Military", datA %>% arrange(Spend_Military),
+  3, "Spend_Military", datA %>% arrange(Spend_Military),
+  4, "Spend_Military", datA %>% arrange(Spend_Military),
+  5, "Spend_Military", datA %>% arrange(Spend_Military),
+  2, "Spend_Environment", datA %>% arrange(Spend_Environment),
+  3, "Spend_Environment", datA %>% arrange(Spend_Environment),
+  4, "Spend_Environment", datA %>% arrange(Spend_Environment),
+  5, "Spend_Environment", datA %>% arrange(Spend_Environment),
+  2, "Spend_Education", datA %>% arrange(Spend_Education),
+  3, "Spend_Education", datA %>% arrange(Spend_Education),
+  4, "Spend_Education", datA %>% arrange(Spend_Education),
+  5, "Spend_Education", datA %>% arrange(Spend_Education)
+) %>%
+  mutate(D = map(data, dist_fun),
+         C = map(D, ~hclust(., method = "ward.D2")),
+         D = pmap(list(data, C, k), cut_fun_w),
+         K = map2(data, k, kmeans),
+         D = pmap(list(D, K, k), cut_fun_k))
+
+cross.class <- nested.models %>% unnest(D) %>%
+  select(k, order, CW, ID) %>%
+  spread(key = order, value = CW) %>%
+  select(-ID) %>%
+  group_by(k) %>%
+  summarize(`Edu-Env` = list(table(Spend_Education, Spend_Environment)),
+            `Edu-Mil` = list(table(Spend_Education, Spend_Military)),
+            `Env-Mil` = list(table(Spend_Environment, Spend_Military)))
+
+(cross.class %>% filter(k == 2))$`Edu-Env`[[1]]
+(cross.class %>% filter(k == 2))$`Edu-Mil`[[1]]
+(cross.class %>% filter(k == 2))$`Env-Mil`[[1]]
+
+(cross.class %>% filter(k == 3))$`Edu-Env`[[1]]
+(cross.class %>% filter(k == 3))$`Edu-Mil`[[1]]
+(cross.class %>% filter(k == 3))$`Env-Mil`[[1]]
+
+(cross.class %>% filter(k == 4))$`Edu-Env`[[1]]
+(cross.class %>% filter(k == 4))$`Edu-Mil`[[1]]
+(cross.class %>% filter(k == 4))$`Env-Mil`[[1]]
+
+(cross.class %>% filter(k == 5))$`Edu-Env`[[1]]
+(cross.class %>% filter(k == 5))$`Edu-Mil`[[1]]
+(cross.class %>% filter(k == 5))$`Env-Mil`[[1]]
+
+@
+
+The data are relatively inconsistently classified depending on the ordering. With larger k, the data seem to be classified more consistently. 
+
+\subsection{Part E}
+(e) Of these solutions, which one provides the highest number of clusters while being completely immune to the ordering of the variables?  
+
+The highest number of clusters that are aimmune to the ordering is 3 clusters.
+
+<<>>=
+(cross.class %>% filter(k == 3))$`Edu-Env`[[1]]
+(cross.class %>% filter(k == 3))$`Edu-Mil`[[1]]
+(cross.class %>% filter(k == 3))$`Env-Mil`[[1]]
+@
+
+\section{Question 2}
+For the chosen number of clusters from Question 1, create a bar graph of the cluster means for each of the spending variables (include 95\% confidence intervals). Based on these graphs, provide a description of each cluster’s spending attitude profile.
+
+<<>>=
+nested.models %>% filter(k == 3 & order == "Spend_Military") %>%
+  unnest(D) %>%
+  gather(key = cat, value = value, contains("Spend")) %>%
+  Rmisc::summarySE(., measurevar = "value", groupvars = c("CW", "cat")) %>%
+  ggplot(aes(x = cat, y = value, fill = factor(CW))) + 
+    scale_fill_manual(values = RColorBrewer::brewer.pal(9, "Greens")[c(1,4,7)]) +
+    geom_bar(stat = "identity", position = "dodge", color = "black") + 
+    geom_errorbar(aes(ymin = value - ci, ymax = value + ci),
+                  position = position_dodge(.9), width = .1) +
+    labs(x = NULL, y = "Mean Rating", fill = "Cluster") +
+    coord_flip() +
+    theme_classic() +
+    theme(legend.position = "bottom")
+@
+
+\textcolor{red}{Cluster 3 are clearly conservatives who don't want to spend on anything but the military. Cluster 2 are more radical (and often high SES) liberals who oppose military spending but most other areas of spending. Cluster 1 are more moderate, supporting military spending as well as virtually every other spending category}.
+
+\section{Question 3}
+Using K-means clustering, create a plot of the within-cluster sums of squares for cluster solutions up to 10. Does the number of clusters from this plot suggest the same number of clusters identified by Ward’s procedure?
+
+<<>>=
+wssplot <- function(data,nc=15,seed=1234) {
+  wss <- (nrow(data-1))*sum(apply(data,2,var))
+  for (i in 2:nc) {
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data,centers=i)$withinss)
+  }
+  plot_data <- cbind(wss,seq(1,nc,1))
+  plot_data <- as.data.frame(plot_data)
+  names(plot_data) <- c("wss","nc")
+  ggplot(plot_data, aes(x=nc,y=wss)) +
+    geom_point(shape=19,size=3) +
+    geom_line() +
+    scale_x_continuous(breaks=c(seq(1,nc,1))) +
+    xlab("Number of Clusters") + 
+    ylab("Within-Cluster Sum of Squares") +
+    theme_classic() +
+  ggtitle("Within-Cluster Sums of Squares by Number of Clusters")
+}
+wssplot(datA[,1:7],nc=10)
+@
+
+\textcolor{red}{Yes, K-means clustering also seems to suggest that 3 clusters is optimal.}
+
+\section{Question 4}
+For the chosen number of clusters from Question 1, conduct a K-means clustering of the data. Provide a cross-classification table for the Ward’s and K-means procedures. Do the two procedures identify the same clusters?
+
+<<>>=
+K <- kmeans(datA %>% select(-ID), centers = 3, iter.max = 1000, nstart = 10)
+Clusters_K <- as.data.frame(K$cluster)
+names(Clusters_K) <- c("Cluster_K")
+Clusters_K$ID <- datA$ID
+
+data_dist <- dist(datA %>% select(-ID), method = "euclidean", diag = TRUE)
+Wards <- hclust(data_dist, method = "ward.D2")
+Wards_clusters <- as.data.frame(cutree(Wards, k = 3))
+names(Wards_clusters) <- c("Cluster_Wards")
+Wards_clusters$ID <- datA$ID
+
+New <- full_join(Clusters_K, Wards_clusters)
+Cross_T <- table(New$Cluster_K, New$Cluster_Wards)
+Cross_T
+@
+
+The two procedures appear to identify slightly different clusters. 
+
+\section{Question 5}
+5. The file, Set\_7\_B.csv, contains additional information about these respondents. Use this file to better define the nature of the clusters identified in Question 4. The variables included in Set\_7\_B are age, home area (rural, urban, suburban), level of trust in the government, gun control attitude, sex, highest level of education, race, annual income, political party affiliation, and political ideology. Using these variables, what are the defining features of each cluster? Focus on those variables that do the best job of distinguishing the groups.
+
+<<>>=
+(nested.models %>% filter(k == 3))$D[[1]] %>% full_join(datB) %>%
+  select(-(Spend_Science:Spend_Education)) %>%
+  group_by(CW) %>% mutate(N = n()) %>%
+  gather(key = category, value = value, -ID, -CW, -CK, -Age, -N) %>%
+  group_by(CW, category, value) %>%
+  summarize(n = n()/N[1]) %>%
+  spread(key = CW, value = n)
+@
+
+Cluster 1 appears to be moderate to liberal Independents and Democrats who are more suburban, support gun control, and contain a higher proportion of women and African Americans.\\
+Cluster 2 appears to be moderate to liberal Independents and Democrats who are more ubran and support gun control.\\
+Cluster 3 appears to be conservative Republicans who opposed gun control and are disproportionately white and male.
+
+<<>>=
+(nested.models %>% filter(k == 3))$D[[1]] %>% full_join(datB) %>%
+  select(-(Spend_Science:Spend_Education)) %>%
+  group_by(CK) %>% mutate(N = n()) %>%
+  gather(key = category, value = value, -ID, -CW, -CK, -Age, -N) %>%
+  group_by(CK, category, value) %>%
+  summarize(n = n()/N[1]) %>%
+  spread(key = CK, value = n)
+@
+
+Cluster 1 appears to be white and African American conservative to moderate Republicans and Independents who are split on gun control and slightly more rural than other clusters. \\
+Cluster 2 appears to be predominantly white (and disproportionately male) conservative to moderate Republicans and Independents who oppose gun control\\
+Cluster 3 appears to be white urban and suburban Democrats and Independents who support gun control.
+
+\end{document}

@@ -1,0 +1,268 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 4\\
+\large Applied Mutlivariate Analysis}
+\date{September 22, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(kableExtra)
+library(multcomp)
+library(lme4)
+library(plyr)
+library(tidyverse)
+library(MVN)
+@
+
+\subsection{data}
+The file, Set\_4.csv, contains data from a study in which college students completed the 10-item Rosenberg Self-Esteem Scale on two occasions spaced 4 weeks apart. The Rosenberg Scale contains the following items, rated using a scale that ranged from 1 (Strongly Agree) to 4 (Strongly Disagree):
+\begin{enumerate}
+  \item I feel that I am a person of worth, at least on an equal basis with others. 
+  \item I feel that I have a number of good qualities.
+  \item All in all, I am inclined to feel that I am a failure.
+  \item I am able to do things as well as most other people.
+  \item IfeelIdonothavemuchtobeproudof.
+  \item I take a positive attitude about myself.
+  \item On the whole, I am satisfied with myself.
+  \item I wish I could have more respect for myself. 9. I certainly feel useless at times.
+  \item At times I think I am no good at all.
+\end{enumerate}
+
+The items in the data file have been reversed where necessary so that higher numbers reflect higher self-esteem. The scale is assumed to have a single underlying dimension.
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework4"
+
+dat <- sprintf("%s/Set_4.csv", wd) %>% 
+  read.csv(., stringsAsFactors = F)  %>%
+  mutate(SID = 1:n())
+
+head(dat)
+@
+
+Answer the following questions about these data:
+
+\section{Question 1}
+For each set of 10 items, use the scree test, parallel analysis, Very Simple Structure (VSS), and Minimum Average Partial (MAP) to determine the appropriate number of principal components to extract. Note that these different ways of determining the appropriate number of components need not agree. In your opinion, is the unidimensionality assumption supported by these tests?
+
+\subsection{Scree Test}
+<<>>=
+nested_dat <- dat %>% 
+  gather(key = item, value = value, -SID) %>%
+  separate(item, c("Item", "ItemNum", "Time", "TimeNum"), sep = "_") %>%
+  unite(item, Item, ItemNum, sep = "_") %>%
+  unite(time, Time, TimeNum, sep = "_") %>%
+  spread(item, value) %>%
+  select(-SID) %>%
+  group_by(time) %>%
+  nest()
+
+par(mfrow = c(1,2))
+nested_dat %>%
+  mutate(scree = map2(data, time, ~scree(.x, main = .y)))
+@
+
+The scree test suggests 2 components at time 1 and 2.  
+
+\subsection{Parallel Analysis}
+<<>>=
+nested_dat %>%
+  mutate(parallel = map2(data, time, ~fa.parallel(.x, main = .y, fa = "pc")))
+@
+
+Paralell analysis suggests 2 components at time 1 and 1 at time 2.
+
+\subsection{Very Simple Structure (VSS)}
+<<>>=
+par(mfrow=c(1,1))
+nested_dat <- nested_dat %>%
+  mutate(vss = map2(data, time, ~vss(.x, n = 10, rotate = "none", title = .y, fm = "pc")))
+@
+
+VSS seems to suggest 3 factors are optimal at both times.  
+
+\subsection{Minimum Average Partial (MAP)}
+<<>>=
+map_fun <- function(v){
+  data.frame(v$map) %>% mutate(Component = 1:nrow(.)) %>%
+    setNames(c("MAP", "Component"))
+}
+nested_dat %>% 
+  mutate(map = map(vss, map_fun)) %>%
+  unnest(map) %>%
+  group_by(time) %>%
+  mutate(min = ifelse(MAP == min(MAP, na.rm = T), "NC", "No")) %>%
+  ggplot(aes(x = Component, y = MAP, shape = time)) + 
+  scale_size_manual(values = c(3, 1)) + 
+  geom_line() + 
+  geom_point(aes(size = min)) + 
+  facet_grid(~time) + 
+  theme_classic() + 
+  theme(legend.position = "none")
+@
+
+The MAP test suggests 2 components at time 1 and 1 at time 2.  
+
+\textcolor{blue}{Overall, the tests seem to suggest 2 components at time 1 and 1 at time 2}.
+
+\section{Question 2}
+Now conduct a principal components analysis on each set of 10 items, extract three principal components from each set, and save the unrotated principal component scores. Calculate the correlations among the combined set of principal component scores (this will be a 6 x 6 matrix).
+<<>>=
+nested_dat <- nested_dat %>%
+  mutate(pc = map(data, ~principal(., nfactors = 3, rotate = "none", scores = TRUE)),
+         scores = map(pc, ~as.tibble(.$scores)))
+
+tmp2 <- nested_dat %>% unnest(scores) %>%
+  group_by(time) %>%
+  mutate(SID = 1:n()) %>%
+  gather(key = item, value = value, -time, -SID) %>%
+  unite(tmp, time, item, sep = ".") %>%
+  spread(tmp, value) 
+
+@
+
+
+
+\subsection{Part A}
+What are the correlations for corresponding component scores (Time 1 and Time 2)?
+<<>>=
+cor(tmp2 %>% select(Time_1.PC1:Time_1.PC3), tmp2 %>% select(Time_2.PC1:Time_2.PC3)) %>%
+  kable(., "latex", row.names = F, digits = 2,
+        col.names = c("PC1", "PC2", "PC3")) %>%
+  add_header_above(c("Time 2" = 3)) %>%
+  group_rows("Time 1", 1, 3)
+@
+
+ 
+\subsection{Part B}
+The magnitudes of these correlations will be related to the magnitudes of the component eigenvalues. Why does this make sense?  
+
+Eigenvalues represent the variances of the components, so the scores should capture much of the variance of the components. 
+ 
+\section{Question 3}
+Repeat the analyses, but now rotate to simple structure in the two sets using varimax rotation. Save the rotated principal component scores and examine the intercorrelations.
+<<>>=
+nested_dat <- nested_dat %>%
+  mutate(pc.vm = map(data, ~principal(., nfactors = 3, rotate = "varimax", scores = TRUE)),
+         scores.vm = map(pc.vm, ~as.tibble(.$scores)))
+
+tmp3 <- nested_dat %>% unnest(scores.vm) %>%
+  group_by(time) %>%
+  mutate(SID = 1:n()) %>%
+  gather(key = item, value = value, -time, -SID) %>%
+  unite(tmp, time, item, sep = ".") %>%
+  spread(tmp, value) 
+@
+
+
+\subsection{Part A}
+Do the principal components from Time 1 replicate at Time 2? 
+<<>>=
+cor(tmp3 %>% select(Time_1.RC1:Time_1.RC3), tmp3 %>% select(Time_2.RC1:Time_2.RC3)) %>%
+  kable(., "latex", row.names = F, digits = 2,
+        col.names = c("PC1", "PC2", "PC3")) %>%
+  add_header_above(c("Time 2" = 3)) %>%
+  group_rows("Time 1", 1, 3)
+@
+
+No, the highest correlation between any 2 given factors is .66. Indeed, the third component at the second time point does not strongly resemble any component at time 1.
+\subsection{Part B}
+Why?
+
+The correlation between factor scores at the different times is weak. The second component at time 1 appears to resemble the first component at time 2 (r = .66), but it's not clear that the 1st or 3rd components in wave are reflected in any of the components at wave 2. \textcolor{blue}{This likely occurs because the 1st and 3rd factors are not "real." It's also possible although unlikely that something happened over the four week period that changed the structure of self-esteem among the students.}
+
+\section{Question 4}
+Repeat the analysis from Question 3, but now use factor analysis (set the factor method option to maximum likelihood, fm="ml"; you might also need to increase the number of iterations).
+<<>>=
+nested_dat <- nested_dat %>%
+  mutate(fa = map(data, ~fa(., nfactors = 3, rotate = "varimax", scores = TRUE, fm = "ml")),
+         scores.fa = map(pc.vm, ~as.tibble(.$scores)))
+@
+
+
+\subsection{Part A}
+(a) How does this affect the eigenvalues for the extracted linear combinations? 
+<<>>=
+tibble(
+  fa_1 = nested_dat$fa[[1]]$values,
+  pca_1 = nested_dat$pc.vm[[1]]$values,
+  fa_2 = nested_dat$fa[[2]]$values,
+  pca_2 = nested_dat$pc.vm[[2]]$values)
+nested_dat$fa[[2]]$values
+@
+
+Some of the eigenvalues are now negative \textcolor{blue}{and are overall smaller in magnitude}. 
+
+\subsection{Part B}
+What happens to the pattern of correlations among factor scores?
+<<>>=
+tmp4 <- nested_dat %>% unnest(scores.fa) %>%
+  group_by(time) %>%
+  mutate(SID = 1:n()) %>%
+  gather(key = item, value = value, -time, -SID) %>%
+  unite(tmp, time, item, sep = ".") %>%
+  spread(tmp, value) 
+
+cor(tmp4 %>% select(Time_1.RC1:Time_1.RC3), tmp4 %>% select(Time_2.RC1:Time_2.RC3)) %>%
+  kable(., "latex", row.names = F, digits = 2,
+        col.names = c("PC1", "PC2", "PC3")) %>%
+  add_header_above(c("Time 2" = 3)) %>%
+  group_rows("Time 1", 1, 3)
+@
+
+They appear unaffected. At best, only one factor appears to replicate. 
+
+\section{Question 5}
+What does this series of analyses tell you about the stability of principal components and factor scores, the hazards of overfactoring, and the importance of replication before trusting the meaning and interpretation of scores?
+
+This analysis suggests that principle components and factor scores may, in some circumstances, be dubiously related over time. Moreover, the more factors that are extracted, the less likely they are to replicate. This likely occurs becuase although additional factors explain more of the total variance, the propotion of variance they explain are much smaller than previously extracted factors. In this case, at best one factor appears to be stable at all, despite the fact that the various methods for testing the needed number of factors suggested 2 factors were needed. 
+
+\end{document}

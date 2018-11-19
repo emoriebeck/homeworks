@@ -151,6 +151,8 @@ nested_dat %>%
 
 The MAP test suggests 2 components at time 1 and 1 at time 2.  
 
+Overall, the tests seem to suggest 2 components at time 1 and 1 at time 2.
+
 \section{Question 2}
 Now conduct a principal components analysis on each set of 10 items, extract three principal components from each set, and save the unrotated principal component scores. Calculate the correlations among the combined set of principal component scores (this will be a 6 x 6 matrix).
 <<>>=
@@ -215,7 +217,7 @@ No, the highest correlation between any 2 given factors is .66. Indeed, the thir
 \subsection{Part B}
 Why?
 
-The correlation between factor scores at the different times is weak. The second component at time 1 appears to resemble the first component at time 2 (r = .66), but it's not clear that the 1st or 3rd components in wave are reflected in any of the components at wave 2. 
+The correlation between factor scores at the different times is weak. The second component at time 1 appears to resemble the first component at time 2 (r = .66), but it's not clear that the 1st or 3rd components in wave are reflected in any of the components at wave 2. \textcolor{blue}{This likely occurs because the 1st and 3rd factors are not "real." It's also possible although unlikely that something happened over the four week period that changed the structure of self-esteem among the students.}
 
 \section{Question 4}
 Repeat the analysis from Question 3, but now use factor analysis (set the factor method option to maximum likelihood, fm="ml"; you might also need to increase the number of iterations).
@@ -237,7 +239,7 @@ tibble(
 nested_dat$fa[[2]]$values
 @
 
-Some of the eigenvalues are now negative. 
+Some of the eigenvalues are now negative \textcolor{blue}{and are overall smaller in magnitude}. 
 
 \subsection{Part B}
 What happens to the pattern of correlations among factor scores?

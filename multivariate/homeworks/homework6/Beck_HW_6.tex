@@ -251,6 +251,203 @@ Conscientiousness: Deliberation\\
 \end{kframe}
 \end{knitrout}
 
+\subsection{Check for Outliers}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{dat2} \hlkwb{<-} \hlstd{dat} \hlopt{%>%} \hlkwd{select}\hlstd{(}\hlopt{-}\hlstd{ID, )} \hlopt{%>%} \hlstd{data.frame}
+\hlkwd{rownames}\hlstd{(dat2)} \hlkwb{<-} \hlstd{dat}\hlopt{$}\hlstd{ID} \hlcom{#1:nrow(dat2)}
+\hlstd{(mv} \hlkwb{<-} \hlkwd{mvn}\hlstd{(dat2,}\hlkwc{mvnTest}\hlstd{=}\hlstr{"mardia"}\hlstd{,} \hlkwc{multivariatePlot}\hlstd{=}\hlstr{"qq"}\hlstd{,}\hlkwc{multivariateOutlierMethod}\hlstd{=}\hlstr{"quan"}\hlstd{,}\hlkwc{showOutliers}\hlstd{=}\hlnum{TRUE}\hlstd{))}
+\end{alltt}
+\end{kframe}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-5-1} 
+
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-5-2} 
+\begin{kframe}\begin{verbatim}
+## $multivariateNormality
+##              Test        Statistic               p value Result
+## 1 Mardia Skewness  8953.5001026237 9.27843696584267e-234     NO
+## 2 Mardia Kurtosis 25.6787714020441                     0     NO
+## 3             MVN             <NA>                  <NA>     NO
+## 
+## $univariateNormality
+##            Test             Variable Statistic   p value Normality
+## 1  Shapiro-Wilk       Anxiety           0.9688   2e-04      NO    
+## 2  Shapiro-Wilk   Angry_Hostility       0.9826  0.0138      NO    
+## 3  Shapiro-Wilk      Depression         0.9869  0.0595      YES   
+## 4  Shapiro-Wilk  Self_Consciousness     0.9777  0.0028      NO    
+## 5  Shapiro-Wilk    Impulsiveness        0.9472  <0.001      NO    
+## 6  Shapiro-Wilk    Vulnerability        0.9857  0.0391      NO    
+## 7  Shapiro-Wilk        Warmth           0.9344  <0.001      NO    
+## 8  Shapiro-Wilk    Gregariousness       0.9785  0.0036      NO    
+## 9  Shapiro-Wilk    Assertiveness        0.9839  0.0211      NO    
+## 10 Shapiro-Wilk       Activity          0.9547  <0.001      NO    
+## 11 Shapiro-Wilk  Excitement_Seeking     0.9499  <0.001      NO    
+## 12 Shapiro-Wilk  Positive_Emotions      0.9491  <0.001      NO    
+## 13 Shapiro-Wilk       Fantasy           0.9523  <0.001      NO    
+## 14 Shapiro-Wilk      Aesthetics         0.9735   7e-04      NO    
+## 15 Shapiro-Wilk       Feelings          0.9154  <0.001      NO    
+## 16 Shapiro-Wilk       Actions           0.9627  <0.001      NO    
+## 17 Shapiro-Wilk        Ideas            0.9696   2e-04      NO    
+## 18 Shapiro-Wilk        Values           0.9087  <0.001      NO    
+## 19 Shapiro-Wilk        Trust            0.9527  <0.001      NO    
+## 20 Shapiro-Wilk Straightforwardness     0.9687   2e-04      NO    
+## 21 Shapiro-Wilk       Altruism          0.9090  <0.001      NO    
+## 22 Shapiro-Wilk      Compliance         0.9673   1e-04      NO    
+## 23 Shapiro-Wilk       Modesty           0.9718   5e-04      NO    
+## 24 Shapiro-Wilk  Tender_Mindedness      0.9164  <0.001      NO    
+## 25 Shapiro-Wilk      Competence         0.9493  <0.001      NO    
+## 26 Shapiro-Wilk        Order            0.9827  0.0143      NO    
+## 27 Shapiro-Wilk     Dutifulness         0.9525  <0.001      NO    
+## 28 Shapiro-Wilk Achievement_Striving    0.9609  <0.001      NO    
+## 29 Shapiro-Wilk   Self_Discipline       0.9774  0.0025      NO    
+## 30 Shapiro-Wilk     Deliberation        0.9615  <0.001      NO    
+## 
+## $Descriptives
+##                        n     Mean   Std.Dev Median Min      Max     25th
+## Anxiety              201 3.384453 0.7779526  3.500   0 4.875000 2.875000
+## Angry_Hostility      201 2.821660 0.6890159  2.750   0 4.500000 2.375000
+## Depression           201 2.949893 0.8391123  3.000   0 5.000000 2.375000
+## Self_Consciousness   201 3.110519 0.6671846  3.125   0 4.750000 2.714286
+## Impulsiveness        201 3.249556 0.5953863  3.375   0 4.625000 2.875000
+## Vulnerability        201 2.609660 0.6780842  2.625   0 4.625000 2.125000
+## Warmth               201 3.779561 0.6598163  3.875   0 5.000000 3.500000
+## Gregariousness       201 3.158333 0.7554524  3.250   0 4.875000 2.750000
+## Assertiveness        201 2.941927 0.7141767  3.000   0 4.875000 2.500000
+## Activity             201 3.229004 0.5767897  3.250   0 4.833333 2.875000
+## Excitement_Seeking   201 3.584577 0.6270903  3.625   0 5.000000 3.250000
+## Positive_Emotions    201 3.684287 0.7378122  3.750   0 5.000000 3.125000
+## Fantasy              201 3.659737 0.7265031  3.750   0 4.875000 3.250000
+## Aesthetics           201 3.363539 0.8571747  3.375   0 5.000000 2.875000
+## Feelings             201 3.887379 0.6477835  4.000   0 5.000000 3.500000
+## Actions              201 2.971251 0.5849788  3.000   0 4.625000 2.625000
+## Ideas                201 3.513599 0.7696339  3.625   0 5.000000 3.000000
+## Values               201 3.783807 0.5664002  3.750   0 4.875000 3.500000
+## Trust                201 3.343106 0.6984903  3.500   0 5.000000 3.000000
+## Straightforwardness  201 3.247631 0.6981927  3.250   0 4.714286 2.750000
+## Altruism             201 3.897092 0.5879144  3.875   0 5.000000 3.625000
+## Compliance           201 3.114641 0.6383796  3.125   0 4.625000 2.750000
+## Modesty              201 3.160537 0.6504879  3.250   0 5.000000 2.750000
+## Tender_Mindedness    201 3.511058 0.5400171  3.500   0 4.800000 3.250000
+## Competence           201 3.486407 0.6072013  3.500   0 5.000000 3.125000
+## Order                201 3.165689 0.7473491  3.250   0 5.000000 2.625000
+## Dutifulness          201 3.630360 0.6517670  3.625   0 5.000000 3.250000
+## Achievement_Striving 201 3.371150 0.6828271  3.375   0 4.750000 3.000000
+## Self_Discipline      201 3.261443 0.7019657  3.250   0 5.000000 2.875000
+## Deliberation         201 3.106965 0.6145893  3.125   0 4.875000 2.750000
+##                       75th        Skew   Kurtosis
+## Anxiety              3.875 -0.65520717  0.8494755
+## Angry_Hostility      3.250 -0.11418960  0.5226148
+## Depression           3.500 -0.02546588 -0.1581829
+## Self_Consciousness   3.500 -0.39666446  1.4360305
+## Impulsiveness        3.625 -1.00765416  3.8124686
+## Vulnerability        3.000  0.02402429  0.8095776
+## Warmth               4.250 -1.16223708  4.2653957
+## Gregariousness       3.625 -0.48949185  0.9682252
+## Assertiveness        3.500 -0.37114794  0.5705680
+## Activity             3.625 -0.80844019  3.8700815
+## Excitement_Seeking   4.000 -0.95293496  4.2442910
+## Positive_Emotions    4.125 -0.90030645  2.2648330
+## Fantasy              4.250 -0.88404796  2.1427595
+## Aesthetics           4.000 -0.63342270  0.5954302
+## Feelings             4.375 -1.42084843  5.8519983
+## Actions              3.375 -0.27038758  2.5855684
+## Ideas                4.000 -0.61785669  1.3204615
+## Values               4.125 -1.52503915  8.6067997
+## Trust                3.750 -0.91355637  2.0762294
+## Straightforwardness  3.750 -0.64260256  1.7225889
+## Altruism             4.250 -1.54955211  8.2271156
+## Compliance           3.625 -0.73499044  1.9911054
+## Modesty              3.500 -0.58692618  2.2146126
+## Tender_Mindedness    3.875 -1.49527616  7.7506175
+## Competence           3.875 -0.87987169  4.3566406
+## Order                3.625 -0.42211638  0.7859926
+## Dutifulness          4.000 -0.86187907  3.7620876
+## Achievement_Striving 3.750 -0.74643750  2.2765782
+## Self_Discipline      3.750 -0.52501450  1.4461432
+## Deliberation         3.500 -0.77452947  2.7793545
+## 
+## $multivariateOutliers
+##     Observation Mahalanobis Distance Outlier
+## 183         183              659.678    TRUE
+## 127         127              167.071    TRUE
+## 124         124              161.143    TRUE
+## 13           13              151.489    TRUE
+## 130         130              122.773    TRUE
+## 95           95              119.521    TRUE
+## 157         157              115.901    TRUE
+## 146         146              115.801    TRUE
+## 163         163              115.350    TRUE
+## 103         103              113.642    TRUE
+## 180         180              108.203    TRUE
+## 147         147              106.359    TRUE
+## 132         132               98.741    TRUE
+## 167         167               98.056    TRUE
+## 150         150               97.320    TRUE
+## 62           62               96.021    TRUE
+## 94           94               95.148    TRUE
+## 185         185               92.874    TRUE
+## 118         118               91.402    TRUE
+## 113         113               90.491    TRUE
+## 101         101               90.325    TRUE
+## 177         177               90.167    TRUE
+## 60           60               90.032    TRUE
+## 105         105               88.414    TRUE
+## 84           84               87.534    TRUE
+## 40           40               87.376    TRUE
+## 44           44               86.625    TRUE
+## 182         182               85.756    TRUE
+## 24           24               84.211    TRUE
+## 2             2               84.114    TRUE
+## 151         151               83.943    TRUE
+## 46           46               82.738    TRUE
+## 45           45               82.185    TRUE
+## 90           90               80.278    TRUE
+## 176         176               78.757    TRUE
+## 42           42               78.028    TRUE
+## 179         179               77.561    TRUE
+## 121         121               76.356    TRUE
+## 51           51               76.188    TRUE
+## 25           25               73.157    TRUE
+## 143         143               72.663    TRUE
+## 190         190               72.155    TRUE
+## 119         119               71.332    TRUE
+## 120         120               70.421    TRUE
+## 145         145               69.898    TRUE
+## 93           93               68.914    TRUE
+## 83           83               68.726    TRUE
+## 18           18               68.433    TRUE
+## 41           41               68.072    TRUE
+## 7             7               67.741    TRUE
+## 168         168               67.683    TRUE
+## 200         200               67.166    TRUE
+## 17           17               67.056    TRUE
+## 11           11               67.013    TRUE
+## 70           70               66.905    TRUE
+## 144         144               66.595    TRUE
+## 27           27               66.336    TRUE
+## 43           43               64.412    TRUE
+## 55           55               63.449    TRUE
+## 117         117               63.067    TRUE
+## 31           31               62.729    TRUE
+## 74           74               61.775    TRUE
+## 92           92               61.518    TRUE
+## 64           64               61.073    TRUE
+## 134         134               60.150    TRUE
+## 30           30               58.706    TRUE
+## 129         129               57.333    TRUE
+## 3             3               56.163    TRUE
+## 165         165               52.006    TRUE
+## 82           82               51.205    TRUE
+## 69           69               50.503    TRUE
+## 38           38               48.784    TRUE
+\end{verbatim}
+\begin{alltt}
+\hlstd{remove} \hlkwb{<-} \hlkwd{as.numeric}\hlstd{(}\hlkwd{as.character}\hlstd{(mv}\hlopt{$}\hlstd{multivariateOutliers}\hlopt{$}\hlstd{Observation[}\hlnum{1}\hlstd{]))}
+\hlstd{dat2} \hlkwb{<-} \hlstd{dat} \hlopt{%>%} \hlkwd{filter}\hlstd{(}\hlopt{!}\hlstd{(ID} \hlopt{%in%} \hlstd{remove))}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
 
 
 Use confirmatory factor analysis to answer the following questions.  
@@ -286,26 +483,26 @@ C ~~ 0*O
 
 \hlstd{b5.mod} \hlkwb{<-} \hlkwd{paste}\hlstd{(b5.base,} \hlstr{'\textbackslash{}n\textbackslash{}n'}\hlstd{, b5.uncorr,} \hlkwc{sep} \hlstd{=} \hlstr{''}\hlstd{,} \hlkwc{collapse} \hlstd{=} \hlstr{''}\hlstd{)}
 
-\hlstd{fit1} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.mod, dat,} \hlkwc{orthogonal} \hlstd{= T,} \hlkwc{missing} \hlstd{=} \hlstr{'ML'}\hlstd{,} \hlkwc{std.lv} \hlstd{= T)}
+\hlstd{fit1} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.mod, dat2,} \hlkwc{orthogonal} \hlstd{= T,} \hlkwc{missing} \hlstd{=} \hlstr{'ML'}\hlstd{,} \hlkwc{std.lv} \hlstd{= T)}
 
 \hlkwd{semPaths}\hlstd{(fit1,} \hlkwc{layout} \hlstd{=} \hlstr{"circle2"}\hlstd{)}
 \end{alltt}
 \end{kframe}
-\includegraphics[width=\maxwidth]{figure/unnamed-chunk-5-1} 
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-6-1} 
 \begin{kframe}\begin{alltt}
 \hlkwd{summary}\hlstd{(fit1)}
 \end{alltt}
 \begin{verbatim}
-## lavaan 0.6-3 ended normally after 36 iterations
+## lavaan 0.6-3 ended normally after 54 iterations
 ## 
 ##   Optimization method                           NLMINB
 ##   Number of free parameters                         81
 ## 
-##   Number of observations                           201
+##   Number of observations                           200
 ##   Number of missing patterns                         1
 ## 
 ##   Estimator                                         ML
-##   Model Fit Test Statistic                    1467.470
+##   Model Fit Test Statistic                    1412.317
 ##   Degrees of freedom                               324
 ##   P-value (Chi-square)                           0.000
 ## 
@@ -318,37 +515,37 @@ C ~~ 0*O
 ## Latent Variables:
 ##                    Estimate  Std.Err  z-value  P(>|z|)
 ##   E =~                                                
-##     Warmth            0.532    0.041   13.008    0.000
-##     Gregariousness    0.561    0.049   11.552    0.000
-##     Assertiveness     0.419    0.049    8.561    0.000
-##     Activity          0.367    0.039    9.437    0.000
-##     Excitemnt_Skng    0.338    0.044    7.675    0.000
-##     Positive_Emtns    0.583    0.046   12.636    0.000
+##     Warmth            0.464    0.040   11.706    0.000
+##     Gregariousness    0.518    0.049   10.614    0.000
+##     Assertiveness     0.364    0.049    7.402    0.000
+##     Activity          0.293    0.038    7.723    0.000
+##     Excitemnt_Skng    0.248    0.043    5.783    0.000
+##     Positive_Emtns    0.522    0.046   11.449    0.000
 ##   A =~                                                
-##     Trust             0.461    0.048    9.600    0.000
-##     Strghtfrwrdnss    0.423    0.049    8.579    0.000
-##     Altruism          0.444    0.039   11.363    0.000
-##     Compliance        0.417    0.044    9.443    0.000
-##     Modesty           0.339    0.047    7.182    0.000
-##     Tender_Mnddnss    0.343    0.038    9.149    0.000
+##     Trust             0.403    0.050    8.138    0.000
+##     Strghtfrwrdnss    0.359    0.051    7.058    0.000
+##     Altruism          0.348    0.039    8.978    0.000
+##     Compliance        0.358    0.045    7.887    0.000
+##     Modesty           0.255    0.049    5.240    0.000
+##     Tender_Mnddnss    0.244    0.037    6.594    0.000
 ##   C =~                                                
-##     Competence        0.462    0.042   10.929    0.000
-##     Order             0.499    0.052    9.571    0.000
-##     Dutifulness       0.529    0.045   11.676    0.000
+##     Competence        0.394    0.042    9.363    0.000
+##     Order             0.449    0.053    8.424    0.000
+##     Dutifulness       0.464    0.046   10.091    0.000
 ##   N =~                                                
-##     Anxiety           0.659    0.046   14.414    0.000
-##     Angry_Hostilty    0.373    0.047    7.951    0.000
-##     Depression        0.719    0.049   14.696    0.000
-##     Self_Conscsnss    0.518    0.041   12.666    0.000
-##     Impulsiveness     0.280    0.041    6.749    0.000
-##     Vulnerability     0.547    0.041   13.426    0.000
+##     Anxiety           0.614    0.045   13.703    0.000
+##     Angry_Hostilty    0.323    0.046    6.995    0.000
+##     Depression        0.695    0.048   14.390    0.000
+##     Self_Conscsnss    0.471    0.040   11.863    0.000
+##     Impulsiveness     0.213    0.040    5.392    0.000
+##     Vulnerability     0.516    0.040   12.895    0.000
 ##   O =~                                                
-##     Fantasy           0.515    0.050   10.399    0.000
-##     Aesthetics        0.565    0.060    9.456    0.000
-##     Feelings          0.384    0.046    8.337    0.000
-##     Actions           0.370    0.041    9.014    0.000
-##     Ideas             0.425    0.056    7.633    0.000
-##     Values            0.387    0.039    9.964    0.000
+##     Fantasy           0.444    0.051    8.675    0.000
+##     Aesthetics        0.528    0.063    8.432    0.000
+##     Feelings          0.282    0.046    6.173    0.000
+##     Actions           0.303    0.042    7.209    0.000
+##     Ideas             0.350    0.057    6.123    0.000
+##     Values            0.287    0.038    7.603    0.000
 ## 
 ## Covariances:
 ##                    Estimate  Std.Err  z-value  P(>|z|)
@@ -369,33 +566,33 @@ C ~~ 0*O
 ## 
 ## Intercepts:
 ##                    Estimate  Std.Err  z-value  P(>|z|)
-##    .Warmth            3.780    0.046   81.414    0.000
-##    .Gregariousness    3.158    0.053   59.420    0.000
-##    .Assertiveness     2.942    0.050   58.547    0.000
-##    .Activity          3.229    0.041   79.567    0.000
-##    .Excitemnt_Skng    3.585    0.044   81.244    0.000
-##    .Positive_Emtns    3.684    0.052   70.972    0.000
-##    .Trust             3.343    0.049   68.025    0.000
-##    .Strghtfrwrdnss    3.248    0.049   66.111    0.000
-##    .Altruism          3.897    0.041   94.212    0.000
-##    .Compliance        3.115    0.045   69.344    0.000
-##    .Modesty           3.161    0.046   69.056    0.000
-##    .Tender_Mnddnss    3.511    0.038   92.408    0.000
-##    .Competence        3.486    0.043   81.607    0.000
-##    .Order             3.166    0.053   60.204    0.000
-##    .Dutifulness       3.630    0.046   79.166    0.000
-##    .Anxiety           3.384    0.055   61.832    0.000
-##    .Angry_Hostilty    2.822    0.048   58.204    0.000
-##    .Depression        2.950    0.059   49.965    0.000
-##    .Self_Conscsnss    3.111    0.047   66.263    0.000
-##    .Impulsiveness     3.250    0.042   77.572    0.000
-##    .Vulnerability     2.610    0.048   54.699    0.000
-##    .Fantasy           3.660    0.051   71.597    0.000
-##    .Aesthetics        3.364    0.060   55.771    0.000
-##    .Feelings          3.887    0.046   85.292    0.000
-##    .Actions           2.971    0.041   72.190    0.000
-##    .Ideas             3.514    0.054   64.885    0.000
-##    .Values            3.784    0.040   94.948    0.000
+##    .Warmth            3.798    0.043   89.089    0.000
+##    .Gregariousness    3.174    0.051   62.215    0.000
+##    .Assertiveness     2.957    0.048   61.215    0.000
+##    .Activity          3.245    0.037   86.685    0.000
+##    .Excitemnt_Skng    3.603    0.041   88.866    0.000
+##    .Positive_Emtns    3.703    0.049   75.886    0.000
+##    .Trust             3.360    0.046   72.315    0.000
+##    .Strghtfrwrdnss    3.264    0.047   70.027    0.000
+##    .Altruism          3.917    0.037  106.729    0.000
+##    .Compliance        3.130    0.042   73.905    0.000
+##    .Modesty           3.176    0.043   73.557    0.000
+##    .Tender_Mnddnss    3.529    0.034  104.127    0.000
+##    .Competence        3.504    0.039   89.342    0.000
+##    .Order             3.182    0.050   63.117    0.000
+##    .Dutifulness       3.649    0.042   86.167    0.000
+##    .Anxiety           3.401    0.052   65.001    0.000
+##    .Angry_Hostilty    2.836    0.047   60.824    0.000
+##    .Depression        2.965    0.057   51.593    0.000
+##    .Self_Conscsnss    3.126    0.045   70.207    0.000
+##    .Impulsiveness     3.266    0.039   84.123    0.000
+##    .Vulnerability     2.623    0.046   56.856    0.000
+##    .Fantasy           3.678    0.048   76.650    0.000
+##    .Aesthetics        3.380    0.058   58.062    0.000
+##    .Feelings          3.907    0.041   94.244    0.000
+##    .Actions           2.986    0.039   77.380    0.000
+##    .Ideas             3.531    0.051   68.576    0.000
+##    .Values            3.803    0.035  107.802    0.000
 ##     E                 0.000                           
 ##     A                 0.000                           
 ##     C                 0.000                           
@@ -404,33 +601,33 @@ C ~~ 0*O
 ## 
 ## Variances:
 ##                    Estimate  Std.Err  z-value  P(>|z|)
-##    .Warmth            0.151    0.022    6.925    0.000
-##    .Gregariousness    0.254    0.032    7.901    0.000
-##    .Assertiveness     0.332    0.036    9.153    0.000
-##    .Activity          0.196    0.022    8.847    0.000
-##    .Excitemnt_Skng    0.277    0.030    9.304    0.000
-##    .Positive_Emtns    0.202    0.028    7.235    0.000
-##    .Trust             0.273    0.033    8.214    0.000
-##    .Strghtfrwrdnss    0.306    0.036    8.608    0.000
-##    .Altruism          0.147    0.021    6.881    0.000
-##    .Compliance        0.232    0.028    8.258    0.000
-##    .Modesty           0.306    0.034    9.112    0.000
-##    .Tender_Mnddnss    0.172    0.020    8.450    0.000
-##    .Competence        0.153    0.026    5.971    0.000
-##    .Order             0.306    0.039    7.878    0.000
-##    .Dutifulness       0.142    0.031    4.665    0.000
-##    .Anxiety           0.168    0.024    6.937    0.000
-##    .Angry_Hostilty    0.333    0.035    9.563    0.000
-##    .Depression        0.183    0.027    6.750    0.000
-##    .Self_Conscsnss    0.175    0.021    8.279    0.000
-##    .Impulsiveness     0.274    0.028    9.709    0.000
-##    .Vulnerability     0.159    0.020    7.950    0.000
-##    .Fantasy           0.260    0.035    7.489    0.000
-##    .Aesthetics        0.412    0.051    8.074    0.000
-##    .Feelings          0.270    0.031    8.699    0.000
-##    .Actions           0.204    0.024    8.372    0.000
-##    .Ideas             0.409    0.046    8.914    0.000
-##    .Values            0.169    0.021    7.873    0.000
+##    .Warmth            0.149    0.022    6.862    0.000
+##    .Gregariousness    0.252    0.033    7.556    0.000
+##    .Assertiveness     0.334    0.037    9.149    0.000
+##    .Activity          0.194    0.022    9.006    0.000
+##    .Excitemnt_Skng    0.267    0.028    9.457    0.000
+##    .Positive_Emtns    0.203    0.029    7.043    0.000
+##    .Trust             0.269    0.034    7.848    0.000
+##    .Strghtfrwrdnss    0.305    0.036    8.425    0.000
+##    .Altruism          0.148    0.021    7.031    0.000
+##    .Compliance        0.231    0.029    8.001    0.000
+##    .Modesty           0.308    0.033    9.199    0.000
+##    .Tender_Mnddnss    0.170    0.019    8.771    0.000
+##    .Competence        0.153    0.025    6.160    0.000
+##    .Order             0.307    0.040    7.702    0.000
+##    .Dutifulness       0.144    0.031    4.686    0.000
+##    .Anxiety           0.171    0.025    6.946    0.000
+##    .Angry_Hostilty    0.330    0.034    9.603    0.000
+##    .Depression        0.177    0.028    6.383    0.000
+##    .Self_Conscsnss    0.174    0.021    8.334    0.000
+##    .Impulsiveness     0.256    0.026    9.773    0.000
+##    .Vulnerability     0.159    0.020    7.908    0.000
+##    .Fantasy           0.263    0.037    7.202    0.000
+##    .Aesthetics        0.399    0.054    7.340    0.000
+##    .Feelings          0.264    0.030    8.924    0.000
+##    .Actions           0.206    0.025    8.355    0.000
+##    .Ideas             0.408    0.046    8.857    0.000
+##    .Values            0.166    0.020    8.255    0.000
 ##     E                 1.000                           
 ##     A                 1.000                           
 ##     C                 1.000                           
@@ -443,7 +640,7 @@ C ~~ 0*O
 \end{kframe}
 \end{knitrout}
 
-The $\chi^2$ test indicates poor model fit, $\chi^2(324) = 1467.47, p = 0$. 
+The $\chi^2$ test indicates poor model fit, $\chi^2(324) = 1412.32, p = 0$. 
 
 
 \section{Question 2}
@@ -455,11 +652,11 @@ Does this model fit the data significantly better? Use a $\chi^2$ difference tes
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 \begin{alltt}
-\hlstd{fit2} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.base, dat,} \hlkwc{missing} \hlstd{=} \hlstr{'ML'}\hlstd{,} \hlkwc{std.lv} \hlstd{= T)}
+\hlstd{fit2} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.base, dat2,} \hlkwc{missing} \hlstd{=} \hlstr{'ML'}\hlstd{,} \hlkwc{std.lv} \hlstd{= T)}
 \hlkwd{semPaths}\hlstd{(fit2,} \hlkwc{layout} \hlstd{=} \hlstr{"circle2"}\hlstd{)}
 \end{alltt}
 \end{kframe}
-\includegraphics[width=\maxwidth]{figure/unnamed-chunk-6-1} 
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-7-1} 
 \begin{kframe}\begin{alltt}
 \hlstd{(c1} \hlkwb{<-} \hlkwd{anova}\hlstd{(fit1, fit2))}
 \end{alltt}
@@ -467,15 +664,15 @@ Does this model fit the data significantly better? Use a $\chi^2$ difference tes
 ## Chi Square Difference Test
 ## 
 ##       Df    AIC    BIC  Chisq Chisq diff Df diff Pr(>Chisq)    
-## fit2 314 9196.4 9497.0 1224.6                                  
-## fit1 324 9419.2 9686.8 1467.5     242.88      10  < 2.2e-16 ***
+## fit2 314 8964.5 9264.6 1261.2                                  
+## fit1 324 9095.6 9362.8 1412.3     151.14      10  < 2.2e-16 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 \end{verbatim}
 \end{kframe}
 \end{knitrout}
 
-The correlated factor model fits the data better, $\chi^2_{diff}(10) = 242.88$. 
+The correlated factor model fits the data better, $\chi^2_{diff}(10) = 151.14$. 
 
 \subsection{Part B}
 Which of the factor correlations are statistically significant?  
@@ -502,16 +699,16 @@ Which of the factor correlations are statistically significant?
 \end{alltt}
 \end{kframe}\begin{table}
 
-\caption{\label{tab:unnamed-chunk-7}Question 2B}
+\caption{\label{tab:unnamed-chunk-8}Question 2B}
 \centering
 \begin{tabular}[t]{llllll}
 \toprule
 lhs & E & A & C & N & O\\
 \midrule
-E &  & \textbf{0.68 [0.57, 0.79]} & \textbf{0.49 [0.35, 0.62]} & -0.15 [-0.30, 0.00] & \textbf{0.62 [0.50, 0.74]}\\
-A &  &  & \textbf{0.51 [0.38, 0.65]} & \textbf{0.25 [0.09, 0.40]} & \textbf{0.57 [0.44, 0.69]}\\
-C &  &  &  & -0.02 [-0.20, 0.16] & 0.11 [-0.06, 0.29]\\
-N &  &  &  &  & \textbf{0.21 [0.05, 0.36]}\\
+E &  & \textbf{0.60 [0.46, 0.74]} & \textbf{0.34 [0.17, 0.51]} & \textbf{-0.41 [-0.55, -0.28]} & \textbf{0.46 [0.30, 0.62]}\\
+A &  &  & \textbf{0.32 [0.15, 0.49]} & 0.01 [-0.17, 0.18] & \textbf{0.31 [0.14, 0.48]}\\
+C &  &  &  & \textbf{-0.32 [-0.53, -0.12]} & \textbf{-0.26 [-0.45, -0.07]}\\
+N &  &  &  &  & -0.03 [-0.21, 0.14]\\
 O &  &  &  &  & \\
 \bottomrule
 \end{tabular}
@@ -541,11 +738,11 @@ C ~~ lambda*O
 '}
 
 \hlstd{b5.mod} \hlkwb{<-} \hlkwd{paste}\hlstd{(b5.base,} \hlstr{'\textbackslash{}n\textbackslash{}n'}\hlstd{, b5.corr,} \hlkwc{sep} \hlstd{=} \hlstr{''}\hlstd{,} \hlkwc{collapse} \hlstd{=} \hlstr{''}\hlstd{)}
-\hlstd{fit3} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.mod, dat,} \hlkwc{missing} \hlstd{=} \hlstr{'ML'}\hlstd{,} \hlkwc{std.lv} \hlstd{= T)}
+\hlstd{fit3} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.mod, dat2,} \hlkwc{missing} \hlstd{=} \hlstr{'ML'}\hlstd{,} \hlkwc{std.lv} \hlstd{= T)}
 \hlkwd{semPaths}\hlstd{(fit3,} \hlkwc{layout} \hlstd{=} \hlstr{"circle2"}\hlstd{)}
 \end{alltt}
 \end{kframe}
-\includegraphics[width=\maxwidth]{figure/unnamed-chunk-8-1} 
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-9-1} 
 
 \end{knitrout}
 
@@ -560,15 +757,15 @@ Is this constraint acceptable (i.e., is it statistically different from the mode
 ## Chi Square Difference Test
 ## 
 ##       Df    AIC    BIC  Chisq Chisq diff Df diff Pr(>Chisq)    
-## fit2 314 9196.4 9497.0 1224.6                                  
-## fit3 322 9323.4 9597.6 1367.6     143.04       8  < 2.2e-16 ***
+## fit2 314 8964.5 9264.6 1261.2                                  
+## fit3 322 9092.4 9366.2 1405.1     143.97       8  < 2.2e-16 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 \end{verbatim}
 \end{kframe}
 \end{knitrout}
 
-Constraining the factor correlations to be equal does not appear to be justified, $\chi^2_{diff}(8) = 143.04$. 
+Constraining the factor correlations to be equal does not appear to be justified, $\chi^2_{diff}(8) = 143.97$. 
 
 \subsection{Part B}
 Is the estimated latent variable correlation significant?
@@ -584,9 +781,9 @@ Is the estimated latent variable correlation significant?
 \end{alltt}
 \begin{verbatim}
 ## # A tibble: 1 x 4
-##   label    est ci.lower ci.upper
-##   <chr>  <dbl>    <dbl>    <dbl>
-## 1 lambda 0.317    0.240    0.393
+##   label     est ci.lower ci.upper
+##   <chr>   <dbl>    <dbl>    <dbl>
+## 1 lambda 0.0834   0.0165    0.150
 \end{verbatim}
 \end{kframe}
 \end{knitrout}
@@ -611,26 +808,26 @@ O =~ lambdaO*Fantasy + lambdaO*Aesthetics + lambdaO*Feelings + lambdaO*Actions +
 '}
 
 \hlstd{b5.mod} \hlkwb{<-} \hlkwd{paste}\hlstd{(b5.lc,} \hlstr{'\textbackslash{}n\textbackslash{}n'}\hlstd{, b5.uncorr,} \hlkwc{sep} \hlstd{=} \hlstr{''}\hlstd{,} \hlkwc{collapse} \hlstd{=} \hlstr{''}\hlstd{)}
-\hlstd{fit4} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.mod, dat,} \hlkwc{missing} \hlstd{=} \hlstr{'ML'}\hlstd{,} \hlkwc{std.lv} \hlstd{= T)}
+\hlstd{fit4} \hlkwb{<-} \hlkwd{cfa}\hlstd{(b5.mod, dat2,} \hlkwc{missing} \hlstd{=} \hlstr{'ML'}\hlstd{,} \hlkwc{std.lv} \hlstd{= T)}
 \hlkwd{semPaths}\hlstd{(fit4,} \hlkwc{layout} \hlstd{=} \hlstr{"circle2"}\hlstd{)}
 \end{alltt}
 \end{kframe}
-\includegraphics[width=\maxwidth]{figure/unnamed-chunk-11-1} 
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-12-1} 
 \begin{kframe}\begin{alltt}
 \hlkwd{summary}\hlstd{(fit4)}
 \end{alltt}
 \begin{verbatim}
-## lavaan 0.6-3 ended normally after 53 iterations
+## lavaan 0.6-3 ended normally after 63 iterations
 ## 
 ##   Optimization method                           NLMINB
 ##   Number of free parameters                         82
 ##   Number of equality constraints                    22
 ## 
-##   Number of observations                           201
+##   Number of observations                           200
 ##   Number of missing patterns                         1
 ## 
 ##   Estimator                                         ML
-##   Model Fit Test Statistic                    1617.926
+##   Model Fit Test Statistic                    1597.946
 ##   Degrees of freedom                               345
 ##   P-value (Chi-square)                           0.000
 ## 
@@ -643,37 +840,37 @@ O =~ lambdaO*Fantasy + lambdaO*Aesthetics + lambdaO*Feelings + lambdaO*Actions +
 ## Latent Variables:
 ##                    Estimate  Std.Err  z-value  P(>|z|)
 ##   E =~                                                
-##     Warmth  (lmbE)    0.465    0.028   16.710    0.000
-##     Grgrsns (lmbE)    0.465    0.028   16.710    0.000
-##     Assrtvn (lmbE)    0.465    0.028   16.710    0.000
-##     Activty (lmbE)    0.465    0.028   16.710    0.000
-##     Exctm_S (lmbE)    0.465    0.028   16.710    0.000
-##     Pstv_Em (lmbE)    0.465    0.028   16.710    0.000
+##     Warmth  (lmbE)    0.396    0.025   15.638    0.000
+##     Grgrsns (lmbE)    0.396    0.025   15.638    0.000
+##     Assrtvn (lmbE)    0.396    0.025   15.638    0.000
+##     Activty (lmbE)    0.396    0.025   15.638    0.000
+##     Exctm_S (lmbE)    0.396    0.025   15.638    0.000
+##     Pstv_Em (lmbE)    0.396    0.025   15.638    0.000
 ##   A =~                                                
-##     Trust   (lmbA)    0.402    0.025   16.166    0.000
-##     Strghtf (lmbA)    0.402    0.025   16.166    0.000
-##     Altrusm (lmbA)    0.402    0.025   16.166    0.000
-##     Complnc (lmbA)    0.402    0.025   16.166    0.000
-##     Modesty (lmbA)    0.402    0.025   16.166    0.000
-##     Tndr_Mn (lmbA)    0.402    0.025   16.166    0.000
+##     Trust   (lmbA)    0.321    0.022   14.507    0.000
+##     Strghtf (lmbA)    0.321    0.022   14.507    0.000
+##     Altrusm (lmbA)    0.321    0.022   14.507    0.000
+##     Complnc (lmbA)    0.321    0.022   14.507    0.000
+##     Modesty (lmbA)    0.321    0.022   14.507    0.000
+##     Tndr_Mn (lmbA)    0.321    0.022   14.507    0.000
 ##   C =~                                                
-##     Comptnc (lmbC)    0.495    0.031   15.921    0.000
-##     Order   (lmbC)    0.495    0.031   15.921    0.000
-##     Dtflnss (lmbC)    0.495    0.031   15.921    0.000
+##     Comptnc (lmbC)    0.431    0.029   14.871    0.000
+##     Order   (lmbC)    0.431    0.029   14.871    0.000
+##     Dtflnss (lmbC)    0.431    0.029   14.871    0.000
 ##   N =~                                                
-##     Anxiety (lmbN)    0.531    0.031   17.238    0.000
-##     Angry_H (lmbN)    0.531    0.031   17.238    0.000
-##     Deprssn (lmbN)    0.531    0.031   17.238    0.000
-##     Slf_Cns (lmbN)    0.531    0.031   17.238    0.000
-##     Implsvn (lmbN)    0.531    0.031   17.238    0.000
-##     Vlnrblt (lmbN)    0.531    0.031   17.238    0.000
+##     Anxiety (lmbN)    0.486    0.029   16.641    0.000
+##     Angry_H (lmbN)    0.486    0.029   16.641    0.000
+##     Deprssn (lmbN)    0.486    0.029   16.641    0.000
+##     Slf_Cns (lmbN)    0.486    0.029   16.641    0.000
+##     Implsvn (lmbN)    0.486    0.029   16.641    0.000
+##     Vlnrblt (lmbN)    0.486    0.029   16.641    0.000
 ##   O =~                                                
-##     Fantasy (lmbO)    0.423    0.026   16.048    0.000
-##     Asthtcs (lmbO)    0.423    0.026   16.048    0.000
-##     Feelngs (lmbO)    0.423    0.026   16.048    0.000
-##     Actions (lmbO)    0.423    0.026   16.048    0.000
-##     Ideas   (lmbO)    0.423    0.026   16.048    0.000
-##     Values  (lmbO)    0.423    0.026   16.048    0.000
+##     Fantasy (lmbO)    0.341    0.024   14.425    0.000
+##     Asthtcs (lmbO)    0.341    0.024   14.425    0.000
+##     Feelngs (lmbO)    0.341    0.024   14.425    0.000
+##     Actions (lmbO)    0.341    0.024   14.425    0.000
+##     Ideas   (lmbO)    0.341    0.024   14.425    0.000
+##     Values  (lmbO)    0.341    0.024   14.425    0.000
 ## 
 ## Covariances:
 ##                    Estimate  Std.Err  z-value  P(>|z|)
@@ -690,37 +887,37 @@ O =~ lambdaO*Fantasy + lambdaO*Aesthetics + lambdaO*Feelings + lambdaO*Actions +
 ##     N                 0.000                           
 ##     O                 0.000                           
 ##   N ~~                                                
-##     O                 0.203    0.082    2.478    0.013
+##     O                -0.050    0.090   -0.558    0.577
 ## 
 ## Intercepts:
 ##                    Estimate  Std.Err  z-value  P(>|z|)
-##    .Warmth            3.780    0.045   84.907    0.000
-##    .Gregariousness    3.158    0.049   63.972    0.000
-##    .Assertiveness     2.942    0.052   57.043    0.000
-##    .Activity          3.229    0.044   72.811    0.000
-##    .Excitemnt_Skng    3.585    0.049   72.695    0.000
-##    .Positive_Emtns    3.684    0.048   76.864    0.000
-##    .Trust             3.343    0.048   70.259    0.000
-##    .Strghtfrwrdnss    3.248    0.048   67.059    0.000
-##    .Altruism          3.897    0.040   97.411    0.000
-##    .Compliance        3.115    0.044   70.167    0.000
-##    .Modesty           3.161    0.048   66.373    0.000
-##    .Tender_Mnddnss    3.511    0.040   87.448    0.000
-##    .Competence        3.486    0.044   80.074    0.000
-##    .Order             3.166    0.052   60.365    0.000
-##    .Dutifulness       3.630    0.045   80.644    0.000
-##    .Anxiety           3.384    0.049   68.746    0.000
-##    .Angry_Hostilty    2.822    0.055   51.059    0.000
-##    .Depression        2.950    0.052   57.271    0.000
-##    .Self_Conscsnss    3.111    0.048   64.762    0.000
-##    .Impulsiveness     3.250    0.054   60.204    0.000
-##    .Vulnerability     2.610    0.047   55.506    0.000
-##    .Fantasy           3.660    0.048   75.811    0.000
-##    .Aesthetics        3.364    0.056   59.660    0.000
-##    .Feelings          3.887    0.047   82.656    0.000
-##    .Actions           2.971    0.043   68.458    0.000
-##    .Ideas             3.514    0.055   64.438    0.000
-##    .Values            3.784    0.041   93.083    0.000
+##    .Warmth            3.798    0.041   92.146    0.000
+##    .Gregariousness    3.174    0.047   67.696    0.000
+##    .Assertiveness     2.957    0.049   60.478    0.000
+##    .Activity          3.245    0.041   79.492    0.000
+##    .Excitemnt_Skng    3.603    0.046   78.369    0.000
+##    .Positive_Emtns    3.703    0.045   82.033    0.000
+##    .Trust             3.360    0.045   74.882    0.000
+##    .Strghtfrwrdnss    3.264    0.046   71.336    0.000
+##    .Altruism          3.917    0.036  108.755    0.000
+##    .Compliance        3.130    0.041   75.548    0.000
+##    .Modesty           3.176    0.045   71.290    0.000
+##    .Tender_Mnddnss    3.529    0.036   97.873    0.000
+##    .Competence        3.504    0.040   87.573    0.000
+##    .Order             3.182    0.050   63.712    0.000
+##    .Dutifulness       3.649    0.042   87.427    0.000
+##    .Anxiety           3.401    0.047   72.135    0.000
+##    .Angry_Hostilty    2.836    0.053   53.347    0.000
+##    .Depression        2.965    0.050   59.592    0.000
+##    .Self_Conscsnss    3.126    0.046   68.506    0.000
+##    .Impulsiveness     3.266    0.052   63.034    0.000
+##    .Vulnerability     2.623    0.045   58.658    0.000
+##    .Fantasy           3.678    0.045   81.125    0.000
+##    .Aesthetics        3.380    0.055   61.924    0.000
+##    .Feelings          3.907    0.044   89.404    0.000
+##    .Actions           2.986    0.039   75.610    0.000
+##    .Ideas             3.531    0.052   68.543    0.000
+##    .Values            3.803    0.037  104.043    0.000
 ##     E                 0.000                           
 ##     A                 0.000                           
 ##     C                 0.000                           
@@ -729,33 +926,33 @@ O =~ lambdaO*Fantasy + lambdaO*Aesthetics + lambdaO*Feelings + lambdaO*Actions +
 ## 
 ## Variances:
 ##                    Estimate  Std.Err  z-value  P(>|z|)
-##    .Warmth            0.182    0.023    8.010    0.000
-##    .Gregariousness    0.274    0.031    8.757    0.000
-##    .Assertiveness     0.318    0.036    8.957    0.000
-##    .Activity          0.179    0.022    8.047    0.000
-##    .Excitemnt_Skng    0.272    0.031    8.728    0.000
-##    .Positive_Emtns    0.245    0.029    8.544    0.000
-##    .Trust             0.293    0.033    8.938    0.000
-##    .Strghtfrwrdnss    0.309    0.034    9.000    0.000
-##    .Altruism          0.160    0.020    8.049    0.000
-##    .Compliance        0.234    0.027    8.695    0.000
-##    .Modesty           0.294    0.033    8.956    0.000
-##    .Tender_Mnddnss    0.162    0.020    8.097    0.000
-##    .Competence        0.136    0.022    6.253    0.000
-##    .Order             0.308    0.037    8.379    0.000
-##    .Dutifulness       0.163    0.024    6.824    0.000
-##    .Anxiety           0.205    0.025    8.258    0.000
-##    .Angry_Hostilty    0.332    0.037    8.919    0.000
-##    .Depression        0.252    0.029    8.592    0.000
-##    .Self_Conscsnss    0.182    0.022    8.097    0.000
-##    .Impulsiveness     0.304    0.035    8.714    0.000
-##    .Vulnerability     0.163    0.021    7.911    0.000
-##    .Fantasy           0.290    0.033    8.773    0.000
-##    .Aesthetics        0.460    0.050    9.232    0.000
-##    .Feelings          0.266    0.031    8.644    0.000
-##    .Actions           0.200    0.024    8.211    0.000
-##    .Ideas             0.419    0.046    9.171    0.000
-##    .Values            0.154    0.020    7.723    0.000
+##    .Warmth            0.183    0.023    8.088    0.000
+##    .Gregariousness    0.283    0.032    8.812    0.000
+##    .Assertiveness     0.321    0.036    9.002    0.000
+##    .Activity          0.176    0.022    8.111    0.000
+##    .Excitemnt_Skng    0.265    0.030    8.725    0.000
+##    .Positive_Emtns    0.250    0.029    8.608    0.000
+##    .Trust             0.299    0.033    9.031    0.000
+##    .Strghtfrwrdnss    0.316    0.035    9.092    0.000
+##    .Altruism          0.156    0.019    8.174    0.000
+##    .Compliance        0.240    0.027    8.824    0.000
+##    .Modesty           0.294    0.032    9.045    0.000
+##    .Tender_Mnddnss    0.157    0.019    8.213    0.000
+##    .Competence        0.135    0.021    6.443    0.000
+##    .Order             0.313    0.037    8.493    0.000
+##    .Dutifulness       0.163    0.023    7.009    0.000
+##    .Anxiety           0.209    0.025    8.262    0.000
+##    .Angry_Hostilty    0.329    0.037    8.891    0.000
+##    .Depression        0.259    0.030    8.593    0.000
+##    .Self_Conscsnss    0.180    0.022    8.080    0.000
+##    .Impulsiveness     0.301    0.035    8.678    0.000
+##    .Vulnerability     0.164    0.021    7.924    0.000
+##    .Fantasy           0.295    0.033    8.866    0.000
+##    .Aesthetics        0.480    0.052    9.282    0.000
+##    .Feelings          0.266    0.030    8.742    0.000
+##    .Actions           0.196    0.024    8.314    0.000
+##    .Ideas             0.415    0.045    9.211    0.000
+##    .Values            0.151    0.019    7.880    0.000
 ##     E                 1.000                           
 ##     A                 1.000                           
 ##     C                 1.000                           
@@ -769,15 +966,15 @@ O =~ lambdaO*Fantasy + lambdaO*Aesthetics + lambdaO*Feelings + lambdaO*Actions +
 ## Chi Square Difference Test
 ## 
 ##       Df    AIC    BIC  Chisq Chisq diff Df diff Pr(>Chisq)    
-## fit1 324 9419.2 9686.8 1467.5                                  
-## fit4 345 9527.7 9725.9 1617.9     150.46      21  < 2.2e-16 ***
+## fit1 324 9095.6 9362.8 1412.3                                  
+## fit4 345 9239.2 9437.1 1597.9     185.63      21  < 2.2e-16 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 \end{verbatim}
 \end{kframe}
 \end{knitrout}
 
-A likelihood ratio test suggests that constraining the loadings is not justified. $\chi^2_{diff}(21) = 150.46$
+A likelihood ratio test suggests that constraining the loadings is not justified. $\chi^2_{diff}(21) = 185.63$
 
 \section{Question 5}
 Use the modification indices to diagnose the major problem with the model in Question 2. What change to that model would produce the biggest improvement in model fit?

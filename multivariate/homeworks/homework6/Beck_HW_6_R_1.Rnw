@@ -1,0 +1,318 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 3\\
+\large Applied Mutlivariate Analysis}
+\date{September 22, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(psych)
+library(lavaan)
+library(semPlot)
+library(kableExtra)
+library(multcomp)
+library(lme4)
+library(plyr)
+library(tidyverse)
+library(MVN)
+@
+
+
+
+\subsection{data}
+The file, Set\_5.csv, contains data from a study in which college students completed the NEO-PI Personality Inventory. This 240-item scale purportedly measures the Big Five personality dimensions, assumed to be fairly independent. The inventory is scored on 6 subscales per dimension, listed below. The file contains the subscale scores, rather than the individual items, which should help reduce the impact of the small sample size.\\
+
+Neuroticism: Anxiety\\
+Neuroticism: Angry\_Hostility\\
+Neuroticism: Depression\\
+Neuroticism: Self\_Consciousness\\
+Neuroticism: Impulsiveness\\
+Neuroticism: Vulnerability\\
+Extraversion: Warmth\\
+Extraversion: Gregariousness\\
+Extraversion: Assertiveness\\
+Extraversion: Activity\\
+Extraversion: Excitement\_Seeking\\
+Extraversion: Positive\_Emotions\\
+Openness: Fantasy\\
+Openness: Aesthetics\\
+Openness: Feelings\\
+Openness: Actions\\
+Openness: Ideas\\
+Openness: Values\\
+Agreeableness: Trust\\
+Agreeableness: Straightforwardness \\
+Agreeableness: Altruism\\
+Agreeableness: Compliance\\
+Agreeableness: Modesty\\
+Agreeableness: Tender\_Mindedness\\
+Conscientiousness: Competence\\
+Conscientiousness: Order\\
+Conscientiousness: Dutifulness\\
+Conscientiousness: Achievement\_Striving \\
+Conscientiousness: Self\_Discipline\\
+Conscientiousness: Deliberation\\
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework6"
+
+dat <- sprintf("%s/Set_5(1).csv", wd) %>% 
+  read.csv(., stringsAsFactors = F) 
+
+head(dat)
+@
+
+<<>>=
+source <- tribble(
+~Factor, ~Facet,
+"Neuroticism", "Anxiety",
+"Neuroticism", "Angry_Hostility",
+"Neuroticism", "Depression",
+"Neuroticism", "Self_Consciousness",
+"Neuroticism", "Impulsiveness",
+"Neuroticism", "Vulnerability",
+"Extraversion", "Warmth",
+"Extraversion", "Gregariousness",
+"Extraversion", "Assertiveness",
+"Extraversion", "Activity",
+"Extraversion", "Excitement_Seeking",
+"Extraversion", "Positive_Emotions",
+"Openness", "Fantasy",
+"Openness", "Aesthetics",
+"Openness", "Feelings",
+"Openness", "Actions",
+"Openness", "Ideas",
+"Openness", "Values",
+"Agreeableness", "Trust",
+"Agreeableness", "Straightforwardness" ,
+"Agreeableness", "Altruism",
+"Agreeableness", "Compliance",
+"Agreeableness", "Modesty",
+"Agreeableness", "Tender_Mindedness",
+"Conscientiousness", "Competence",
+"Conscientiousness", "Order",
+"Conscientiousness", "Dutifulness",
+"Conscientiousness", "Achievement_Striving", 
+"Conscientiousness", "Self_Discipline",
+"Conscientiousness", "Deliberation"
+)
+
+dat <- dat %>% select(ID, source$Facet)
+@
+
+\subsection{Check for Outliers}
+<<>>=
+dat2 <- dat %>% select(-ID, ) %>% data.frame
+rownames(dat2) <- dat$ID #1:nrow(dat2)
+(mv <- mvn(dat2,mvnTest="mardia", multivariatePlot="qq",multivariateOutlierMethod="quan",showOutliers=TRUE))
+remove <- as.numeric(as.character(mv$multivariateOutliers$Observation[1]))
+dat2 <- dat %>% filter(!(ID %in% remove)) 
+@
+
+
+Use confirmatory factor analysis to answer the following questions.  
+
+\section{Question 1}
+First, test the hypothesis that the structure of personality is best described by five independent factors. How well does this model fit the data? Base your decision on the $\chi^2$ goodness of fit test along with the goodness-of-fit index of your choice.  
+<<>>=
+b5.base <- '
+# define the measurement model
+E =~ Warmth + Gregariousness + Assertiveness + Activity + Excitement_Seeking + Positive_Emotions
+A =~ Trust + Straightforwardness + Altruism + Compliance + Modesty + Tender_Mindedness
+C =~ Competence + Order + Dutifulness + Competence + Order + Dutifulness
+N =~ Anxiety + Angry_Hostility + Depression + Self_Consciousness + Impulsiveness + Vulnerability
+O =~ Fantasy + Aesthetics + Feelings + Actions + Ideas + Values
+'
+b5.uncorr <- 
+'
+# uncorrelated factors
+E ~~ 0*A
+E ~~ 0*C
+E ~~ 0*N
+E ~~ 0*O
+
+A ~~ 0*C
+A ~~ 0*N
+A ~~ 0*O
+
+C ~~ 0*N
+C ~~ 0*O
+'
+
+b5.mod <- paste(b5.base, '\n\n', b5.uncorr, sep = '', collapse = '')
+
+fit1 <- cfa(b5.mod, dat2, orthogonal = T, missing = 'ML', std.lv = T)
+
+semPaths(fit1, layout = "circle2")
+
+summary(fit1)
+
+fm <- fitmeasures(fit1)
+@
+
+The $\chi^2$ test indicates poor model fit, $\chi^2(\Sexpr{fm["df"]}) = \Sexpr{round(fm["chisq"],2)}, p = \Sexpr{round(fm["pvalue"],2)}$. 
+
+
+\section{Question 2}
+Now allow the factors to correlate.  
+
+\subsection{Part A}
+Does this model fit the data significantly better? Use a $\chi^2$ difference test to answer the question.
+
+<<>>=
+fit2 <- cfa(b5.base, dat2, missing = 'ML', std.lv = T)
+semPaths(fit2, layout = "circle2")
+
+(c1 <- anova(fit1, fit2))
+@
+
+The correlated factor model fits the data better, $\chi^2_{diff}(\Sexpr{c1$`Df diff`[2]}) = \Sexpr{round(c1$`Chisq diff`[2],2)}$. 
+
+\subsection{Part B}
+Which of the factor correlations are statistically significant?  
+<<>>=
+res2 <- parameterestimates(fit2, standardized = T)
+
+res2 %>% tbl_df %>%
+  filter(op == "~~" & lhs %in% c("E", "A", "C", "N", "O")) %>%
+  full_join(crossing(lhs = c("E", "A", "C", "N", "O"), rhs = c("E", "A", "C", "N", "O"))) %>%
+  mutate(sig = ifelse(pvalue < .05, "sig", "ns")) %>%
+  select(lhs, rhs, est, ci.lower, ci.upper, sig) %>%
+  mutate_at(vars(est:ci.upper), funs(sprintf("%.2f", .))) %>%
+  mutate_at(vars(lhs, rhs), funs(factor(., levels = c("E", "A", "C", "N", "O")))) %>%
+  mutate(value = sprintf("%s [%s, %s]", est, ci.lower, ci.upper),
+         value = ifelse(sig == "sig", sprintf("\\textbf{%s}", value), value),
+         value = ifelse(is.na(value), "", value)) %>%
+  select(lhs, rhs, value) %>%
+  spread(key = rhs, value = value) %>%
+  kable(., "latex", booktabs = T, escape = F,
+        caption = "Question 2B") %>%
+  kable_styling(full_width = F)
+@
+
+\section{Question 3}
+Test a model that constrains all factor correlations to be equal.  
+<<>>=
+b5.corr <- '
+# equally correlated factors
+E ~~ lambda*A
+E ~~ lambda*C
+E ~~ lambda*N
+E ~~ lambda*O
+
+A ~~ lambda*C
+A ~~ lambda*N
+A ~~ lambda*O
+
+C ~~ lambda*N
+C ~~ lambda*O
+'
+
+b5.mod <- paste(b5.base, '\n\n', b5.corr, sep = '', collapse = '')
+fit3 <- cfa(b5.mod, dat2, missing = 'ML', std.lv = T)
+semPaths(fit3, layout = "circle2")
+@
+
+\subsection{Part A}
+Is this constraint acceptable (i.e., is it statistically different from the model tested in Question 2)?
+<<>>=
+(c3 <- anova(fit3, fit2))
+@
+
+Constraining the factor correlations to be equal does not appear to be justified, $\chi^2_{diff}(\Sexpr{c3$`Df diff`[2]}) = \Sexpr{round(c3$`Chisq diff`[2],2)}$. 
+
+\subsection{Part B}
+Is the estimated latent variable correlation significant?
+
+<<>>=
+res3 <- parameterestimates(fit3, standardized = T)
+
+res3 %>% tbl_df %>% filter(label == "lambda") %>%
+  select(label, est, ci.lower, ci.upper) %>%
+  filter(row_number() == 1)
+@
+
+Yes, the estimated latent variable correlation is significant. 
+
+\section{Question 4}
+Use the most parsimonious model from the first three steps. Constrain the loadings within each dimension to be equal. Is this simplification acceptable?  
+
+Fit 1 is the most parsimonious model because it estimates the fewest parameters.  
+
+<<>>=
+b5.lc <- '
+# define the measurement model
+E =~ lambdaE*Warmth + lambdaE*Gregariousness + lambdaE*Assertiveness + lambdaE*Activity + lambdaE*Excitement_Seeking + lambdaE*Positive_Emotions
+A =~ lambdaA*Trust + lambdaA*Straightforwardness + lambdaA*Altruism + lambdaA*Compliance + lambdaA*Modesty + lambdaA*Tender_Mindedness
+C =~ lambdaC*Competence + lambdaC*Order + lambdaC*Dutifulness + lambdaC*Competence + lambdaC*Order + lambdaC*Dutifulness
+N =~ lambdaN*Anxiety + lambdaN*Angry_Hostility + lambdaN*Depression + lambdaN*Self_Consciousness + lambdaN*Impulsiveness + lambdaN*Vulnerability
+O =~ lambdaO*Fantasy + lambdaO*Aesthetics + lambdaO*Feelings + lambdaO*Actions + lambdaO*Ideas + lambdaO*Values
+'
+
+b5.mod <- paste(b5.lc, '\n\n', b5.uncorr, sep = '', collapse = '')
+fit4 <- cfa(b5.mod, dat2, missing = 'ML', std.lv = T)
+semPaths(fit4, layout = "circle2")
+summary(fit4)
+
+(c4 <- anova(fit1, fit4))
+@
+
+A likelihood ratio test suggests that constraining the loadings is not justified. $\chi^2_{diff}(\Sexpr{c4$`Df diff`[2]}) = \Sexpr{round(c4$`Chisq diff`[2],2)}$
+
+\section{Question 5}
+Use the modification indices to diagnose the major problem with the model in Question 2. What change to that model would produce the biggest improvement in model fit?
+<<>>=
+mi2 <- modificationindices(fit2) %>% arrange(desc(mi))
+@
+
+The biggest problem in the model from Question 2 was the $\Sexpr{ifelse(mi2$op[1] == "~~", "covariation", "factor loading")}$ between $\Sexpr{mi2$lhs[1]} \Sexpr{mi2$rhs[1]}$. 
+
+
+\end{document}
