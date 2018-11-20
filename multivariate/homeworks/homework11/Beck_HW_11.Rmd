@@ -1,0 +1,93 @@
+---
+title: "Applied Multivariate Analysis Homework Assignment 11"
+author: "Jessica Nicosia"
+date: "Fall 2018"
+output:
+  pdf_document:  
+    toc: yes
+    toc_depth: 6
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r}
+options(replace.assign = TRUE, width = 65, digits = 4, scipen = 4, fig.width = 4, fig.height = 4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Set the contrast option; important for ANOVAs.
+#options(contrasts = c('contr.sum','contr.poly'))
+```
+
+```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+library(car)
+library(knitr)
+library(knitr)
+library(psych)
+library(MASS)
+library(lavaan)
+library(Rmisc)
+library(ggdendro)
+library(candisc)
+library(plyr)
+library(tidyverse)
+```
+
+```{r, tidy = T}
+# Get the data from the working directory.
+setwd("/Volumes/j.nicosiaSD 1/Fall2018Courses/Multivariate/Homeworks/Homework11")
+data.source <- read.csv("Set_9.csv")
+data.source$interview <- as.factor(data.source$interview)
+data.source$sex <- as.factor(data.source$sex)
+```
+
+Question 1
+----------
+\textbf{1. Test a model that includes sex, publications, years to complete degree, and GRE score as predictors. For each significant predictor, construct a graph that shows the relationship between that predictor (over its range) and the probability of getting an interview. When constructing graphs, hold non graphed variables constant at their grand means.}
+
+```{r, tidy = T}
+Fit_1 <- glm(interview ~ sex+pubs+years+gre, family = binomial("logit"), data = data.source)
+summary(Fit_1)
+
+#pubs
+ggplot(plot_data, aes(x = IV_Original, y = L)) + 
+  geom_line(size = 1, color = "blue") + 
+  geom_ribbon(data = plot_data, aes(ymin = L_CL, ymax = L_CU), alpha = 0.25) + 
+  coord_cartesian(xlim = c(1000, 1600), ylim = c(-8, 4)) + 
+  scale_x_continuous(breaks = c(seq(1000, 1600, 100))) + 
+  scale_y_continuous(breaks = seq(-8, 4, 1)) + xlab("GRE") +
+  ylab("Logit") + 
+  theme_classic()
+
+#years
+
+```
+
+Question 2
+----------
+\textbf{2. Test a model that includes all two way interactions involving sex of applicant. For any significant interaction, construct a graph that shows the relationship between the relevant predictor and the probability of getting an interview, separately for men and women. Hold non graphed variables constant at their grand means and graph over the range of the target predictor.}
+
+```{r, tidy = T}
+Fit_2 <- glm(interview ~ sex*pubs + sex*years + sex*gre, family = binomial("logit"), data = data.source)
+summary(Fit_2)
+```
+
+Question 3
+----------
+\textbf{3. Now add the ramining two way interactions. If any are significant, provide surface plots showing the relationship between the predictors (over their ranges) and the probability of getting an interview. Explain the nature of any significant interactions you graph.}
+
+```{r, tidy = T}
+Fit_3 <- glm(interview ~ sex*pubs + sex*years + sex*gre + pubs*years + pubs*gre + years*gre, family = binomial("logit"), data = data.source)
+summary(Fit_3)
+```
+
+Question 4
+----------
+\textbf{4. Finally, add to the basic model from Question 1, terms that test the quadratic effects of each continuous predictor. If any are significant, construct graphs showing the relationship between the predictor and the probability of getting an interview. Hold non graphed variables constant at their grand means and graph over the range of the target predictor. Anything unusual about these graphs? Can you explain it?}
+
+```{r, tidy = T}
+Fit_4 <- glm(interview ~ sex+pubs+years+gre+I(pubs^2)+I(years^2)+I(gre^2), family = binomial("logit"), data = data.source)
+summary(Fit_4)
+```
+
+

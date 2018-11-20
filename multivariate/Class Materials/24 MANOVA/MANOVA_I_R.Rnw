@@ -1,0 +1,1259 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{MANOVA I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(dplyr)
+library(aod)
+library(MVN)
+library(boot)
+library(car)
+library(LogisticDx)
+library(biotools)
+library(multcomp)
+library(ez)
+library(GGally)
+library(qqplotr)
+library(gridExtra)
+library(reshape)
+library(emmeans)
+@
+
+\subsection{Data}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+Skills <- read.table('manova.csv',sep=',',header=TRUE)
+Skills <- as.data.frame(Skills)
+@
+
+\subsection{Data Modifications}
+\textbf{\large{\textit{
+Residualized versions of continuous predictors are created so that preliminary analyses are not contaminated by outcome differences.
+Labeled variables are created to assist in creation of some tables and graphs.
+Dummy codes and linear combinations are created for later specialized analyses.
+}}}
+<<tidy=TRUE>>=
+# Residuals
+Skills$P_Verbal_R <- lm(P_Verbal ~ as.factor(Group), data=Skills)$residuals
+Skills$P_Quant_R <- lm(P_Quant ~ as.factor(Group), data=Skills)$residuals
+Skills$C_Verbal_R <- lm(C_Verbal ~ as.factor(Group), data=Skills)$residuals
+Skills$C_Quant_R <- lm(C_Quant ~ as.factor(Group), data=Skills)$residuals
+
+# Labels
+Skills$Tx_P2[Skills$Tx_P=="1"] <- "No Paper Tx"
+Skills$Tx_P2[Skills$Tx_P=="2"] <- "Paper Tx"
+
+Skills$Tx_C2[Skills$Tx_C=="1"] <- "No Computer Tx"
+Skills$Tx_C2[Skills$Tx_C=="2"] <- "Computer Tx"
+
+Skills$Group2[Skills$Group=="1"] <- "No Paper Tx and No Computer Tx"
+Skills$Group2[Skills$Group=="2"] <- "Paper Tx and No Computer Tx"
+Skills$Group2[Skills$Group=="3"] <- "No Paper Tx and Computer Tx"
+Skills$Group2[Skills$Group=="4"] <- "Paper Tx and Computer Tx"
+
+Skills$Group3[Skills$Group=="1"] <- "No P, No C"
+Skills$Group3[Skills$Group=="2"] <- "P, No C"
+Skills$Group3[Skills$Group=="3"] <- "No P, C"
+Skills$Group3[Skills$Group=="4"] <- "P, C"
+
+# Dummy variables to be used in between-groups analyses.
+Skills$D1[Skills$Group==1] <- 1
+Skills$D2[Skills$Group==1] <- 0
+Skills$D3[Skills$Group==1] <- 0
+Skills$D4[Skills$Group==1] <- 0
+Skills$D1[Skills$Group==2] <- 0
+Skills$D2[Skills$Group==2] <- 1
+Skills$D3[Skills$Group==2] <- 0
+Skills$D4[Skills$Group==2] <- 0
+Skills$D1[Skills$Group==3] <- 0
+Skills$D2[Skills$Group==3] <- 0
+Skills$D3[Skills$Group==3] <- 1
+Skills$D4[Skills$Group==3] <- 0
+Skills$D1[Skills$Group==4] <- 0
+Skills$D2[Skills$Group==4] <- 0
+Skills$D3[Skills$Group==4] <- 0
+Skills$D4[Skills$Group==4] <- 1
+
+# Outcome linear combinations to be used in repeated measures analyses.
+Skills$Sum <- Skills$P_Verbal+Skills$P_Quant+Skills$C_Verbal+Skills$C_Quant
+Skills$Domain <- Skills$P_Verbal-Skills$P_Quant+Skills$C_Verbal-Skills$C_Quant
+Skills$Mode <- Skills$P_Verbal+Skills$P_Quant-Skills$C_Verbal-Skills$C_Quant
+Skills$DxM <- Skills$P_Verbal-Skills$P_Quant-Skills$C_Verbal+Skills$C_Quant
+
+# Create a non-factor version of the condition variables
+# before converting them to factors.
+Skills$Tx_P_NF <- Skills$Tx_P
+Skills$Tx_C_NF <- Skills$Tx_C
+
+# Convert to factors
+Skills$Tx_P = factor(Skills$Tx_P, levels=c(1,2), labels=c("No Tx(P)","Tx(P)"))
+Skills$Tx_C = factor(Skills$Tx_C, levels=c(1,2), labels=c("No Tx(C)","Tx(C)"))
+
+# Sort file by Group
+Skills <- Skills[order(Skills$Group),] 
+@
+
+\clearpage
+\section{Data Characteristics}
+\textbf{\large{\textit{
+These hypothetical data simulate a training study in which students are given training to take tests of verbal and quantitative ability.
+The training is conducted either with paper-and-pencil (standard) tests or with computer-administered tests (or both) and the tests are administered in both formats. 
+The basic nature of these data is explored here.
+}}}
+
+\subsection{Some Descriptive Statistics}
+\textbf{\large{\textit{
+Some basic descriptive statistics give an initial glimpse of the data.
+}}}
+<<tidy=TRUE>>=
+describeBy(Skills[,2:5],group=Skills$Group)
+
+with(Skills, tapply(P_Verbal, list(Tx_P,Tx_C), mean))
+with(Skills, tapply(P_Quant, list(Tx_P,Tx_C), mean))
+with(Skills, tapply(C_Verbal, list(Tx_P,Tx_C), mean))
+with(Skills, tapply(C_Quant, list(Tx_P,Tx_C), mean))
+
+with(Skills, tapply(P_Verbal, list(Tx_P,Tx_C), sd))
+with(Skills, tapply(P_Quant, list(Tx_P,Tx_C), sd))
+with(Skills, tapply(C_Verbal, list(Tx_P,Tx_C), sd))
+with(Skills, tapply(C_Quant, list(Tx_P,Tx_C), sd))
+@
+
+\subsection{Basic Visualization}
+\textbf{\large{\textit{
+The basic nature of the data is easily viewed with some simple graphics.
+}}}
+
+<<tidy=TRUE>>=
+ggpairs(Skills[9:12],
+      lower = list(continuous = "smooth"),
+      upper = list(continuous = "cor"),
+      columnLabels=c("Paper:\n Verbal","Paper:\n Quantitative","Computer:\n Verbal","Computer:\n Quantitative")) +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=9,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Correlations Among Outcome Measures (Residuals)")
+@
+
+<<tidy=TRUE>>=
+Skills$Group4 <- factor(Skills$Group3,levels=c("No P, No C","No P, C","P, No C","P, C"),
+                        labels=c("No P, No C","No P, C","P, No C","P, C"))
+
+p1 <- ggplot(Skills, aes(x=as.factor(Group4), y=P_Verbal)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Outcome") +
+        xlab("Training Group") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Paper: Verbal")
+
+p2 <- ggplot(Skills, aes(x=as.factor(Group4), y=P_Quant)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Outcome") +
+        xlab("Training Group") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Paper: Quantitative")
+
+p3 <- ggplot(Skills, aes(x=as.factor(Group4), y=C_Verbal)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Outcome") +
+        xlab("Training Group") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Computer: Verbal")
+
+p4 <- ggplot(Skills, aes(x=as.factor(Group4), y=C_Quant)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Outcome") +
+        xlab("Training Group") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Computer: Quantitative")
+grid.arrange(p1,p2,p3,p4,nrow=2)
+@
+
+\section{Multivariate Normality Assumption}
+\textbf{\large{\textit{
+The classification part of discriminant analysis (as well as any significance tests for the discriminant functions) rely on the multivariate normality assumption.
+Because MANOVA is inherently a discriminant analysis, we make the same assumption.
+The tests are performed on the residualized data so that group differences do not affect the results.
+Note that a violation of multivariate normality will also affect the test of homogeneity of covariance matrices.
+}}}
+
+\subsection{Full Sample}
+<<tidy=TRUE>>=
+mvn(Skills[,9:12],mvnTest="mardia")
+@
+
+<<tidy=TRUE>>=
+CV <- cov(Skills[,9:12])
+D2_1 <- mahalanobis(Skills[,9:12],center=colMeans(Skills[,9:12]),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=4)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=4)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=4)) +
+    scale_y_continuous(breaks=seq(0,24,2)) +
+    scale_x_continuous(breaks=seq(0,16,1)) +
+    coord_cartesian(xlim = c(0,16), ylim =c(0,24)) +
+    xlab(expression("Expected Values from" * ~ chi[4]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[4]^2))
+@
+
+\subsection{Outlier Excluded}
+<<tidy=TRUE>>=
+Skills$D2_1 <- D2_1
+Skills_Trimmed <- Skills[which(Skills$D2_1!=max(Skills$D2_1)),]
+
+mvn(Skills_Trimmed[,9:12],mvnTest="mardia")
+@
+
+<<tidy=TRUE>>=
+CV <- cov(Skills_Trimmed[,9:12])
+D2_1 <- mahalanobis(Skills_Trimmed[,9:12],center=colMeans(Skills_Trimmed[,9:12]),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=4)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=4)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=4)) +
+    scale_y_continuous(breaks=seq(0,24,2)) +
+    scale_x_continuous(breaks=seq(0,16,1)) +
+    coord_cartesian(xlim = c(0,16), ylim =c(0,24)) +
+    xlab(expression("Expected Values from" * ~ chi[4]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[4]^2))
+@
+
+<<tidy=TRUE>>=
+Skills_Trimmed_QQ <- scale(Skills_Trimmed[,9:12])
+Data_long <- melt(Skills_Trimmed_QQ)
+Data_long <- as.data.frame(Data_long)
+names(Data_long) <- c("Index","feature","value")
+Data_long$feature_F <- factor(Data_long$feature,levels=c("P_Verbal_R","P_Quant_R","C_Verbal_R","C_Quant_R"),
+                         labels = c("Paper: Verbal","Paper: Quantitative","Computer: Verbal","Computer: Quantitative"))
+p <- ggplot(Data_long, aes(sample=value)) +
+        stat_qq_band() + stat_qq_line() + stat_qq(distribution=qnorm,size=1) +
+        scale_y_continuous(breaks=seq(-4,4,1)) +
+        scale_x_continuous(breaks=seq(-4,4,1)) +
+        coord_cartesian(xlim = c(-4,4), ylim =c(-4,4)) +
+        xlab("Theoretical Quantiles") + 
+        ylab("Sample Quantiles") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),  
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+      ggtitle("Q-Q Plots for Job Search Features")
+p + facet_wrap(~feature_F)
+@
+
+\clearpage
+\section{Homogeneity Assumption}
+\textbf{\large{\textit{
+We assume in discriminant analysis that the separate group variance-covariance matrices are homogeneous.
+Box's test can be used to test this assumption.
+Note, however, that it is also sensitive to violations of multivariate normality.
+}}}
+<<tidy=TRUE>>=
+boxM(Skills[,2:5], Skills$Group)
+boxM(Skills[,2:5], Skills$Group)$cov
+boxM(Skills[,2:5], Skills$Group)$pooled
+
+boxM(Skills_Trimmed[,2:5], Skills_Trimmed$Group)
+boxM(Skills_Trimmed[,2:5], Skills_Trimmed$Group)$cov
+boxM(Skills_Trimmed[,2:5], Skills_Trimmed$Group)$pooled
+@
+
+\clearpage
+\section{Means and Confidence Intervals}
+\textbf{\large{\textit{
+Displayed here are bar graphs of the condition means with 95\% confidence intervals.
+}}}
+
+<<tidy=TRUE>>=
+D <- describeBy(Skills_Trimmed[,2:5],group=Skills_Trimmed$Group4)
+
+plot_data <- matrix(NA,nrow=4,ncol=8)
+
+for(i in 1:4) {
+  for(j in 1:4) {
+    plot_data[i,j] <- D[[i]]$mean[j]
+    plot_data[i,j+4] <- qt(.975,D[[i]]$n[j])*D[[i]]$sd[j]/sqrt(D[[i]]$n[j])
+  }
+}
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("PV_mean","PQ_mean","CV_mean","CQ_mean","PV_CI","PQ_CI","CV_CI","CQ_CI")
+plot_data$Group3 <- factor(c("No P, No C","No P, C","P, No C","P, C"))
+plot_data$Group4 <- factor(plot_data$Group3,levels=c("No P, No C","No P, C","P, No C","P, C"),
+                        labels=c("No P, No C","No P, C","P, No C","P, C"))
+@
+
+<<tidy=TRUE>>=
+p1 <- ggplot(plot_data, aes(x=as.factor(Group4), y=PV_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=PV_mean-PV_CI, ymax=PV_mean+PV_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,100,10))) +  
+        coord_cartesian(ylim = c(0,100)) +
+        xlab("Treatment Group") + 
+        ylab("Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=1),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Mean Paper-Verbal by\n Treatment Group (95% CI)")
+print(p1)
+@
+
+<<tidy=TRUE>>=
+p2 <- ggplot(plot_data, aes(x=as.factor(Group4), y=PQ_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=PQ_mean-PQ_CI, ymax=PQ_mean+PQ_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,100,10))) +  
+        coord_cartesian(ylim = c(0,100)) +
+        xlab("Treatment Group") + 
+        ylab("Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=1),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Mean Paper-Quantitative by\n Treatment Group (95% CI)")
+print(p2)
+@
+
+<<tidy=TRUE>>=
+p3 <- ggplot(plot_data, aes(x=as.factor(Group4), y=CV_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=CV_mean-CV_CI, ymax=CV_mean+CV_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,100,10))) +  
+        coord_cartesian(ylim = c(0,100)) +
+        xlab("Treatment Group") + 
+        ylab("Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=1),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Mean Computer-Verbal by\n Treatment Group (95% CI)")
+print(p3)
+@
+
+<<tidy=TRUE>>=
+p4 <- ggplot(plot_data, aes(x=as.factor(Group4), y=CQ_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=CQ_mean-CQ_CI, ymax=CQ_mean+CQ_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,100,10))) +  
+        coord_cartesian(ylim = c(0,100)) +
+        xlab("Treatment Group") + 
+        ylab("Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=1),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Mean Computer-Quantitative by\n Treatment Group (95% CI)")
+print(p4)
+@
+
+<<tidy=TRUE>>=
+p1 <- ggplot(plot_data, aes(x=as.factor(Group4), y=PV_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=PV_mean-PV_CI, ymax=PV_mean+PV_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,100,20))) +  
+        coord_cartesian(ylim = c(0,100)) +
+        xlab("Treatment Group") + 
+        ylab("Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=45,hjust=1),
+              axis.title.x = element_text(margin=margin(5,0,0,0),size=12), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=12),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=14, face="bold", 
+                                        margin = margin(0, 0, 5, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Paper \n Verbal (95% CI)")
+@
+
+<<tidy=TRUE>>=
+p2 <- ggplot(plot_data, aes(x=as.factor(Group4), y=PQ_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=PQ_mean-PQ_CI, ymax=PQ_mean+PQ_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,100,20))) +  
+        coord_cartesian(ylim = c(0,100)) +
+        xlab("Treatment Group") + 
+        ylab("Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=45,hjust=1),
+              axis.title.x = element_text(margin=margin(5,0,0,0),size=12), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=12),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=14, face="bold", 
+                                        margin = margin(0, 0, 5, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Paper \n Quantitative (95% CI)")
+@
+
+<<tidy=TRUE>>=
+p3 <- ggplot(plot_data, aes(x=as.factor(Group4), y=CV_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=CV_mean-CV_CI, ymax=CV_mean+CV_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,100,20))) +  
+        coord_cartesian(ylim = c(0,100)) +
+        xlab("Treatment Group") + 
+        ylab("Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=45,hjust=1),
+              axis.title.x = element_text(margin=margin(5,0,0,0),size=12), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=12),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=14, face="bold", 
+                                        margin = margin(0, 0, 5, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Computer \n Verbal (95% CI)")
+@
+
+<<tidy=TRUE>>=
+p4 <- ggplot(plot_data, aes(x=as.factor(Group4), y=CQ_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=CQ_mean-CQ_CI, ymax=CQ_mean+CQ_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,100,20))) +  
+        coord_cartesian(ylim = c(0,100)) +
+        xlab("Treatment Group") + 
+        ylab("Outcome") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=45,hjust=1),
+              axis.title.x = element_text(margin=margin(5,0,0,0),size=12), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=12),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=14, face="bold", 
+                                        margin = margin(0, 0, 5, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Computer \n Quantitative (95% CI)")
+grid.arrange(p1,p2,p3,p4,nrow=2)
+@
+
+\clearpage
+\section{ANOVA of Each Outcome}
+\textbf{\large{\textit{
+Two forms of ANOVA are shown.
+In the first, no structure to the groups is assumed.
+In the second, the factorial is included in the design.
+}}}
+
+\subsection{No Group Structure}
+<<tidy=TRUE>>=
+AOV_1 <- aov(P_Verbal ~ as.factor(Group),data=Skills_Trimmed)
+summary(AOV_1)
+TukeyHSD(AOV_1)
+
+AOV_2 <- aov(P_Quant ~ as.factor(Group),data=Skills_Trimmed)
+summary(AOV_2)
+TukeyHSD(AOV_2)
+
+AOV_3 <- aov(C_Verbal ~ as.factor(Group),data=Skills_Trimmed)
+summary(AOV_3)
+TukeyHSD(AOV_3)
+
+AOV_4 <- aov(C_Quant ~ as.factor(Group),data=Skills_Trimmed)
+summary(AOV_4)
+TukeyHSD(AOV_4)
+@
+
+\subsection{Factorial Group Structure}
+<<tidy=TRUE>>=
+AOV_5 <- aov(P_Verbal ~ Tx_P*Tx_C,data=Skills_Trimmed)
+summary(AOV_5)
+
+AOV_6 <- aov(P_Quant ~ Tx_P*Tx_C,data=Skills_Trimmed)
+summary(AOV_6)
+
+AOV_7 <- aov(C_Verbal ~ Tx_P*Tx_C,data=Skills_Trimmed)
+summary(AOV_7)
+
+AOV_8 <- aov(C_Quant ~ Tx_P*Tx_C,data=Skills_Trimmed)
+summary(AOV_8)
+@
+
+\subsection{No-Intercept Model}
+\textbf{\large{\textit{
+A no-intercept approach has the advantage that any comparisons can be specified.
+}}}
+<<tidy=TRUE>>=
+AOV_9 <- lm(P_Verbal ~ -1 + D1 + D2 + D3 + D4,data=Skills_Trimmed)
+summary(AOV_9)
+
+AOV_10 <- lm(P_Quant ~ -1 + D1 + D2 + D3 + D4,data=Skills_Trimmed)
+summary(AOV_10)
+
+AOV_11 <- lm(C_Verbal ~ -1 + D1 + D2 + D3 + D4,data=Skills_Trimmed)
+summary(AOV_11)
+
+AOV_12 <- lm(C_Quant ~ -1 + D1 + D2 + D3 + D4,data=Skills_Trimmed)
+summary(AOV_12)
+@
+
+<<tidy=TRUE>>=
+LM=matrix(c(1,1,-1,-1,
+            1,-1,1,-1,
+            1,-1,-1,1,
+            1,-1,0,0,
+            1,0,-1,0,
+            1,0,0,-1,
+            0,1,-1,0,
+            0,1,0,-1,
+            0,0,1,-1),nrow=9,ncol=4,byrow=TRUE)
+rownames(LM) <- c("Mode Main Effect","Domain Main Effect",
+                  "Interaction","G1 vs. G2","G1 vs. G3",
+                  "G1 vs. G4","G2 vs. G3","G2 vs. G4",
+                  "G3 vs G4")
+LM
+glht_LM_9 <- glht(AOV_9,linfct=LM,alternative="two.sided",rhs=0)
+plot(confint(glht_LM_9,calpha = univariate_calpha()),main="95% Confidence Intervals")
+summary(glht_LM_9, adjusted("holm"))
+confint(glht_LM_9,p.adjust(method="holm"))
+@
+
+\subsection{Sums of Squares}
+\textbf{\large{\textit{
+Three different kinds of sums of squares can be used to partition the variance in ANOVA.
+Type I SS are sequential, allocating to an effect the variance it accounts for at its entry step.
+Type II SS represent the contribution an effect makes after controlling for any lower-order effects and any effects of the same order.
+In other words, in a three-factor design (A x B x C) the AB interaction would have all main effects as well as the AC and BC interactions controlled.
+Type III SS represent the unique contribution of an effect after all other effects have been controlled. 
+This is the most conservative and the default in SPSS, for example.
+Different functions use different SS methods by default and the calculations can depend on whether the independent variables are defined as factors or not. \newline
+\newline
+The SS type will matter if the independent variables are correlated.
+In a balanced design (equal n in a factorial structure), all effects are orthogonal and all SS methods will produce the same results.
+To make the consequences more apparent in the demonstration that follows, we'll create a big imbalance in the cell sample sizes. \newline
+\newline
+A summary of the consequences for different approaches is given after the demonstrated methods.
+}}}
+
+<<tidy=TRUE>>=
+# Create an imbalanced data set.
+for (i in 1:length(Skills_Trimmed[,1])) {
+  Skills_Trimmed[i,"Index"] <- i
+}
+Skills_Sub <- Skills_Trimmed[Skills_Trimmed$Index<10 | Skills_Trimmed$Index>30,]
+
+replications(P_Verbal ~ Tx_P*Tx_C, data=Skills_Sub)
+@
+
+\subsubsection{The aov( ) Function}
+\textbf{\large{\textit{
+The aov( ) function will allocate effects according to order of entry, but the results will depend on whether the predictors are defined as factors.
+Order will be respected within levels of effects (i.e., within main effects, within two-way interactions, etc.).
+}}}
+<<tidy=TRUE>>=
+AOV_5a <- aov(P_Verbal ~ Tx_P + Tx_C + Tx_P:Tx_C,data=Skills_Sub)
+summary(AOV_5a)
+
+AOV_5b <- aov(P_Verbal ~ Tx_C + Tx_P + Tx_P:Tx_C,data=Skills_Sub)
+summary(AOV_5b)
+
+AOV_5c <- aov(P_Verbal ~ Tx_C + Tx_P:Tx_C +  Tx_P ,data=Skills_Sub)
+summary(AOV_5c)
+@
+
+\textbf{\large{\textit{
+To get complete control over order of entry, the predictors should not be defined as factors.
+But, note the last two models.
+Model 5f uses the I( ) function to calculate the product on the fly.
+This model respects the intended order.
+Model 5g uses the \: to produce the interaction.
+This model does not respect the intended order.
+}}}
+<<tidy=TRUE>>=
+AOV_5d <- aov(P_Verbal ~ Tx_P_NF + Tx_C_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Sub)
+summary(AOV_5d)
+
+AOV_5e <- aov(P_Verbal ~ Tx_C_NF + Tx_P_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Sub)
+summary(AOV_5e)
+
+AOV_5f <- aov(P_Verbal ~ Tx_C_NF + I(Tx_P_NF*Tx_C_NF) + Tx_P_NF,data=Skills_Sub)
+summary(AOV_5f)
+
+AOV_5g <- aov(P_Verbal ~ Tx_C_NF + Tx_P_NF:Tx_C_NF + Tx_P_NF,data=Skills_Sub)
+summary(AOV_5g)
+@
+
+\subsubsection{The lm( ) Function}
+\textbf{\large{\textit{
+The lm( ) function will use Type III SS if the predictors are not defined as factors.
+If they are defined as factors, then lm( ) appears to use Type II SS. 
+Note that an attempt to use the I( ) to produce a product with variables defined as factors produces an error.
+}}}
+<<tidy=TRUE>>=
+lm_5a <- lm(P_Verbal ~ Tx_P + Tx_C + Tx_P:Tx_C,data=Skills_Sub)
+summary(lm_5a)
+
+lm_5b <- lm(P_Verbal ~ Tx_C + Tx_P + Tx_P:Tx_C,data=Skills_Sub)
+summary(lm_5b)
+
+lm_5c <- lm(P_Verbal ~ Tx_C + Tx_P:Tx_C + Tx_P ,data=Skills_Sub)
+summary(lm_5c)
+@
+
+\textbf{\large{\textit{
+The last two models here are also of note.
+Model lm\_5f respects the order.
+Model lm\_5g does not.
+It makes no difference in this case because a Type III partition is used.
+}}}
+<<tidy=TRUE>>=
+lm_5d <- lm(P_Verbal ~ Tx_P_NF + Tx_C_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Sub)
+summary(lm_5d)
+
+lm_5e <- lm(P_Verbal ~ Tx_C_NF + Tx_P_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Sub)
+summary(lm_5e)
+
+lm_5f <- lm(P_Verbal ~ Tx_C_NF + I(Tx_P_NF*Tx_C_NF) + Tx_P_NF,data=Skills_Sub)
+summary(lm_5f)
+
+lm_5g <- lm(P_Verbal ~ Tx_C_NF + Tx_P_NF:Tx_C_NF + Tx_P_NF,data=Skills_Sub)
+summary(lm_5g)
+@
+
+\textbf{\large{\textit{
+Type III sums of squares allocates to each effect its unique variance accounted for in the outcome.
+One way to get Type III tests is to test the full model against models that exclude each effect in turn.
+}}}
+<<tidy=TRUE>>=
+drop1(AOV_5a,~.,test="F")
+drop1(AOV_5d,~.,test="F")
+@
+
+\textbf{\large{\textit{
+Another approach is offered by the car package.
+The Anova( ) function (note the capitalization) allows Type II and Type III models.
+It is a bit more complex to use because it takes as input an object from a linear model fit.
+}}}
+<<tidy=TRUE>>=
+lm <- lm(P_Verbal~Tx_P + Tx_C + Tx_P:Tx_C,data=Skills_Sub)
+AOV_5g <- Anova(lm,type="II")
+AOV_5g
+
+AOV_5h <- Anova(lm,type="III")
+AOV_5h
+
+lm <- lm(P_Verbal~Tx_P_NF + Tx_C_NF + Tx_P_NF:Tx_C_NF,data=Skills_Sub)
+AOV_5i <- Anova(lm,type="II")
+AOV_5i
+
+AOV_5j <- Anova(lm,type="III")
+AOV_5j
+
+lm <- lm(P_Verbal~Tx_P_NF + Tx_C_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Sub)
+AOV_5k <- Anova(lm,type="II")
+AOV_5k
+
+AOV_5l <- Anova(lm,type="III")
+AOV_5l
+@
+
+\subsubsection{Summary}
+\textbf{\large{\textit{
+The aov( ) function uses Type I sums of squares, but will respect order only within levels of effects (main effects, interactions) if the predictors are defined as factors. 
+If true order of entry is desired, then the predictors should not be defined as factors and the explicit model definition used to carefully control order. \newline
+\newline
+Order does not matter with the lm( ) function, but predictor type does.
+If predictors are not defined as factors, then true Type III sums of squares are given (unique effects).
+If predictors are defined as factors, then the results will be the same as drop1( ) with factors and Anova( ) with factors.
+Not clear what is going on here because they are not true Type III effects, but appear to be some hybrid of Type III and Type II. \newline
+\newline
+The drop1( ) function when used with predictors in lm( ) that are not defined as factors will produce true Type III effects.
+When drop1( ) is used with predictors defined as factors, the previously alluded to hybrid effects are produced. \newline
+\newline
+The Anova( ) function when used with predictors defined as factors in lm( ) will produce true Type II effects when that is requested.
+When Type III effects are requested, the hybrid results are produced.
+It makes sense that these are called Type III effects; they are the same as produced by lm( ) with factor predictors (because lm( ) is a Type III procedure).
+When the Anova( ) is used with predictors in lm( ) that are not defined as factors, true Type II and Type III effects are provided, depending on what is requested. \newline
+\newline
+Bottom line.
+If true Type III are desired, don't use factors.
+If true Type I are desired, don't use factors.
+If true Type II are desired, use Anova and it doesn't matter if factors are used or not.
+The Anova( ) allows specification of Type II and Type III sums of squares. \newline
+\newline
+But . . . it seems to matter whether I(A*B) or A\:B is used when variables are not defined as factors (if they ARE factors, the I( ) cannot be used). More scrutiny is required.  Stay tuned.
+}}}
+
+\clearpage
+\section{Repeated Measures ANOVA}
+\subsection{The aov( ) Function, Part I}
+\textbf{\large{\textit{
+The repeated measures also have a factorial structure which is incorporated into the analyses in a traditional ANOVA approach.
+In the following, the aov( ) function is used along with predictors not defined as factors. 
+This will produce true Type I effects.
+Note that these analyses are possible because the data are in wide format and the repeated measures are incorporated into linear combinations that represent the sum, main effects, and interaction from the within-subjects part of the design.
+We request the intercepts for the within-subjects linear combinations because they represent the main effects.
+}}}
+
+<<tidy=TRUE>>=
+# Sum over repeated measures.
+# This produces the between-subjects part of the design.
+AOV_13 <- aov(I(P_Verbal+P_Quant+C_Verbal+C_Quant) ~ Tx_P_NF + Tx_C_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Trimmed)
+summary(AOV_13,intercept=TRUE)
+
+# Mode: The difference between paper and computer measures.
+AOV_14 <- aov(I(P_Verbal+P_Quant-C_Verbal-C_Quant) ~ Tx_P_NF + Tx_C_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Trimmed)
+summary(AOV_14,intercept=TRUE)
+
+# Domain: The difference between verbal and quantitative measures.
+AOV_15 <- aov(I(P_Verbal-P_Quant+C_Verbal-C_Quant) ~ Tx_P_NF + Tx_C_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Trimmed)
+summary(AOV_15,intercept=TRUE)
+
+# Mode x Domain interaction
+AOV_16 <- aov(I(P_Verbal-P_Quant-C_Verbal+C_Quant) ~ Tx_P_NF + Tx_C_NF + I(Tx_P_NF*Tx_C_NF),data=Skills_Trimmed)
+summary(AOV_16,intercept=TRUE)
+@
+
+\subsection{The aov( ) Function, Part II}
+\textbf{\large{\textit{
+The aov( ) function can also be used with a file in long format, requiring the specification of the within-subjects part of the design as part of the formula on the right-hand side.
+Note, however, that this function will test all effects against a common residual term, which is only appropriate if the pooled effects are homogeneous.
+This may be happening because the model is not balanced.
+The ezANOVA( ) function provides a better option that produces separate error terms for each within-subjects effect.
+}}}
+
+<<tidy=TRUE>>=
+# Create a long form of the file.
+Skills_Long <- matrix(NA,nrow=4*length(Skills_Trimmed[,1]),ncol=7)
+Skills_Long <- as.data.frame(Skills_Long)
+names(Skills_Long) <- c("ID","Subject","Outcome","Mode","Domain","Tx_P","Tx_C")
+
+counter <- 0
+for (i in 1:length(Skills_Trimmed[,1])) {
+  for (j in 1:4) {
+    counter <- counter+1
+    Skills_Long[counter,"ID"] <- counter
+    Skills_Long[counter,"Subject"] <- Skills_Trimmed[i,"ID"]
+    Skills_Long[counter,"Tx_P"] <- Skills_Trimmed[i,"Tx_P"]
+    Skills_Long[counter,"Tx_C"] <- Skills_Trimmed[i,"Tx_C"]
+    if (j==1) {
+      Skills_Long[counter,"Outcome"] <- Skills_Trimmed[i,"P_Verbal"]
+      Skills_Long[counter,"Mode"] <- "Paper"
+      Skills_Long[counter,"Domain"] <- "Verbal"
+    } else if (j==2) {
+      Skills_Long[counter,"Outcome"] <- Skills_Trimmed[i,"P_Quant"]
+      Skills_Long[counter,"Mode"] <- "Paper"
+      Skills_Long[counter,"Domain"] <- "Quant"      
+    } else if (j==3) {
+      Skills_Long[counter,"Outcome"] <- Skills_Trimmed[i,"C_Verbal"]
+      Skills_Long[counter,"Mode"] <- "Computer"
+      Skills_Long[counter,"Domain"] <- "Verbal"     
+    } else {
+      Skills_Long[counter,"Outcome"] <- Skills_Trimmed[i,"C_Quant"]
+      Skills_Long[counter,"Mode"] <- "Computer"
+      Skills_Long[counter,"Domain"] <- "Quant"      
+    }
+  }
+}
+
+Skills_Long <- as.data.frame(Skills_Long)
+Skills_Long$Mode <- as.factor(Skills_Long$Mode)
+Skills_Long$Domain <- as.factor(Skills_Long$Domain)
+Skills_Long$Tx_P <- as.factor(Skills_Long$Tx_P)
+Skills_Long$Tx_C <- as.factor(Skills_Long$Tx_C)
+Skills_Long$Subject <- as.factor(Skills_Long$Subject)
+
+replications(Outcome ~ Tx_P*Tx_C, data=Skills_Long)
+@
+
+<<tidy=TRUE>>=
+# Full repeated measures ANOVA using aov( ).
+AOV_17 <- aov(Outcome ~ (Mode*Domain*Tx_P*Tx_C) + Error(Subject/(Mode*Domain)) + (Tx_P*Tx_C),data=Skills_Long)
+summary(AOV_17)
+@
+
+\subsection{The ezANOVA( ) Function}
+\textbf{\large{\textit{
+The ezANOVA( ) function produces separate error terms for each within-subjects effect, an effect size estimate, and the option to indicate the sums of squares type.
+}}}
+
+<<tidy=TRUE>>=
+# Full repeated measures ANOVA using ezANOVA( ).
+AOV_18a <- ezANOVA(dv=Outcome,wid=(Subject),within=.(Mode,Domain),between=.(Tx_P,Tx_C),data=Skills_Long,type=2,detailed=TRUE)
+AOV_18a
+
+AOV_18b <- ezANOVA(dv=Outcome,wid=(Subject),within=.(Mode,Domain),between=.(Tx_P,Tx_C),data=Skills_Long,type=3,detailed=TRUE)
+AOV_18b
+@
+
+\subsection{The Anova( ) Function}
+\textbf{\large{\textit{
+The Anova( ) function produces multivariate tests, but not univariate tests, at least here for the first method shown.  
+A separate effect sum of squares and cross-products matrix, and separate effect multivariate tests, are provided.
+Type II and Type III sums of squares can be requested.
+}}}
+<<tidy=TRUE>>=
+# Full repeated measures ANOVA using Anova( ).
+LM <- lm(cbind(P_Verbal,P_Quant,C_Verbal,C_Quant) ~ Tx_P*Tx_C,data=Skills_Trimmed)
+AOV_19 <- Anova(LM,data=Skills_Trimmed,type=2)
+summary(AOV_19)
+@
+
+\textbf{\large{\textit{
+This method, however, does produce the univariate repeated measures F tests.
+They are based on separate error terms for each within-subjects effect.
+Note that a test of sphericity is not given because all within-subjects effects are 1 degree of freedom.
+}}}
+<<tidy=TRUE>>=
+Mode <- factor(rep(c("Paper","Computer"),c(2,2)),levels=c("Paper","Computer"))
+Domain <- factor(rep(c("Verbal","Quant"),2),levels=c("Verbal","Quant"))
+idata <- data.frame(Mode,Domain)
+
+LM_6 <- lm(cbind(P_Verbal,P_Quant,C_Verbal,C_Quant)~Tx_P*Tx_C,data=Skills_Trimmed)
+LM_6
+ANOVA_1 <- Anova(LM_6,idata=idata,idesign=~Mode*Domain,type=2)
+ANOVA_2 <- Anova(LM_6,idata=idata,idesign=~Mode*Domain,type=3)
+summary(ANOVA_1,multivariate=FALSE)
+summary(ANOVA_2,multivariate=FALSE)
+@
+
+\textbf{\large{\textit{
+In this version, the factorial structure on the within-subjects side is ignored.
+Now the 3 degrees of freedom for the within-subjects effect require the sphericity assumption and that test is provided.
+}}}
+<<tidy=TRUE>>=
+Measure <- factor(c("P_V","P_Q","C_V","C_Q"),levels=c("P_V","P_Q","C_V","C_Q"))
+idata <- data.frame(Measure)
+
+LM_7 <- lm(cbind(P_Verbal,P_Quant,C_Verbal,C_Quant)~Tx_P*Tx_C,data=Skills_Trimmed)
+LM_7
+ANOVA_3 <- Anova(LM_7,idata=idata,idesign=~Measure,type=2)
+ANOVA_4 <- Anova(LM_7,idata=idata,idesign=~Measure,type=3)
+summary(ANOVA_3,multivariate=FALSE)
+summary(ANOVA_4,multivariate=FALSE)
+@
+
+\section{Means, Standard Errors, Confidence Intervals, and Comparisons}
+\textbf{\large{\textit{
+The emmeans package provides considerable flexibility for obtaining marginal means, standard errors, confidence intervals, and comparisons.
+It is illustrated here for the full 2 x 2 x 2 x 2 design.
+A reference grid is defined for use in the follow-up functions from the emmeans package.
+Note that the emmeans package works with the aov() function, but not the ezANOVA() function. 
+}}}
+
+<<tidy=TRUE>>=
+model_rg <- ref_grid(AOV_17)
+model_rg
+summary(model_rg)
+@
+\textbf{\large{\textit{
+The function, emmeans( ), when used with the reference grid and specifications for particular effects, provides marginal and cell means, standard errors, and confidence limits.
+}}}
+<<tidy=TRUE>>=
+Tx_P_emm <- emmeans(model_rg, "Tx_P")
+Tx_C_emm <- emmeans(model_rg, "Tx_C")
+Mode_emm <- emmeans(model_rg, "Mode")
+Domain_emm <- emmeans(model_rg, "Domain")
+
+Tx_P_x_Tx_C_emm <- emmeans(model_rg, c("Tx_P","Tx_C"))
+Tx_P_x_Mode_emm <- emmeans(model_rg, c("Tx_P","Mode"))
+Tx_P_x_Domain_emm <- emmeans(model_rg, c("Tx_P","Domain"))
+Tx_C_x_Mode_emm <- emmeans(model_rg, c("Tx_C","Mode"))
+Tx_C_x_Domain_emm <- emmeans(model_rg, c("Tx_C","Domain"))
+Mode_x_Domain_emm <- emmeans(model_rg, c("Mode","Domain"))
+
+Tx_P_x_Tx_C_x_Mode_emm <- emmeans(model_rg, c("Tx_P","Tx_C","Mode"))
+Tx_P_x_Tx_C_x_Domain_emm <- emmeans(model_rg, c("Tx_P","Tx_C","Domain"))
+Tx_P_x_Mode_x_Domain_emm <- emmeans(model_rg, c("Tx_P","Mode","Domain"))
+Tx_C_x_Mode_x_Domain_emm <- emmeans(model_rg, c("Tx_C","Mode","Domain"))
+
+cell_means_emm <- emmeans(model_rg, c("Tx_P","Tx_C","Mode","Domain"))
+
+Tx_P_emm
+Tx_C_emm
+Mode_emm
+Domain_emm
+Tx_P_x_Tx_C_emm
+Tx_P_x_Mode_emm
+Tx_P_x_Domain_emm
+Tx_C_x_Mode_emm
+Tx_C_x_Domain_emm
+Mode_x_Domain_emm
+Tx_P_x_Tx_C_x_Mode_emm
+Tx_P_x_Tx_C_x_Domain_emm
+Tx_P_x_Mode_x_Domain_emm
+Tx_C_x_Mode_x_Domain_emm
+cell_means_emm
+@
+
+\subsection{Plotting of Cell Means and Marginal Means}
+\textbf{\large{\textit{
+The means are plotted along with their confidence intervals.
+These plots are internal to the emmeans package. 
+Nicer bar graphs can be created using ggplot2 with the information from the saved objects.
+}}}
+<<tidy=TRUE>>=
+plot(Tx_P_emm,cex=1.5,cex.axis=2)
+plot(Tx_C_emm,cex=1.5,cex.axis=2)
+plot(Mode_emm,cex=1.5,cex.axis=2)
+plot(Domain_emm,cex=1.5,cex.axis=2)
+plot(Tx_P_x_Tx_C_emm,cex=1.5,cex.axis=2)
+plot(Tx_P_x_Mode_emm,cex=1.5,cex.axis=2)
+plot(Tx_P_x_Domain_emm,cex=1.5,cex.axis=2)
+plot(Tx_C_x_Mode_emm,cex=1.5,cex.axis=2)
+plot(Tx_C_x_Domain_emm,cex=1.5,cex.axis=2)
+plot(Mode_x_Domain_emm,cex=1.5,cex.axis=2)
+plot(Tx_P_x_Tx_C_x_Mode_emm,cex=1.5,cex.axis=2)
+plot(Tx_P_x_Tx_C_x_Domain_emm,cex=1.5,cex.axis=2)
+plot(Tx_P_x_Mode_x_Domain_emm,cex=1.5,cex.axis=2)
+plot(Tx_C_x_Mode_x_Domain_emm,cex=1.5,cex.axis=2)
+plot(cell_means_emm,cex=1.5,cex.axis=2)
+@
+
+\subsection{Comparisons Among Means}
+\textbf{\large{\textit{
+The CLD( ) function can be used to obtain pairwise comparisons.
+The "adjust" option allows specifying the particular form of Type I error control (Holm procedure is used here).
+The pairwise comparisons can be made at any level in the design.
+For interactions, the pairwise comparisons are conducted using a simple main effects approach.
+Pairs of means for one of the variables involved in the interaction are compared within each level of the other variable involved in the interaction (or each combination of levels if the interaction is three-way). \newline
+\newline
+The output that has "group" as the right-most column provides a convenient summary display. 
+Rows that do not share any numbers in the group column represent conditions that are significantly different. \newline
+\newline
+There are many ways to do the comparisons, depending on the complexity of the effect. 
+A few are illustrated below.
+}}}
+<<tidy=TRUE>>=
+CLD(Tx_P_emm, alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Tx_C_emm, alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Mode_emm, alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Domain_emm, alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Tx_P_x_Tx_C_emm, by="Tx_P",alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_P_x_Tx_C_emm, by="Tx_C",alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Tx_P_x_Mode_emm, by="Tx_P",alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_P_x_Mode_emm, by="Mode",alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Tx_P_x_Domain_emm, by="Tx_P",alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_P_x_Domain_emm, by="Domain",alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Tx_C_x_Mode_emm, by="Tx_C",alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_C_x_Mode_emm, by="Mode",alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Tx_C_x_Domain_emm, by="Tx_C",alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_C_x_Domain_emm, by="Domain",alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Mode_x_Domain_emm, by="Mode",alpha = .05,adjust="holm",details=TRUE)
+CLD(Mode_x_Domain_emm, by="Domain",alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(Tx_P_x_Tx_C_x_Mode_emm, by="Tx_P",alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_P_x_Tx_C_x_Mode_emm, by="Tx_C",alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_P_x_Tx_C_x_Mode_emm, by="Mode",alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_P_x_Tx_C_x_Mode_emm, by=c("Tx_P","Tx_C"),alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_P_x_Tx_C_x_Mode_emm, by=c("Tx_P","Mode"),alpha = .05,adjust="holm",details=TRUE)
+CLD(Tx_P_x_Tx_C_x_Mode_emm, by=c("Tx_C","Mode"),alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+CLD(cell_means_emm, by=c("Tx_P"),alpha = .05,adjust="holm",details=TRUE)
+CLD(cell_means_emm, by=c("Tx_P","Tx_C"),alpha = .05,adjust="holm",details=TRUE)
+CLD(cell_means_emm, by=c("Tx_P","Tx_C","Mode"),alpha = .05,adjust="holm",details=TRUE)
+@
+
+<<tidy=TRUE>>=
+Sys.time()-how_long
+@
+
+\end{document}
