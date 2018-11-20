@@ -1,0 +1,1604 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Logistic Regression II}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(MASS)
+library(sciplot)
+library(plyr)
+library(aod)
+library(MVN)
+library(boot)
+library(car)
+library(LogisticDx)
+library(ROCR)
+library(nnet)
+library(mnlogit)
+library(VGAM)
+library(rms)
+library(ordinal)
+library(qqplotr)
+library(gridExtra)
+library(caret)
+library(GGally)
+library(mlogit)
+library(multcomp)
+library(ggplot2)
+@
+
+\subsection{Data}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+Job<-read.table('jobs_example_for_ppt.csv',sep=',',header=TRUE)
+Job <- as.data.frame(Job)
+Job <- Job[sample(1:nrow(Job)),]
+@
+
+\subsection{Data Modifications}
+\textbf{\large{\textit{
+Depending on the type of analysis, the outcome needs to be in a particular form.
+Residualized versions of continuous predictors are created so that preliminary analyses are not contaminated by outcome differences.
+}}}
+<<tidy=TRUE>>=
+Job$job_result[Job$job=="0"] <- "No Job"
+Job$job_result[Job$job=="1"] <- "Job"
+
+Job$outcome_result[Job$outcome==1] <- "No Interview"
+Job$outcome_result[Job$outcome==2] <- "Job"
+Job$outcome_result[Job$outcome==3] <- "Interview Only"
+
+Job$ordered_result[Job$ordered==1] <- "Not Interviewed"
+Job$ordered_result[Job$ordered==2] <- "Interviewed Only"
+Job$ordered_result[Job$ordered==3] <- "Hired"
+
+# Dummy code for sex.
+Job$sex_D <- ifelse(Job$sex==2,1,0)
+
+# Dummy codes for men and women
+Job$M_D <- ifelse(Job$sex==1,1,0)
+Job$F_D <- ifelse(Job$sex==2,1,0)
+
+# Centered predictors.
+Job$gre_c <- as.numeric(scale(Job$gre,scale=FALSE))
+Job$pubs_c <- as.numeric(scale(Job$pubs,scale=FALSE))
+Job$years_c <- as.numeric(scale(Job$years,scale=FALSE))
+
+# Residuals, now based on the three-category outcome.
+Job$gre_R <- lm(gre ~ as.factor(outcome), data=Job)$residuals
+Job$pubs_R <- lm(pubs ~ as.factor(outcome), data=Job)$residuals
+Job$years_R <- lm(years ~ as.factor(outcome), data=Job)$residuals
+
+# Some factor versions.
+Job$sex_F <- factor(Job$sex,levels=c(1,2),labels=c("Men","Women"))
+Job$ordered_F <- factor(Job$ordered,levels=c(1,2,3),labels=c("Not Interviewed","Interviewed Only","Hired"))
+@
+
+\clearpage
+\section{Job Search Data Characteristics}
+\textbf{\large{\textit{
+These hypothetical data simulate the factors that might contribute to successfully getting an academic job.
+The basic nature of these data is explored here.
+}}}
+
+\section{Basic Visualization}
+\textbf{\large{\textit{
+The basic nature of the data is easily viewed with some simple graphics.
+}}}
+<<tidy=TRUE>>=
+ggpairs(Job[18:20],
+      lower = list(continuous = "smooth"),
+      upper = list(continuous = "cor"),
+      columnLabels=c("GRE","Publications","Years")) +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=9,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Correlations Among Job Search Features (Residuals)")
+@
+
+<<tidy=TRUE>>=
+Job$ordered_result = factor(Job$ordered_result,levels(factor(Job$ordered_result))[c(3,2,1)])
+
+p1 <- ggplot(Job, aes(x=ordered_result, y=gre)) + 
+        geom_boxplot(fill="gray") +
+        ylab("GRE Total") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("GRE Total")
+
+p2 <- ggplot(Job, aes(x=ordered_result, y=pubs)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Publications") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Publications")
+
+p3 <- ggplot(Job, aes(x=ordered_result, y=years)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Years to Complete") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Years")
+grid.arrange(p1,p2,p3,nrow=1)
+@
+
+<<tidy=TRUE>>=
+Job$sex_F <- factor(Job$sex,levels=c(1,2),labels=c("Men","Women"))
+p1 <- ggplot(Job, aes(x=sex_F, y=gre)) + 
+        geom_boxplot(fill="gray") +
+        ylab("GRE Total") +
+        xlab("Sex") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("GRE Total")
+
+p2 <- ggplot(Job, aes(x=sex_F, y=pubs)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Publications") +
+        xlab("Sex") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Publications")
+
+p3 <- ggplot(Job, aes(x=sex_F, y=years)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Years to Complete") +
+        xlab("Sex") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Years")
+grid.arrange(p1,p2,p3,nrow=1)
+@
+
+\subsection{Group Differences}
+\textbf{\large{\textit{
+A univariate look at the data will provide some clues about likely variables of influence in the logistic regression.
+}}}
+
+<<tidy=TRUE>>=
+Job_MANOVA_1 <- manova(as.matrix(Job[,3:5])~Job$job)
+summary(Job_MANOVA_1)
+summary.aov(Job_MANOVA_1)
+
+table_1 <- table(Job[c("ordered_F","sex_F")])
+table_1
+
+p_table_1 <- prop.table(table(Job[c("ordered_F","sex_F")]),2)
+p_table_1
+
+chisq.test(table_1)
+
+Job_MANOVA_2 <- manova(as.matrix(Job[,3:5])~Job$sex_F)
+summary(Job_MANOVA_2)
+summary.aov(Job_MANOVA_2)
+@
+
+\section{Basic Logistic Regression Model}
+\textbf{\large{\textit{
+We will examine basic diagnostics using the following binary logistic regression model.
+}}}
+<<tidy=TRUE>>=
+Job_BLR_1 <- glm(Job$job ~ gre_c + pubs_c + years_c + sex_D,  family=binomial("logit"), data = Job)
+summary(Job_BLR_1)
+@
+
+\subsection{Diagnostic Indices}
+\textbf{\large{\textit{
+Examination of diagnostic indices can help identify modeling problems.
+Generally we want to detect outliers and unusually influential cases, eliminate severe multicollinearity, and determine if the chosen distribution and link function are appropriate. \newline
+\newline
+There are quite a number of ways to examine model problems, but we will focus on the same basic diagnostic indices as used in OLS regression: \newline
+\begin{addmargin}[3em]{0em}
+\begin{itemize}
+\item
+Residuals
+\item
+Leverages
+\item
+Cook's distances
+\item
+DFBETAs
+\item
+DFFITs
+\end{itemize}
+\end{addmargin}
+}}}
+
+\subsubsection{Residuals}
+\textbf{\large{\textit{
+Residuals indicate lack of fit for each case and can be constructed in quite a few ways in logistic regression.
+One common form is the Pearson residual: \newline
+\begin{equation*}
+	r_i = \frac{y_i-\boldsymbol{\hat{\pi_i}}}{\sqrt{\boldsymbol{\hat{\pi_i}}(1-\boldsymbol{\hat{\pi_i}})}} 
+\end{equation*}
+in which $y_i$ is the observed response (0 or 1) and $\hat{\pi}$ is the predicted probability of a response.
+Each squared residual is a $\chi^2$ variable with df=1.
+The sum of the individual $\chi^2$ is also a $\chi^2$ variable: \newline
+\begin{equation*}
+	\sum_{i=1}^Nr_i^2 = \textit{\textsf{Pearson }}\boldsymbol{\chi^2_{\scriptscriptstyle{N-p}}}
+\end{equation*}
+A second major residual is the deviance residual: \newline
+\begin{equation*}
+	d_i = s_i\sqrt{-2[y_iln\hat{\boldsymbol{\pi_i}}+(1-y_i)ln(1-\hat{\boldsymbol{\pi_i}})]}
+\end{equation*}
+\begin{equation*}
+	s_i = 1 \textit{\textsf{ when }} y_i=1 \textit{\textsf{ and }} s_i=-1 \textit{\textsf{ when }} y_i=0
+\end{equation*}
+Summing the squared deviances produces the deviance for the entire model.
+In other words, the deviance residual has the convenient interpretation that it represents each case's contribution to the model's badness of fit: \newline
+\begin{equation*}
+	\textit{\textsf{Deviance}} = \sum_{i=1}^Nd_i^2
+\end{equation*}
+A common transformation of these residuals is to standardize them by dividing by the leverage.
+The leverage is a measure of a case's potential influence on a regression model.
+It comes from the diagonal of the "hat" matrix and represents how different a case is from the remaining cases in the multivariate space of the predictors.
+It can range from 0 to 1. \newline
+\begin{equation*}
+	r_{si} = \frac{r_i}{\sqrt{1-h_{ii}}}
+\end{equation*}
+\begin{equation*}
+	d_{si} = \frac{d_i}{\sqrt{1-h_{ii}}}
+\end{equation*}
+One other common adjustment is to calculate the residuals from a model that excludes the case so that it cannot influence the model on which its own residual is based.
+These are known as studentized residuals because their distribution follows the t distribution.
+All of these residuals tend to be very highly related.
+It is sometimes easier to identify unusual cases with standardized and studentized residuals.
+}}}
+<<tidy=TRUE>>=
+Job_BLR_1_R <- cbind(residuals(Job_BLR_1,type="deviance"),residuals(Job_BLR_1,type="pearson"),
+                 residuals(Job_BLR_1,type="working"),residuals(Job_BLR_1,type="response"),
+                 residuals(Job_BLR_1,type="partial"),rstudent(Job_BLR_1,type = "deviance"),
+                 rstudent(Job_BLR_1,type = "pearson"),rstandard(Job_BLR_1,type = "deviance"),
+                 rstandard(Job_BLR_1,type = "pearson"))
+
+Job_BLR_1_R <- as.data.frame(Job_BLR_1_R)
+
+names(Job_BLR_1_R) <- c("deviance","pearson","working","response","partial_sex",
+                    "partial_gre","partial_pubs","partial_years","stud_deviance",
+                    "stud_pearson","stand_deviance","stand_pearson")
+
+psych::describe(Job_BLR_1_R)
+@
+
+<<tidy=TRUE>>=
+ggplot(Job_BLR_1_R, aes(x=1,y=Job_BLR_1_R$deviance)) +
+    geom_boxplot(fill="grey",size=1,color="black",width=.01,
+                 outlier.colour = "red", outlier.shape = 19, outlier.size = 1) + 
+    scale_y_continuous(breaks=c(seq(-3,3,1))) +
+    scale_x_continuous(breaks=c(1)) +
+    coord_cartesian(xlim = c(1,1), ylim = c(-3,3)) +
+    xlab("Entire Sample") + 
+    ylab("Deviance Residuals") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_blank(),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Deviance Residuals")
+@
+
+<<tidy=TRUE>>=
+ggplot(Job_BLR_1_R, aes(x=1,y=Job_BLR_1_R$pearson)) +
+    geom_boxplot(fill="grey",size=1,color="black",width=.01,
+                 outlier.colour = "red", outlier.shape = 19, outlier.size = 1) + 
+    scale_y_continuous(breaks=c(seq(-5.5,6.5,1))) +
+    scale_x_continuous(breaks=c(1)) +
+    coord_cartesian(xlim = c(1,1), ylim = c(-5.5,6.5)) +
+    xlab("Entire Sample") + 
+    ylab("Pearson Residuals") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_blank(),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Pearson Residuals")
+@
+
+<<tidy=TRUE>>=
+Job_BLR_1_R$Case_Num <- seq(1,length(Job_BLR_1_R[,1]),1)
+
+ggplot(Job_BLR_1_R, aes(x=Case_Num,y=Job_BLR_1_R$pearson)) +
+    geom_point(color="blue",size=1) + 
+    scale_y_continuous(breaks=c(seq(-5.5,6.5,1))) +
+    scale_x_continuous(breaks=seq(0,length(Job_BLR_1_R[,1]),50)) +
+    coord_cartesian(xlim = c(1,500), ylim = c(-5.5,6.5)) +
+    xlab("Cases") + 
+    ylab("Pearson Residuals") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Pearson Residuals")
+@
+
+<<tidy=TRUE>>=
+ggplot(Job_BLR_1_R, aes(x=Case_Num,y=Job_BLR_1_R$deviance)) +
+    geom_point(color="blue",size=1) + 
+    scale_y_continuous(breaks=c(seq(-3,3,1))) +
+    scale_x_continuous(breaks=seq(0,length(Job_BLR_1_R[,1]),50)) +
+    coord_cartesian(xlim = c(1,500), ylim = c(-3,3)) +
+    xlab("Cases") + 
+    ylab("Deviance Residuals") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Deviance Residuals")
+@
+
+<<tidy=TRUE>>=
+ggplot(Job_BLR_1_R, aes(x=Case_Num,y=Job_BLR_1_R$stud_deviance)) +
+    geom_point(color="blue",size=1) + 
+    scale_y_continuous(breaks=c(seq(-3,3,1))) +
+    scale_x_continuous(breaks=seq(0,length(Job_BLR_1_R[,1]),50)) +
+    coord_cartesian(xlim = c(1,500), ylim = c(-3,3)) +
+    xlab("Cases") + 
+    ylab("Studentized Deviance Residuals") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Studentized Deviance Residuals")
+@
+
+<<tidy=TRUE>>=
+Extreme_Cases_L <- function(resids,percentile){
+  r_2 <- resids[which(resids<=quantile(resids,probs=((percentile/100))))]
+  c_2 <- which(resids<=quantile(resids,probs=((percentile/100)))) 
+  results <- matrix(NA, nrow=length(r_1),ncol=2)
+  results[,1] <- c_2
+  results[,2] <- r_2
+  results <- results[order(results[,2]),]
+  colnames(results) <- c("Case","Value")
+  return(results)
+}
+@
+
+<<tidy=TRUE>>=
+Extreme_Cases_U <- function(resids,percentile){
+  r_1 <- resids[which(resids>=quantile(resids,probs=1-((percentile/100))))]
+  c_1 <- which(resids>=quantile(resids,probs=1-((percentile/100))))
+  results <- matrix(NA, nrow=length(r_1),ncol=2)
+  results[,1] <- c_1
+  results[,2] <- r_1
+  results <- results[order(results[,2]),]
+  colnames(results) <- c("Case","Value")
+  return(results)
+}
+@
+
+<<tidy=TRUE>>=
+Extreme_Cases_2 <- function(resids,percentile){
+  r_1 <- resids[which(resids>=quantile(resids,probs=1-((percentile/100)/2)))]
+  c_1 <- which(resids>=quantile(resids,probs=1-((percentile/100)/2)))
+  r_2 <- resids[which(resids<=quantile(resids,probs=((percentile/100)/2)))]
+  c_2 <- which(resids<=quantile(resids,probs=((percentile/100)/2))) 
+  results <- matrix(NA, nrow=2*length(r_1),ncol=2)
+  results[,1] <- c(c_1,c_2)
+  results[,2] <- c(r_1,r_2)
+  results <- results[order(results[,2]),]
+  colnames(results) <- c("Case","Value")
+  return(results)
+}
+@
+
+<<tidy=TRUE>>=
+Extreme_Cases_2(Job_BLR_1_R$deviance,1)
+Extreme_Cases_2(Job_BLR_1_R$pearson,1)
+Extreme_Cases_2(Job_BLR_1_R$stud_deviance,1)
+Extreme_Cases_2(Job_BLR_1_R$stud_pearson,1)
+Extreme_Cases_2(Job_BLR_1_R$stand_deviance,1)
+Extreme_Cases_2(Job_BLR_1_R$stand_pearson,1)
+@
+
+\subsubsection{Leverage}
+\textbf{\large{\textit{
+The leverage is a measure of a case's potential influence on a regression model.
+It comes from the diagonal of the "hat" matrix and represents how different a case is from the remaining cases in the multivariate space of the predictors.
+In the generalized linear model for binary data, it is defined as: \newline
+\begin{equation*}
+\textbf{H} = \textbf{W}^{.5}\textbf{X(X}^T\textbf{WX)}^{-1}\textbf{X}^T\textbf{W}^{.5}
+\end{equation*}
+with weights solved iteratively as part of the solution.
+}}}
+
+<<tidy=TRUE>>=
+Job_BLR_1_L <- hatvalues(Job_BLR_1)
+Job_BLR_1_L <- as.data.frame(Job_BLR_1_L)
+names(Job_BLR_1_L) <- c("leverage")
+psych::describe(Job_BLR_1_L)
+@
+
+<<tidy=TRUE>>=
+ggplot(Job_BLR_1_L, aes(x=1,y=Job_BLR_1_L$leverage)) +
+    geom_boxplot(fill="grey",size=1,color="black",width=.01,
+                 outlier.colour = "red", outlier.shape = 19, outlier.size = 1) + 
+    scale_y_continuous(breaks=c(seq(0,.1,.01))) +
+    scale_x_continuous(breaks=c(1)) +
+    coord_cartesian(xlim = c(1,1), ylim = c(0,.1)) +
+    xlab("Entire Sample") + 
+    ylab("Leverage") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_blank(),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Leverages")
+@
+
+<<tidy=TRUE>>=
+Job_BLR_1_L$Case_Num <- seq(1,length(Job_BLR_1_L[,1]),1)
+
+ggplot(Job_BLR_1_L, aes(x=Case_Num,y=Job_BLR_1_L$leverage)) +
+    geom_point(color="blue",size=1) + 
+    scale_y_continuous(breaks=c(seq(0,.1,.01))) +
+    scale_x_continuous(breaks=seq(0,500,50)) +
+    coord_cartesian(xlim = c(1,500), ylim = c(0,.1)) +
+    xlab("Cases") + 
+    ylab("Leverages") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Leverages")
+@
+
+<<tidy=TRUE>>=
+Extreme_Cases_U(Job_BLR_1_L$leverage,1)
+
+Job[64,c(2:5,9)]
+@
+
+\subsubsection{Cook's Distance}
+\textbf{\large{\textit{
+Cook's distance is a general measure of influence.
+It does not have a convenient formula for logistic regression models, but is interpreted in the same way as in OLS regression.
+Cook's distance is the scaled change in fitted values.
+It represents the amount by which the fitted values change with the exclusion of a case from the model
+It can also be thought of as the normalized change in the vector of coefficients due to the deletion of an observation. 
+}}}
+
+<<tidy=TRUE>>=
+Job_BLR_1_CD <- cooks.distance(Job_BLR_1)
+Job_BLR_1_CD <- as.data.frame(Job_BLR_1_CD)
+names(Job_BLR_1_CD) <- c("Cook")
+psych::describe(Job_BLR_1_CD)
+@
+
+<<tidy=TRUE>>=
+ggplot(Job_BLR_1_CD, aes(x=1,y=Job_BLR_1_CD$Cook)) +
+    geom_boxplot(fill="grey",size=1,color="black",width=.01,
+                 outlier.colour = "red", outlier.shape = 19, outlier.size = 1) + 
+    scale_y_continuous(breaks=c(seq(0,.08,.01))) +
+    scale_x_continuous(breaks=c(1)) +
+    coord_cartesian(xlim = c(1,1), ylim = c(0,.08)) +
+    xlab("Entire Sample") + 
+    ylab("Cook's Distance") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_blank(),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cook's Distance")
+@
+
+<<tidy=TRUE>>=
+Job_BLR_1_CD$Case_Num <- seq(1,length(Job_BLR_1_CD[,1]),1)
+
+ggplot(Job_BLR_1_CD, aes(x=Case_Num,y=Job_BLR_1_CD$Cook)) +
+    geom_point(color="blue",size=1) + 
+    scale_y_continuous(breaks=c(seq(0,.08,.01))) +
+    scale_x_continuous(breaks=seq(0,500,50)) +
+    coord_cartesian(xlim = c(1,500), ylim = c(0,.08)) +
+    xlab("Cases") + 
+    ylab("Cook's Distance") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Cook's Distance")
+@
+
+<<tidy=TRUE>>=
+Extreme_Cases_U(Job_BLR_1_CD$Cook,1)
+
+Job[235,c(2:5,9)]
+@
+
+\subsubsection{DFBETAS}
+\textbf{\large{\textit{
+Cook's distance is a general measure of influence.
+DFBETAS is coefficient-specific influence: \newline
+\begin{equation*}
+    DFBETAS_{j(i)} = \frac{\boldsymbol{\beta_j}-\boldsymbol{\beta_{j(i)}}}{se(\boldsymbol{\beta_{j(i)}})}
+\end{equation*}
+In other words, it is the standardized amount by which a coefficient changes when a case is excluded from the model.
+}}}
+<<tidy=TRUE>>=
+Job_BLR_1_DF <- cbind(dffits(Job_BLR_1),dfbetas(Job_BLR_1))
+Job_BLR_1_DF <- as.data.frame(Job_BLR_1_DF)
+names(Job_BLR_1_DF) <- c("dffits","dfb_intercept","dfb_sex","dfb_gre",
+                     "dfb_pubs","dfb_years")
+psych::describe(Job_BLR_1_DF)
+@
+
+<<tidy=TRUE>>=
+ggplot(Job_BLR_1_DF, aes(x=1,y=Job_BLR_1_DF$dfb_pubs)) +
+    geom_boxplot(fill="grey",size=1,color="black",width=.01,
+                 outlier.colour = "red", outlier.shape = 19, outlier.size = 1) + 
+    scale_y_continuous(breaks=round(c(seq(-.5,.5,.1)),3)) +
+    scale_x_continuous(breaks=c(1)) +
+    coord_cartesian(xlim = c(1,1), ylim = c(-.5,.5)) +
+    xlab("Entire Sample") + 
+    ylab("DFBETAS") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_blank(),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("DFBETAS: Publications")
+@
+
+<<tidy=TRUE>>=
+Job_BLR_1_DF$Case_Num <- seq(1,length(Job_BLR_1_DF[,1]),1)
+
+ggplot(Job_BLR_1_DF, aes(x=Case_Num,y=Job_BLR_1_DF$dfb_pubs)) +
+    geom_point(color="blue",size=1) + 
+    scale_y_continuous(breaks=round(c(seq(-.5,.5,.1)),3)) +
+    scale_x_continuous(breaks=seq(0,500,50)) +
+    coord_cartesian(xlim = c(1,500), ylim = c(-.5,.5)) +
+    xlab("Cases") + 
+    ylab("DFBETAS") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("DFBETAS: Publications")
+@
+
+<<tidy=TRUE>>=
+Extreme_Cases_2(Job_BLR_1_DF$dfb_pubs,1)
+
+Job[235,c(2:5,9)]
+@
+
+\subsubsection{DFFITS}
+\textbf{\large{\textit{
+DFFITS is the extent to which the fitted values for a case change when the case is excluded from the model.
+The difference is studentized.
+In OLS regression, DFFITS is defined as:
+\begin{equation*}
+    DFFITS_{j(i)} = \frac{\hat{y}_j-\hat{y}_{j(i)}}{s_{{i}}\sqrt{h_{ii}}}
+\end{equation*}
+with s defined as the standard error when the case is excluded.
+The definition is more complicated in logistic regression, but the interpretation is similar.
+Cases with large DFFITS are overly influential in the model. \newline
+\newline
+DFFITS provides the same kind of information as Cook's distance.
+}}}
+
+<<tidy=TRUE>>=
+ggplot(Job_BLR_1_DF, aes(x=1,y=Job_BLR_1_DF$dffits)) +
+    geom_boxplot(fill="grey",size=1,color="black",width=.01,
+                 outlier.colour = "red", outlier.shape = 19, outlier.size = 1) + 
+    scale_y_continuous(breaks=round(c(seq(-.6,.6,.1)),3)) +
+    scale_x_continuous(breaks=c(1)) +
+    coord_cartesian(xlim = c(1,1), ylim = c(-.6,.6)) +
+    xlab("Entire Sample") + 
+    ylab("DFFITS") +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+      axis.text.y = element_text(colour = "black",size=12,face="bold"),
+      axis.text.x = element_blank(),
+      axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+      axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+      axis.line.x = element_blank(),
+      axis.line.y = element_blank(),
+      plot.title = element_text(size=16, face="bold", 
+                                margin = margin(0, 0, 20, 0),hjust=.5),
+      panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),  
+      plot.background = element_rect(fill = "white"),
+      plot.margin = unit(c(1, 1, 1, 1), "cm"),
+      legend.position = "bottom", 
+      legend.title = element_blank()) +
+  ggtitle("DFFITS")
+@
+
+<<tidy=TRUE>>=
+Extreme_Cases_2(Job_BLR_1_DF$dffits,1)
+@
+
+\subsubsection{Combined Influence Plot}
+<<tidy=TRUE>>=
+plot_data <- cbind(Job_BLR_1_CD,Job_BLR_1_L$leverage,Job_BLR_1_R$stud_pearson)
+names(plot_data) <- c("Cook","Case_Num","Leverage","Student_Pearson")
+
+ggplot(plot_data, aes(x=Leverage,y=Student_Pearson,size=Cook)) +
+    geom_point(color="dodgerblue3") +
+    scale_size(range = c(1, 10)) + 
+    scale_y_continuous(breaks=round(c(seq(-2.8,2.8,.4)),3)) +
+    scale_x_continuous(breaks=seq(0,.1,.01)) +
+    coord_cartesian(xlim = c(0,.1), ylim = c(-2.8,2.8)) +
+    xlab("Leverage") + 
+    ylab("Studentized Pearson Residuals") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+    annotate("text",x=.06,y=2.4,label="Symbol size proportional\n to Cook's Distance",size=5,hjust=0) +
+  ggtitle("Combined Influence Plot")
+@
+
+\subsubsection{Basic Logistic Regression Model \\ Case Omitted}
+\textbf{\large{\textit{
+Here we run the binary logistic regression model with the most unusual case removed.
+}}}
+<<tidy=TRUE>>=
+Job_BLR_1 <- glm(Job$job ~ gre_c + pubs_c + years_c + sex_D,  family=binomial("logit"),
+                 subset=c(-235),data = Job)
+summary(Job_BLR_1)
+@
+
+\subsection{Multicollinearity}
+\textbf{\large{\textit{
+The variance inflation factor (VIF) is a common index for multicollinearity. 
+It is the inverse of $1-R^2$, with R being the multiple correlation relating a given predictor to the remaining predictors.
+This is also the reciprocal of the tolerance.
+It is called the variance inflation factor because it indicates the amount by which the variance for a coefficient is inflated because of dependence with other predictors. 
+A VIF of 2.00 indicates that the variance (or the square of the standard error) of a particular coefficient is 2 times larger than it would be if that predictor was completely uncorrelated with all the other predictors.
+A VIF of 2.00 also means that a predictor shares 50\% of its variance with other predictors.
+Some argue that a VIF of 4 or greater is a cause for concern, but some argue for even higher thresholds (5 to 10).
+}}}
+<<tidy=TRUE>>=
+vif(Job_BLR_1)
+cor(model.matrix(Job_BLR_1)[,-1])
+1/vif(Job_BLR_1)
+@
+
+\subsection{Overdispersion}
+\textbf{\large{\textit{
+By selecting the binomial model, we assume that the dispersion is consistent with that model.
+In other words, in a binomial distribution we assume the mean and variance to be related (mean = p, variance = p[1-p]).
+Most commonly the variance will be larger than expected, known as overdispersion.
+The quasi-binomial family allows for the variance to be separately estimated, providing for overdispersed (and underdispersed) models.
+}}}
+<<tidy=TRUE>>=
+Job_BLR_5 <- glm(Job$job ~ gre_c + pubs_c + years_c + sex_D,  family=binomial("logit"), data = Job)
+summary(Job_BLR_5)
+Job_BLR_8 <- glm(Job$job ~ gre_c + pubs_c + years_c + sex_D,  family=quasibinomial("logit"), data = Job)
+summary(Job_BLR_8)
+confint(Job_BLR_8) 
+confint.default(Job_BLR_8) 
+exp(cbind(OR = coef(Job_BLR_8), confint(Job_BLR_8)))
+with(Job_BLR_8, null.deviance - deviance)
+with(Job_BLR_8, df.null - df.residual)
+with(Job_BLR_8, pchisq(null.deviance - deviance, df.null - df.residual, lower.tail = FALSE))
+@
+
+<<tidy=TRUE>>=
+overdispersion <- function(model) {
+  Overdispersion <- sum(resid(model,type="pearson")^2)/df.residual(model)
+  Overdispersion_chi_Square <- sum(resid(model,type="pearson")^2)
+  Overdispersion_p_value <-pchisq(Overdispersion_chi_Square, df=df.residual(model), lower.tail=FALSE)
+  c(Overdispersion=Overdispersion,Chi_Sq=Overdispersion_chi_Square,df=df.residual(model),p=Overdispersion_p_value)
+}
+
+overdispersion(Job_BLR_5)
+@
+
+\subsection{Adequacy of the Logistic Model}
+\textbf{\large{\textit{
+Is the logistic model adequate?  
+To test this, we can save the fitted logistic values, square them, and then enter them as an additional predictor in the model.  This tests if there is any relationship beyond a linear logistic in the data.  The coefficient for this new predictor should be clearly nonsignificant.
+}}}
+
+<<tidy=TRUE>>=
+Job_BLR_5 <- glm(Job$job ~ gre_c + pubs_c + years_c + sex_D,  family=binomial("logit"), data = Job)
+summary(Job_BLR_5)
+
+Job <- cbind(Job,predict(Job_BLR_5))
+
+names(Job) <- c(names(Job[-length(Job[1,])]),"p_logit")
+
+Job_BLR_5a <- glm(Job$job ~ gre_c + pubs_c + years_c + sex_D + I(p_logit^2),  family=binomial("logit"), data = Job)
+summary(Job_BLR_5a)
+@
+\clearpage
+\section{Multinomial Logistic Regression}
+\textbf{\large{\textit{
+When there are more than two response categories, the multinomial model is used.
+In this model, one of the response categories becomes the reference and the analysis compares each of the other response categories to it.
+Multinomial regression is essential a collection of binary logistic regressions, each comparing a response category to the reference.
+In the following model, we will select the "interview only" group as the reference.
+This will allow us to determine what distinguishes those who do not get interviews from those who do get interview (but not a job offer), and,
+to determine what distinguishes those who get job offers from those who don't (but are interviewed).
+}}}
+
+\clearpage
+\subsection{Rearrange Data File for mlogit}
+\textbf{\large{\textit{
+The data need to be in a particular arrangement for the mlogit package.
+}}}
+<<tidy=TRUE>>=
+jobs <- read.table('jobs.csv',sep=',',header=TRUE)
+jobs <- as.data.frame(jobs)
+jobs$sex_D <- ifelse(jobs$sex==2,1,0)
+jobs$ordered <- factor(jobs$ordered,levels=c(1,2,3),labels=c("Not Interviewed","Interviewed","Hired"))
+jobs$group_2 <- factor(jobs$group,levels=c(1,2,3),labels=c("Not Interviewed","Hired","Interviewed"))
+with(jobs, table(group_2)/500)
+with(jobs, table(group_2))
+
+
+jobs_2 <-matrix(NA,nrow=1500,ncol=6)
+colnames(jobs_2) <- c("case","outcome","sex","gre","years","pubs")
+jobs_2 <- as.data.frame(jobs_2)
+
+counter <- 0
+for (i in 1:500) {
+   counter <- counter+1
+   jobs_2[counter,1] <- i
+   if(jobs[i,"group"]==1) {
+    jobs_2[counter,2] <- 1
+   } else {
+    jobs_2[counter,2] <- 0
+   }
+   jobs_2[counter,3] <- jobs[i,"sex"]
+   jobs_2[counter,4] <- jobs[i,"gre"]
+   jobs_2[counter,5] <- jobs[i,"years"]
+   jobs_2[counter,6] <- jobs[i,"pubs"]  
+
+   counter <- counter+1
+   jobs_2[counter,1] <- i
+   if(jobs[i,"group"]==2) {
+     jobs_2[counter,2] <- 1
+   } else {
+    jobs_2[counter,2] <- 0
+   }
+   jobs_2[counter,3] <- jobs[i,"sex"]
+   jobs_2[counter,4] <- jobs[i,"gre"]
+   jobs_2[counter,5] <- jobs[i,"years"]
+   jobs_2[counter,6] <- jobs[i,"pubs"]  
+
+   counter <- counter+1
+   jobs_2[counter,1] <- i
+   if(jobs[i,"group"]==3) {
+    jobs_2[counter,2] <- 1
+   } else {
+    jobs_2[counter,2] <- 0
+   }
+   jobs_2[counter,3] <- jobs[i,"sex"]
+   jobs_2[counter,4] <- jobs[i,"gre"]
+   jobs_2[counter,5] <- jobs[i,"years"]
+   jobs_2[counter,6] <- jobs[i,"pubs"]      
+}
+
+jobs_2$outcome.ids<-factor(rep(1:3,500),labels=c("Not Interviewed","Hired","Interviewed"))
+
+# The mlogit( ) function requires the data to be reformatted
+# to an mlogit object. The outcome variable is specified with
+# the "choice" option.
+J <- mlogit.data(jobs_2,shape="long",choice="outcome",alt.var="outcome.ids")
+@
+
+\subsection{Model Fit}
+\textbf{\large{\textit{
+The mlogit( ) function from the mlogit package is used to fit a multinomial logistic regression model.
+The "not interviewed" group is used as the reference.
+That is changed later.
+}}}
+
+<<tidy=TRUE>>=
+Ref_Level <- "Not Interviewed"
+Job_MLR_1 <- mlogit(outcome~0|1+sex+gre+years+pubs,data=J,reflevel = Ref_Level)
+summary(Job_MLR_1)
+S_Job_MLR_1 <- summary(Job_MLR_1)
+@
+
+\subsection{Odds Ratios and Confidence Intervals}
+<<tidy=TRUE>>=
+OR <- exp(S_Job_MLR_1$CoefTable[,1])
+OR_LL <- exp(S_Job_MLR_1$CoefTable[,1]-1.96*S_Job_MLR_1$CoefTable[,2])
+OR_UL <- exp(S_Job_MLR_1$CoefTable[,1]+1.96*S_Job_MLR_1$CoefTable[,2])
+OR
+OR_LL
+OR_UL
+@
+
+\textbf{\large{\textit{
+\begin{tabular}{| L{3.5cm} | R{2cm}| R{2cm} | R{2cm} |}
+\hline
+\multicolumn{4}{|c|}{Odds Ratios} \\
+\hline
+ Predictor & Odds Ratio & Lower 95\% & Upper 95\% \\
+\hline
+ Interviewed: Sex & \Sexpr{toString(round(OR[4],3))} & \Sexpr{toString(round(OR_LL[4],3))} & \Sexpr{toString(round(OR_UL[4],3))} \\ 
+ Interviewed: GRE & \Sexpr{toString(round(OR[6],3))} & \Sexpr{toString(round(OR_LL[6],3))} & \Sexpr{toString(round(OR_UL[6],3))} \\ 
+ Interviewed: Years & \Sexpr{toString(round(OR[8],3))} & \Sexpr{toString(round(OR_LL[8],3))} & \Sexpr{toString(round(OR_UL[8],3))} \\ 
+ Interviewed: Pubs & \Sexpr{toString(round(OR[10],3))} & \Sexpr{toString(round(OR_LL[10],3))} & \Sexpr{toString(round(OR_UL[10],3))} \\
+ Hired: Sex & \Sexpr{toString(round(OR[3],3))} & \Sexpr{toString(round(OR_LL[3],3))} & \Sexpr{toString(round(OR_UL[3],3))} \\ 
+ Hired: GRE & \Sexpr{toString(round(OR[5],3))} & \Sexpr{toString(round(OR_LL[5],3))} & \Sexpr{toString(round(OR_UL[5],3))} \\ 
+ Hired: Years & \Sexpr{toString(round(OR[7],3))} & \Sexpr{toString(round(OR_LL[7],3))} & \Sexpr{toString(round(OR_UL[7],3))} \\ 
+ Hired: Pubs & \Sexpr{toString(round(OR[9],3))} & \Sexpr{toString(round(OR_LL[9],3))} & \Sexpr{toString(round(OR_UL[9],3))} \\
+\hline
+\end{tabular}
+\newline
+}}}
+
+\subsection{Classification}
+<<tidy=TRUE>>=
+fit_prob <- as.data.frame(Job_MLR_1$probabilities)
+for (i in 1:500) {
+  if((Job_MLR_1$probabilities[i,1] > Job_MLR_1$probabilities[i,2]) & (Job_MLR_1$probabilities[i,1] > Job_MLR_1$probabilities[i,3])) {
+    jobs[i,"p_group"] <- names(fit_prob)[1]
+  } else if((Job_MLR_1$probabilities[i,2] > Job_MLR_1$probabilities[i,1]) & (Job_MLR_1$probabilities[i,2] > Job_MLR_1$probabilities[i,3])) {
+    jobs[i,"p_group"] <- names(fit_prob)[2]
+  } else if((Job_MLR_1$probabilities[i,3] > Job_MLR_1$probabilities[i,1]) & (Job_MLR_1$probabilities[i,3] > Job_MLR_1$probabilities[i,2])) { 
+    jobs[i,"p_group"] <- names(fit_prob)[3]
+  }
+}
+
+# cross_class <- with(jobs[order(jobs$group_2),], table(group_2,p_group))
+cross_class <- with(jobs[order(jobs$p_group),], table(group_2,p_group))
+cross_class
+cross_class/sum(cross_class)
+
+correct_class <- 0
+for (i in 1:3) {
+  for (j in 1:3) {
+    if (row.names(cross_class)[i]==colnames(cross_class)[j]) {
+      correct_class <- correct_class + cross_class[i,j]
+    }
+  }
+}
+prop_class <- cross_class/sum(cross_class)
+correct_class/sum(cross_class)
+summary(cross_class)
+@
+
+\textbf{\large{\textit{
+\begin{tabular}{| L{5.5cm} | C{3cm}| C{3cm} | C{3cm} |}
+\hline
+\multicolumn{4}{|c|}{Classification} \\
+\hline
+  & Not Interviewed & Interviewed & Hired \\
+\hline
+ Predict: Not Interviewed & \Sexpr{toString(round(cross_class[1,3],3))} & \Sexpr{toString(round(cross_class[3,3],3))} & \Sexpr{toString(round(cross_class[2,3],3))}\\ 
+\hline 
+ Predict: Interviewed & \Sexpr{toString(round(cross_class[1,2],3))} & \Sexpr{toString(round(cross_class[3,2],3))} & \Sexpr{toString(round(cross_class[2,2],3))}\\ 
+\hline 
+ Predict: Hired & \Sexpr{toString(round(cross_class[1,1],3))} & \Sexpr{toString(round(cross_class[3,1],3))} & \Sexpr{toString(round(cross_class[2,1],3))}\\  
+\hline
+\end{tabular}
+\newline
+\newline
+\newline
+}}}
+
+\textbf{\large{\textit{
+\begin{tabular}{| L{5.5cm} | C{3cm}| C{3cm} | C{3cm} |}
+\hline
+\multicolumn{4}{|c|}{Classification} \\
+\hline
+  & Not Interviewed & Interviewed & Hired \\
+\hline
+ Predict: Not Interviewed & \Sexpr{toString(round(prop_class[1,3],3))} & \Sexpr{toString(round(prop_class[3,3],3))} & \Sexpr{toString(round(prop_class[2,3],3))}\\ 
+\hline 
+ Predict: Interviewed & \Sexpr{toString(round(prop_class[1,2],3))} & \Sexpr{toString(round(prop_class[3,2],3))} & \Sexpr{toString(round(prop_class[2,2],3))}\\ 
+\hline 
+ Predict: Hired & \Sexpr{toString(round(prop_class[1,1],3))} & \Sexpr{toString(round(prop_class[3,1],3))} & \Sexpr{toString(round(prop_class[2,1],3))}\\  
+\hline
+\end{tabular}
+\newline
+}}}
+
+\subsection{Comparison of Coefficients}
+<<tidy=TRUE>>=
+M1=matrix(c(0,0,1,-1,0,0,0,0,0,0,
+            0,0,0,0,1,-1,0,0,0,0,
+            0,0,0,0,0,0,1,-1,0,0,
+            0,0,0,0,0,0,0,0,1,-1),nrow=4,ncol=10,byrow=TRUE)
+rownames(M1) <- c("Sex Difference","GRE Difference","Years Difference","Pubs Difference")
+M1
+glht_M1 <- glht(Job_MLR_1,linfct=M1,alternative="two.sided",rhs=0)
+summary(glht_M1)
+confint(glht_M1,calpha = univariate_calpha())
+@
+
+\subsection{Predicted Outcomes}
+\textbf{\large{\textit{
+Getting predicted outcomes is complicated with the mlogit( ) function. 
+The intercepts reported in the output do not correspond to those provided by other packages or other software.
+Using them does not produce correct predicted logits (or probabilities or odds).
+In the following, the multinom( ) function from the nnet package is used to get the correct intercepts.
+The multinom( ) has its own problems in that it does not produce the correct standard errors for model coefficients.
+Combining elements from both packages is currently the best that can be done.
+}}}
+<<tidy=TRUE>>=
+pred_data <- matrix(NA,nrow=11,ncol=10)
+colnames(pred_data) <- c("pubs","p_not_I","p_I","p_H","L_not_I","L_I","L_H","O_not_I","O_I","O_H")
+
+M_sex <- mean(jobs$sex)
+M_gre <- mean(jobs$gre)
+M_years <- mean(jobs$years)
+
+jobs$group_2 <-relevel(jobs$group_2,ref=Ref_Level)
+MLR <- multinom(group_2 ~ sex+gre+years+pubs,data = jobs)
+
+Job_MLR_1$coefficients[1] <- coefficients(MLR)[1]
+Job_MLR_1$coefficients[2] <- coefficients(MLR)[2]
+
+for (pubs in 0:10) {
+  pred_data[pubs+1,1] <- pubs
+  L_H <- Job_MLR_1$coefficients[1]+Job_MLR_1$coefficients[3]*M_sex+Job_MLR_1$coefficients[5]*M_gre+Job_MLR_1$coefficients[7]*M_years+Job_MLR_1$coefficients[9]*pubs
+  L_I <-  Job_MLR_1$coefficients[2]+Job_MLR_1$coefficients[4]*M_sex+Job_MLR_1$coefficients[6]*M_gre+Job_MLR_1$coefficients[8]*M_years+Job_MLR_1$coefficients[10]*pubs
+  pred_data[pubs+1,2] <- 1/(1+exp(L_H)+exp(L_I))
+  pred_data[pubs+1,3] <- exp(L_I)/(1+exp(L_H)+exp(L_I))
+  pred_data[pubs+1,4] <- exp(L_H)/(1+exp(L_H)+exp(L_I))
+  pred_data[pubs+1,5] <- log(pred_data[pubs+1,2]/(1-pred_data[pubs+1,2]))
+  pred_data[pubs+1,6] <- L_I
+  pred_data[pubs+1,7] <- L_H
+  pred_data[pubs+1,8] <- pred_data[pubs+1,2]/(1-pred_data[pubs+1,2])
+  pred_data[pubs+1,9] <- pred_data[pubs+1,3]/(1-pred_data[pubs+1,3])  
+  pred_data[pubs+1,10] <- pred_data[pubs+1,4]/(1-pred_data[pubs+1,4])    
+}
+pred_data <- as.data.frame(pred_data)
+@
+
+<<tidy=TRUE>>=
+ggplot(pred_data, aes(x = pubs,y=L_not_I)) +
+  geom_line(size=1.5,color="red") + 
+  geom_point(size=3,color="red") +
+  geom_line(aes(y=L_I),size=1.5,color="blue") + 
+  geom_point(aes(y=L_I),size=3,color="blue") +  
+  geom_line(aes(y=L_H),size=1.5,color="green4") + 
+  geom_point(aes(y=L_H),size=3,color="green4") +    
+  coord_cartesian(xlim = c(0,10), ylim = c(-50,50)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(-50,50,10)) +
+  xlab("Publications") + 
+  ylab("Logit") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+        axis.text.y = element_text(colour = "black",size=12,face="bold"),
+        axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+        axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+        axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+        panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),  
+        plot.background = element_rect(fill = "white"),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),
+        legend.position = "bottom", 
+        legend.title = element_blank()) +
+  annotate("text", x = .6, y = 50, label = "Not Interviewed",color="red",hjust=0, size=5) +
+  annotate("text", x = .6, y = 45, label = "Interviewed, Not Hired", color="blue",hjust=0,size=5) + 
+  annotate("text", x = .6, y = 40, label = "Hired",color="green4",hjust=0, size=5) +
+  annotate("segment", x = 0, xend = .5, y = 50, yend = 50, color = "red", size=1.2,linetype=1) +
+  annotate("segment", x = 0, xend = .5, y = 45, yend = 45, color = "blue", size=1.2,linetype=1) + 
+  annotate("segment", x = 0, xend = .5, y = 40, yend = 40, color = "green4", size=1.2,linetype=1) +
+  ggtitle("Predicted Logit \nas a Function of Publications")
+@
+
+<<tidy=TRUE>>=
+ggplot(pred_data, aes(x = pubs,y=p_not_I)) +
+  geom_line(size=1.5,color="red") + 
+  geom_point(size=3,color="red") +
+  geom_line(aes(y=p_I),size=1.5,color="blue") + 
+  geom_point(aes(y=p_I),size=3,color="blue") +  
+  geom_line(aes(y=p_H),size=1.5,color="green4") + 
+  geom_point(aes(y=p_H),size=3,color="green4") +    
+  coord_cartesian(xlim = c(0,10), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Publications") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+        axis.text.y = element_text(colour = "black",size=12,face="bold"),
+        axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+        axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+        axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+        panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),  
+        plot.background = element_rect(fill = "white"),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),
+        legend.position = "bottom", 
+        legend.title = element_blank()) +
+  annotate("text", x = 7.5, y = .7, label = "Not Interviewed",color="red",hjust=0, size=5) +
+  annotate("text", x = 7.5, y = .6, label = "Interviewed, \nNot Hired", color="blue",hjust=0,size=5) + 
+  annotate("text", x = 7.5, y = .5, label = "Hired",color="green4",hjust=0, size=5) +
+  annotate("segment", x = 7, xend = 7.4, y = .7, yend = .7, color = "red", size=1.2,linetype=1) +
+  annotate("segment", x = 7, xend = 7.4, y = .6, yend = .6, color = "blue", size=1.2,linetype=1) + 
+  annotate("segment", x = 7, xend = 7.4, y = .5, yend = .5, color = "green4", size=1.2,linetype=1) +
+  ggtitle("Predicted Probability \nas a Function of Publications")
+@
+
+<<tidy=TRUE>>=
+ggplot(pred_data, aes(x = pubs,y=O_not_I)) +
+  geom_line(size=1.5,color="red") + 
+  geom_point(size=3,color="red") +
+  geom_line(aes(y=O_I),size=1.5,color="blue") + 
+  geom_point(aes(y=O_I),size=3,color="blue") +  
+  geom_line(aes(y=O_H),size=1.5,color="green4") + 
+  geom_point(aes(y=O_H),size=3,color="green4") +    
+  coord_cartesian(xlim = c(0,10), ylim = c(0,2000)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,2000,250)) +
+  xlab("Publications") + 
+  ylab("Odds") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+        axis.text.y = element_text(colour = "black",size=12,face="bold"),
+        axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+        axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+        axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+        panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),  
+        plot.background = element_rect(fill = "white"),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),
+        legend.position = "bottom", 
+        legend.title = element_blank()) +
+  annotate("text", x = 2.5, y = 2000, label = "Not Interviewed",color="red",hjust=0, size=5) +
+  annotate("text", x = 2.5, y = 1900, label = "Interviewed, Not Hired", color="blue",hjust=0,size=5) + 
+  annotate("text", x = 2.5, y = 1800, label = "Hired",color="green4",hjust=0, size=5) +
+  annotate("segment", x = 2, xend = 2.4, y = 2000, yend = 2000, color = "red", size=1.2,linetype=1) +
+  annotate("segment", x = 2, xend = 2.4, y = 1900, yend = 1900, color = "blue", size=1.2,linetype=1) + 
+  annotate("segment", x = 2, xend = 2.4, y = 1800, yend = 1800, color = "green4", size=1.2,linetype=1) +
+  ggtitle("Predicted Odds \nas a Function of Publications")
+@
+
+<<tidy=TRUE>>=
+ggplot(pred_data, aes(x = pubs,y=O_not_I)) +
+  geom_line(size=1.5,color="red") + 
+  geom_point(size=3,color="red") +
+  geom_line(aes(y=O_I),size=1.5,color="blue") + 
+  geom_point(aes(y=O_I),size=3,color="blue") +  
+  geom_line(aes(y=O_H),size=1.5,color="green4") + 
+  geom_point(aes(y=O_H),size=3,color="green4") +    
+  coord_cartesian(xlim = c(0,10), ylim = c(0,18000)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,18000,2000)) +
+  xlab("Publications") + 
+  ylab("Odds") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+        axis.text.y = element_text(colour = "black",size=12,face="bold"),
+        axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+        axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+        axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+        panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),  
+        plot.background = element_rect(fill = "white"),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),
+        legend.position = "bottom", 
+        legend.title = element_blank()) +
+  annotate("text", x = 2.5, y = 18000, label = "Not Interviewed",color="red",hjust=0, size=5) +
+  annotate("text", x = 2.5, y = 17000, label = "Interviewed, Not Hired", color="blue",hjust=0,size=5) + 
+  annotate("text", x = 2.5, y = 16000, label = "Hired",color="green4",hjust=0, size=5) +
+  annotate("segment", x = 2, xend = 2.4, y = 18000, yend = 18000, color = "red", size=1.2,linetype=1) +
+  annotate("segment", x = 2, xend = 2.4, y = 17000, yend = 17000, color = "blue", size=1.2,linetype=1) + 
+  annotate("segment", x = 2, xend = 2.4, y = 16000, yend = 16000, color = "green4", size=1.2,linetype=1) +
+  ggtitle("Predicted Odds \nas a Function of Publications")
+@
+
+\clearpage
+\section{Proportional Odds Logistic Regression}
+<<tidy=TRUE>>=
+Job_POLR_1 <- polr(ordered ~ sex+gre+pubs+years, data = jobs, Hess=TRUE,method="logistic")
+summary(Job_POLR_1)
+S_Job_POLR_1 <- summary(Job_POLR_1)
+@
+
+\subsection{Classification}
+<<tidy=TRUE>>=
+fit_prob <- as.data.frame(fitted(Job_POLR_1))
+for (i in 1:500) {
+  if((fitted(Job_POLR_1)[i,1] > fitted(Job_POLR_1)[i,2]) & (fitted(Job_POLR_1)[i,1] > fitted(Job_POLR_1)[i,3])) {
+    jobs[i,"p_group"] <- names(fit_prob)[1]
+  } else if((fitted(Job_POLR_1)[i,2] > fitted(Job_POLR_1)[i,1]) & (fitted(Job_POLR_1)[i,2] > fitted(Job_POLR_1)[i,3])) {
+    jobs[i,"p_group"] <- names(fit_prob)[2]
+  } else if((fitted(Job_POLR_1)[i,3] > fitted(Job_POLR_1)[i,1]) & (fitted(Job_POLR_1)[i,3] > fitted(Job_POLR_1)[i,2])) { 
+    jobs[i,"p_group"] <- names(fit_prob)[3]
+  }
+}
+
+cross_class <- with(jobs, table(group_2,p_group))
+cross_class
+cross_class/sum(cross_class)
+
+correct_class <- 0
+for (i in 1:3) {
+  for (j in 1:3) {
+    if (row.names(cross_class)[i]==colnames(cross_class)[j]) {
+      correct_class <- correct_class + cross_class[i,j]
+    }
+  }
+}
+correct_class/sum(cross_class)
+summary(cross_class)
+@
+
+\textbf{\large{\textit{
+\begin{tabular}{| L{5.5cm} | C{3cm}| C{3cm} | C{3cm} |}
+\hline
+\multicolumn{4}{|c|}{Classification} \\
+\hline
+  & Not Interviewed & Interviewed & Hired \\
+\hline
+ Predict: Not Interviewed & \Sexpr{toString(round(cross_class[1,3],3))} & \Sexpr{toString(round(cross_class[3,3],3))} & \Sexpr{toString(round(cross_class[2,3],3))}\\ 
+\hline 
+ Predict: Interviewed & \Sexpr{toString(round(cross_class[1,2],3))} & \Sexpr{toString(round(cross_class[3,2],3))} & \Sexpr{toString(round(cross_class[2,2],3))}\\ 
+\hline 
+ Predict: Hired & \Sexpr{toString(round(cross_class[1,1],3))} & \Sexpr{toString(round(cross_class[3,1],3))} & \Sexpr{toString(round(cross_class[2,1],3))}\\  
+\hline
+\end{tabular}
+\newline
+\newline
+\newline
+}}}
+
+\textbf{\large{\textit{
+\begin{tabular}{| L{5.5cm} | C{3cm}| C{3cm} | C{3cm} |}
+\hline
+\multicolumn{4}{|c|}{Classification} \\
+\hline
+  & Not Interviewed & Interviewed & Hired \\
+\hline
+ Predict: Not Interviewed & \Sexpr{toString(round(prop_class[1,3],3))} & \Sexpr{toString(round(prop_class[3,3],3))} & \Sexpr{toString(round(prop_class[2,3],3))}\\ 
+\hline 
+ Predict: Interviewed & \Sexpr{toString(round(prop_class[1,2],3))} & \Sexpr{toString(round(prop_class[3,2],3))} & \Sexpr{toString(round(prop_class[2,2],3))}\\ 
+\hline 
+ Predict: Hired & \Sexpr{toString(round(prop_class[1,1],3))} & \Sexpr{toString(round(prop_class[3,1],3))} & \Sexpr{toString(round(prop_class[2,1],3))}\\  
+\hline
+\end{tabular}
+\newline
+}}}
+
+\subsection{Predicted Outcomes}
+<<tidy=TRUE>>=
+predict_data <- with(jobs,data.frame(years=mean(jobs$years),gre=mean(jobs$gre),
+                          sex=mean(jobs$sex), pubs=seq(0,10,1)))
+plot_data <- predict(Job_POLR_1, predict_data, type="probs")
+plot_data <- as.data.frame(plot_data)
+plot_data <- cbind(seq(0,10,1),plot_data)
+names(plot_data) <- c("pubs","p_not_I","p_I","p_H")
+@
+
+\subsection{Graphs: Publications}
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = pubs,y=p_not_I)) +
+  geom_line(size=1.5,color="red") + 
+  geom_point(size=3,color="red") +  
+  geom_line(aes(y=p_I), size=1.5,color="blue") + 
+  geom_point(aes(y=p_I),size=3,color="blue") + 
+  geom_line(aes(y=p_H),size=1.5,color="green4") + 
+  geom_point(aes(y=p_H),size=3,color="green4") +   
+  coord_cartesian(xlim = c(0,10), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Publications") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+        axis.text.y = element_text(colour = "black",size=12,face="bold"),
+        axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+        axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+        axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+        panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),  
+        plot.background = element_rect(fill = "white"),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),
+        legend.position = "bottom", 
+        legend.title = element_blank()) +
+  annotate("text", x = 7.5, y = .7, label = "Not Interviewed",color="red",hjust=0, size=5) +
+  annotate("text", x = 7.5, y = .6, label = "Interviewed, \n Not Hired", color="blue",hjust=0,size=5) + 
+  annotate("text", x = 7.5, y = .5, label = "Hired",color="green4",hjust=0, size=5) +
+  annotate("segment", x = 7, xend = 7.4, y = .7, yend = .7, color = "red", size=1.2,linetype=1) +
+  annotate("segment", x = 7, xend = 7.4, y = .6, yend = .6, color = "blue", size=1.2,linetype=1) + 
+  annotate("segment", x = 7, xend = 7.4, y = .5, yend = .5, color = "green4", size=1.2,linetype=1) +
+  ggtitle("Predicted Probability \nas a Function of Publications")
+@
+
+\subsection{Predicted Outcomes}
+<<tidy=TRUE>>=
+plot_data$p_not_H <- plot_data$p_not_I+plot_data$p_I
+@
+
+\subsection{Graphs: Publications}
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = pubs,y=p_not_H)) +
+  geom_line(size=1.5,color="red") + 
+  geom_point(size=3,color="red") +  
+  geom_line(aes(y=p_H),size=1.5,color="green4") + 
+  geom_point(aes(y=p_H),size=3,color="green4") +   
+  coord_cartesian(xlim = c(0,10), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Publications") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+        axis.text.y = element_text(colour = "black",size=12,face="bold"),
+        axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+        axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+        axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+        panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),  
+        plot.background = element_rect(fill = "white"),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),
+        legend.position = "bottom", 
+        legend.title = element_blank()) +
+  annotate("text", x = 7.5, y = .7, label = "Not Hired",color="red",hjust=0, size=5) +
+  annotate("text", x = 7.5, y = .6, label = "Hired",color="green4",hjust=0, size=5) +
+  annotate("segment", x = 7, xend = 7.4, y = .7, yend = .7, color = "red", size=1.2,linetype=1) +
+  annotate("segment", x = 7, xend = 7.4, y = .6, yend = .6, color = "green4", size=1.2,linetype=1) + 
+  ggtitle("Predicted Probability \nas a Function of Publications")
+@
+
+\subsection{Predicted Outcomes}
+<<tidy=TRUE>>=
+plot_data$p_all_I <- plot_data$p_I+plot_data$p_H
+@
+
+\subsection{Graphs: Publications}
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = pubs,y=p_not_I)) +
+  geom_line(size=1.5,color="red") + 
+  geom_point(size=3,color="red") +  
+  geom_line(aes(y=p_all_I),size=1.5,color="green4") + 
+  geom_point(aes(y=p_all_I),size=3,color="green4") +   
+  coord_cartesian(xlim = c(0,10), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Publications") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+        axis.text.y = element_text(colour = "black",size=12,face="bold"),
+        axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+        axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+        axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+        panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),  
+        plot.background = element_rect(fill = "white"),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),
+        legend.position = "bottom", 
+        legend.title = element_blank()) +
+  annotate("text", x = 7.5, y = .7, label = "Not Interviewed",color="red",hjust=0, size=5) +
+  annotate("text", x = 7.5, y = .6, label = "Interviewed",color="green4",hjust=0, size=5) +
+  annotate("segment", x = 7, xend = 7.4, y = .7, yend = .7, color = "red", size=1.2,linetype=1) +
+  annotate("segment", x = 7, xend = 7.4, y = .6, yend = .6, color = "green4", size=1.2,linetype=1) + 
+  ggtitle("Predicted Probability \nas a Function of Publications")
+@
+
+<<tidy=TRUE>>=
+Sys.time()-how_long
+@
+
+\end{document}

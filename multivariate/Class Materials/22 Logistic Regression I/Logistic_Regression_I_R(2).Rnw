@@ -1,0 +1,1165 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Logistic Regression I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+In this section, the RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Packages are loaded and any required data files are retrieved.
+}}}
+
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(plyr)
+library(aod)
+library(MVN)
+library(boot)
+library(car)
+library(LogisticDx)
+library(GGally)
+library(reshape2)
+library(MVN)
+library(qqplotr)
+library(gridExtra)
+library(caret)
+@
+
+\section{Data}
+\textbf{\large{\textit{
+In this hypothetical example, data from 500 graduate students seeking jobs were examined. 
+Available for each student were three predictors: GRE(V+Q), Years to Finish the Degree, and Number of Publications. 
+The outcome measure was categorical: "Got a job" versus "Did not get a job."
+}}}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+Job<-read.table('jobs_example_for_ppt.csv',sep=',',header=TRUE)
+Job <- as.data.frame(Job)
+Job$job_result[Job$job=="0"] <- "No Job"
+Job$job_result[Job$job=="1"] <- "Job"
+
+# Dummy code for sex.
+Job$sex_D <- ifelse(Job$sex==2,1,0)
+
+# Dummy codes for men and women
+Job$M_D <- ifelse(Job$sex==1,1,0)
+Job$F_D <- ifelse(Job$sex==2,1,0)
+
+# Centered predictors.
+Job$gre_c <- as.numeric(scale(Job$gre,scale=FALSE))
+Job$pubs_c <- as.numeric(scale(Job$pubs,scale=FALSE))
+Job$years_c <- as.numeric(scale(Job$years,scale=FALSE))
+
+# Residuals
+Job$gre_R <- lm(gre ~ as.factor(job), data=Job)$residuals
+Job$pubs_R <- lm(pubs ~ as.factor(job), data=Job)$residuals
+Job$years_R <- lm(years ~ as.factor(job), data=Job)$residuals
+
+describe(Job[,c(3:5,7,11:15)])
+@
+
+\clearpage
+\section{Job Search Data}
+\textbf{\large{\textit{
+These hypothetical data simulate the factors that might contribute to successfully getting an academic job.
+}}}
+
+\section{Basic Visualization}
+\textbf{\large{\textit{
+The basic nature of the data is easily viewed with some simple graphics.
+}}}
+<<tidy=TRUE>>=
+ggpairs(Job[16:18],
+      lower = list(continuous = "smooth"),
+      upper = list(continuous = "cor"),
+      columnLabels=c("GRE","Publications","Years")) +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=9,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Correlations Among Job Search Features (Residuals)")
+@
+
+<<tidy=TRUE>>=
+p1 <- ggplot(Job, aes(x=job_result, y=gre)) + 
+        geom_boxplot(fill="gray") +
+        ylab("GRE Total") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("GRE Total")
+
+p2 <- ggplot(Job, aes(x=job_result, y=pubs)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Publications") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Publications")
+
+p3 <- ggplot(Job, aes(x=job_result, y=years)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Years to Complete") +
+        xlab("Job Status") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Years")
+grid.arrange(p1,p2,p3,nrow=1)
+@
+
+<<tidy=TRUE>>=
+Job$sex_F <- factor(Job$sex,levels=c(1,2),labels=c("Men","Women"))
+p1 <- ggplot(Job, aes(x=sex_F, y=gre)) + 
+        geom_boxplot(fill="gray") +
+        ylab("GRE Total") +
+        xlab("Sex") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("GRE Total")
+
+p2 <- ggplot(Job, aes(x=sex_F, y=pubs)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Publications") +
+        xlab("Sex") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Publications")
+
+p3 <- ggplot(Job, aes(x=sex_F, y=years)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Years to Complete") +
+        xlab("Sex") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Years")
+grid.arrange(p1,p2,p3,nrow=1)
+@
+
+\section{Group Differences}
+\textbf{\large{\textit{
+A univariate look at the data will provide some clues about likely variables of influence in the logistic regression.
+}}}
+<<tidy=TRUE>>=
+Job_MANOVA_1 <- manova(as.matrix(Job[,3:5])~Job$job)
+summary(Job_MANOVA_1)
+summary.aov(Job_MANOVA_1)
+
+table_1 <- table(Job[c("job_result","sex_F")])
+colnames(table_1) <- c("Men","Women")
+row.names(table_1) <- c("Job","No Job")
+table_1
+
+
+
+p_table_1 <- prop.table(table(Job[c("job_result","sex_F")]),2)
+colnames(p_table_1) <- c("Men","Women")
+row.names(table_1) <- c("Job","No Job")
+p_table_1
+
+chisq.test(table_1)
+
+Job_MANOVA_2 <- manova(as.matrix(Job[,3:5])~Job$sex_F)
+summary(Job_MANOVA_2)
+summary.aov(Job_MANOVA_2)
+@
+
+\clearpage
+\section{Basic Binary Logistic Regression}
+\textbf{\large{\textit{
+A binary logistic regression model is the alternative to discriminant analysis for these data.
+It is potentially more flexible and also does not have assumptions that are as restrictive.
+This is just one example of a generalized linear model, so we need to indicate the distribution family and link function that we want. \newline
+\newline
+We use a dummy code for sex, with men = 0 and women = 1.
+This will produce an intercept that is the expected logit for men. 
+For the other predictors, we use centered versions.
+The intercept will then be the grand mean expected logit in models that only contain continuous predictors.
+The centered predictors have the usual advantages of reducing multicollinearity in models with product variables.
+}}}
+
+\subsection{Single Predictor Models}
+<<tidy=TRUE>>=
+Job_BLR_1 <- glm(job ~ sex_D,  family=binomial("logit"), data = Job)
+summary(Job_BLR_1)
+confint(Job_BLR_1) 
+confint.default(Job_BLR_1) 
+exp(cbind(OR = coef(Job_BLR_1), confint(Job_BLR_1)))
+@
+
+<<tidy=TRUE>>=
+Job_BLR_2 <- glm(job ~ gre_c,  family=binomial("logit"), data = Job)
+summary(Job_BLR_2)
+confint(Job_BLR_2) 
+confint.default(Job_BLR_2) 
+exp(cbind(OR = coef(Job_BLR_2), confint(Job_BLR_2)))
+@
+
+<<tidy=TRUE>>=
+predict_data = with(Job,data.frame(gre_c=seq(1000-mean(Job$gre),1600-mean(Job$gre),1)))
+plot_data_p <- predict(Job_BLR_2, predict_data, type="response",se.fit=TRUE)
+plot_data_p_CL <- plot_data_p$fit-qt(.975,length(Job[,1]))*plot_data_p$se.fit
+plot_data_p_CU <- plot_data_p$fit+qt(.975,length(Job[,1]))*plot_data_p$se.fit
+plot_data_l <- predict(Job_BLR_2, predict_data, type="link",se.fit=TRUE)
+plot_data_l_CL <- plot_data_l$fit-qt(.975,length(Job[,1]))*plot_data_l$se.fit
+plot_data_l_CU <- plot_data_l$fit+qt(.975,length(Job[,1]))*plot_data_l$se.fit
+plot_data_o <- plot_data_p$fit/(1-plot_data_p$fit)
+plot_data_o_CL <- plot_data_p_CL/(1-plot_data_p_CL)
+plot_data_o_CU <- plot_data_p_CU/(1-plot_data_p_CU)
+plot_data <- as.data.frame(cbind(predict_data,plot_data_p$fit,plot_data_p_CL,plot_data_p_CU,
+                                 plot_data_l$fit,plot_data_l_CL,plot_data_l_CU,
+                                 plot_data_o,plot_data_o_CL,plot_data_o_CU))
+names(plot_data) <- c("IV","P","P_CL","P_CU","L","L_CL","L_CU","O","O_CL","O_CU")
+plot_data$IV_Original <- seq(1000,1600,1)
+
+ggplot(plot_data, aes(x = IV_Original,y=L)) +
+  geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = L_CL,ymax = L_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(1000,1600), ylim = c(-8,4)) +
+  scale_x_continuous(breaks=c(seq(1000,1600,100))) +
+  scale_y_continuous(breaks=seq(-8,4,1)) +
+  xlab("GRE") + 
+  ylab("Logit") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Logit as a \nFunction of GRE (95% CI)")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=P)) +
+  geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = P_CL,ymax = P_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(1000,1600), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(1000,1600,100))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("GRE") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Probability as a \nFunction of GRE (95% CI")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=O)) +
+ geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = O_CL,ymax = O_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(1000,1600), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(1000,1600,100))) +
+  scale_y_continuous(breaks=seq(0,10,.10)) +
+  xlab("GRE") + 
+  ylab("Odds") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Odds as a \nFunction of GRE (95% CI)")
+@
+
+<<tidy=TRUE>>=
+Job_BLR_3 <- glm(job ~ pubs_c,  family=binomial("logit"), data = Job)
+summary(Job_BLR_3)
+confint(Job_BLR_3) 
+confint.default(Job_BLR_3) 
+exp(cbind(OR = coef(Job_BLR_3), confint(Job_BLR_3)))
+@
+
+<<tidy=TRUE>>=
+predict_data = with(Job,data.frame(pubs_c=seq(0-mean(Job$pubs),10-mean(Job$pubs),.1)))
+plot_data_p <- predict(Job_BLR_3, predict_data, type="response",se.fit=TRUE)
+plot_data_p_CL <- plot_data_p$fit-qt(.975,length(Job[,1]))*plot_data_p$se.fit
+plot_data_p_CU <- plot_data_p$fit+qt(.975,length(Job[,1]))*plot_data_p$se.fit
+plot_data_l <- predict(Job_BLR_3, predict_data, type="link",se.fit=TRUE)
+plot_data_l_CL <- plot_data_l$fit-qt(.975,length(Job[,1]))*plot_data_l$se.fit
+plot_data_l_CU <- plot_data_l$fit+qt(.975,length(Job[,1]))*plot_data_l$se.fit
+plot_data_o <- plot_data_p$fit/(1-plot_data_p$fit)
+plot_data_o_CL <- plot_data_p_CL/(1-plot_data_p_CL)
+plot_data_o_CU <- plot_data_p_CU/(1-plot_data_p_CU)
+plot_data <- as.data.frame(cbind(predict_data,plot_data_p$fit,plot_data_p_CL,plot_data_p_CU,
+                                 plot_data_l$fit,plot_data_l_CL,plot_data_l_CU,
+                                 plot_data_o,plot_data_o_CL,plot_data_o_CU))
+names(plot_data) <- c("IV","P","P_CL","P_CU","L","L_CL","L_CU","O","O_CL","O_CU")
+plot_data$IV_Original <- seq(0,10,.1)
+
+ggplot(plot_data, aes(x = IV_Original,y=L)) +
+  geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = L_CL,ymax = L_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(0,10), ylim = c(-8,4)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(-8,4,1)) +
+  xlab("Publications") + 
+  ylab("Logit") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Logit as a \nFunction of Publications (95% CI)")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=P)) +
+  geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = P_CL,ymax = P_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(0,10), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Publications") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Probability as a \nFunction of Publications (95% CI)")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=O)) +
+ geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = O_CL,ymax = O_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(0,10), ylim = c(0,40)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,40,10)) +
+  xlab("Publications") + 
+  ylab("Odds") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Odds as a \nFunction of Publications (95% CI)")
+@
+
+<<tidy=TRUE>>=
+predict_data = with(Job,data.frame(pubs_c=seq(0-mean(Job$pubs),10-mean(Job$pubs),1)))
+plot_data_p <- predict(Job_BLR_3, predict_data, type="response",se.fit=TRUE)
+plot_data_p_CL <- plot_data_p$fit-qt(.975,length(Job[,1]))*plot_data_p$se.fit
+plot_data_p_CU <- plot_data_p$fit+qt(.975,length(Job[,1]))*plot_data_p$se.fit
+plot_data_l <- predict(Job_BLR_3, predict_data, type="link",se.fit=TRUE)
+plot_data_l_CL <- plot_data_l$fit-qt(.975,length(Job[,1]))*plot_data_l$se.fit
+plot_data_l_CU <- plot_data_l$fit+qt(.975,length(Job[,1]))*plot_data_l$se.fit
+plot_data_o <- plot_data_p$fit/(1-plot_data_p$fit)
+plot_data_o_CL <- plot_data_p_CL/(1-plot_data_p_CL)
+plot_data_o_CU <- plot_data_p_CU/(1-plot_data_p_CU)
+plot_data <- as.data.frame(cbind(predict_data,plot_data_p$fit,plot_data_p_CL,plot_data_p_CU,
+                                 plot_data_l$fit,plot_data_l_CL,plot_data_l_CU,
+                                 plot_data_o,plot_data_o_CL,plot_data_o_CU))
+names(plot_data) <- c("IV","P","P_CL","P_CU","L","L_CL","L_CU","O","O_CL","O_CU")
+plot_data$IV_Original <- seq(0,10,1)
+
+ggplot(plot_data, aes(x = IV_Original,y=L)) +
+  geom_point(size=2,color="blue") +
+  geom_line(size=1,color="blue") + 
+  coord_cartesian(xlim = c(0,10), ylim = c(-8,4)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(-8,4,1)) +
+  xlab("Publications") + 
+  ylab("Logit") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Logit as a \nFunction of Publications")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=P)) +
+  geom_point(size=2,color="blue") +
+  geom_line(size=1,color="blue") + 
+  coord_cartesian(xlim = c(0,10), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Publications") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Probability as a \nFunction of Publications")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=O)) +
+  geom_point(size=2,color="blue") +
+  geom_line(size=1,color="blue") + 
+  coord_cartesian(xlim = c(0,10), ylim = c(0,40)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,40,10)) +
+  xlab("Publications") + 
+  ylab("Odds") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Odds as a \nFunction of Publications")
+@
+
+<<tidy=TRUE>>=
+Job_BLR_4 <- glm(job ~ years_c,  family=binomial("logit"), data = Job)
+summary(Job_BLR_4)
+confint(Job_BLR_4) 
+confint.default(Job_BLR_4) 
+exp(cbind(OR = coef(Job_BLR_4), confint(Job_BLR_4)))
+@
+
+<<tidy=TRUE>>=
+predict_data = with(Job,data.frame(years_c=seq(4-mean(Job$years),14-mean(Job$years),.1)))
+plot_data_p <- predict(Job_BLR_4, predict_data, type="response",se.fit=TRUE)
+plot_data_p_CL <- plot_data_p$fit-qt(.975,length(Job[,1]))*plot_data_p$se.fit
+plot_data_p_CU <- plot_data_p$fit+qt(.975,length(Job[,1]))*plot_data_p$se.fit
+plot_data_l <- predict(Job_BLR_4, predict_data, type="link",se.fit=TRUE)
+plot_data_l_CL <- plot_data_l$fit-qt(.975,length(Job[,1]))*plot_data_l$se.fit
+plot_data_l_CU <- plot_data_l$fit+qt(.975,length(Job[,1]))*plot_data_l$se.fit
+plot_data_o <- plot_data_p$fit/(1-plot_data_p$fit)
+plot_data_o_CL <- plot_data_p_CL/(1-plot_data_p_CL)
+plot_data_o_CU <- plot_data_p_CU/(1-plot_data_p_CU)
+plot_data <- as.data.frame(cbind(predict_data,plot_data_p$fit,plot_data_p_CL,plot_data_p_CU,
+                                 plot_data_l$fit,plot_data_l_CL,plot_data_l_CU,
+                                 plot_data_o,plot_data_o_CL,plot_data_o_CU))
+names(plot_data) <- c("IV","P","P_CL","P_CU","L","L_CL","L_CU","O","O_CL","O_CU")
+plot_data$IV_Original <- seq(4,14,.1)
+
+ggplot(plot_data, aes(x = IV_Original,y=L)) +
+  geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = L_CL,ymax = L_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(4,14), ylim = c(-8,4)) +
+  scale_x_continuous(breaks=c(seq(4,14,1))) +
+  scale_y_continuous(breaks=seq(-8,4,1)) +
+  xlab("Years") + 
+  ylab("Logit") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Logit as a \nFunction of Years (95% CI)")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=P)) +
+  geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = P_CL,ymax = P_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(4,14), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(4,14,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Years") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Probability as a \nFunction of Years (95% CI)")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=O)) +
+ geom_line(size=1,color="blue") + 
+  geom_ribbon(data = plot_data,aes(ymin = O_CL,ymax = O_CU),alpha = 0.25) +
+  coord_cartesian(xlim = c(4,14), ylim = c(0,1.3)) +
+  scale_x_continuous(breaks=c(seq(4,14,1))) +
+  scale_y_continuous(breaks=seq(0,1.3,.10)) +
+  xlab("Years") + 
+  ylab("Odds") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Odds as a \nFunction of Years (95% CI)")
+@
+
+\subsection{Multiple Predictor Models}
+<<tidy=TRUE>>=
+Job_BLR_5 <- glm(job ~ gre_c + pubs_c + years_c + sex_D,  family=binomial("logit"), data = Job)
+summary(Job_BLR_5)
+confint(Job_BLR_5) 
+confint.default(Job_BLR_5) 
+exp(cbind(OR = coef(Job_BLR_5), confint(Job_BLR_5)))
+anova(Job_BLR_5)
+anova(Job_BLR_1,Job_BLR_5,test="Chisq")
+anova(Job_BLR_2,Job_BLR_5,test="Chisq")
+anova(Job_BLR_3,Job_BLR_5,test="Chisq")
+anova(Job_BLR_4,Job_BLR_5,test="Chisq")
+wald.test(b = coef(Job_BLR_5), Sigma = vcov(Job_BLR_5), Terms = 5)
+wald.test(b = coef(Job_BLR_5), Sigma = vcov(Job_BLR_5), Terms = 2:5)
+wald.test(b = coef(Job_BLR_5), Sigma = vcov(Job_BLR_5), Terms = c(2,5))
+@
+
+<<tidy=TRUE>>=
+Job_BLR_6 <- glm(job ~ gre_c + pubs_c + years_c + sex_D +
+                   pubs_c:years_c + pubs_c:sex_D + years_c:sex_D,
+                   family=binomial("logit"), data = Job)
+summary(Job_BLR_6)
+confint(Job_BLR_6) 
+confint.default(Job_BLR_6) 
+exp(cbind(OR = coef(Job_BLR_6), confint(Job_BLR_6)))
+wald.test(b = coef(Job_BLR_6), Sigma = vcov(Job_BLR_6), Terms = 6:8)
+
+# Reduce list of coefficients to separate models for men and women
+# containing only a constant and a term for publications.
+Men_Constant <- coef(Job_BLR_6)[1]
+Men_Pubs <- coef(Job_BLR_6)[3]
+Women_Constant <- coef(Job_BLR_6)[1] + coef(Job_BLR_6)[5]
+Women_Pubs <- coef(Job_BLR_6)[3]+coef(Job_BLR_6)[7]
+
+Men_Constant
+Men_Pubs
+Women_Constant
+Women_Pubs
+
+# Odds for men and women.
+exp(Men_Pubs)
+exp(Women_Pubs)
+
+# Odds ratio.
+exp(Women_Pubs)/exp(Men_Pubs)
+@
+
+<<tidy=TRUE>>=
+Job_BLR_6_No_I <- glm(job ~ -1 + M_D + F_D +
+                        M_D:gre_c + M_D:pubs_c + M_D:years_c + M_D:pubs_c:years_c + 
+                        F_D:gre_c + F_D:pubs_c + F_D:years_c + F_D:pubs_c:years_c,
+                   family=binomial("logit"), data = Job)
+summary(Job_BLR_6_No_I)
+@
+
+<<tidy=TRUE>>=
+predict_data <- with(Job,data.frame(gre_c=mean(gre_c),years_c=mean(years_c),
+                          expand.grid(pubs_c=seq(from=0-mean(pubs),to=10-mean(pubs),by=1),sex_D=c(0,1))))
+plot_data_P <- predict(Job_BLR_6, predict_data, type="response")
+plot_data_L <- predict(Job_BLR_6, predict_data, type="link")
+plot_data_O <- plot_data_P/(1-plot_data_P)
+plot_data <- as.data.frame(cbind(predict_data,plot_data_P,plot_data_L,plot_data_O))
+names(plot_data) <- c("gre_mean","years_mean","pubs_c","sex","P","L","O")
+plot_data$IV_Original <- rep(seq(0,10,1),2)
+plot_data$sex_F <- factor(plot_data$sex,levels=c(0,1),labels=c("Men","Women"))
+ 
+ggplot(plot_data, aes(x = IV_Original,y=L,group=sex_F)) +
+  geom_point(aes(color=sex_F),size=2) +
+  geom_line(aes(color=sex_F),size=1) +
+  scale_color_manual(values=c("blue","red")) +
+  coord_cartesian(xlim = c(0,10), ylim = c(-14,8)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(-14,8,2)) +
+  xlab("Publications") + 
+  ylab("Logit") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Logit as a \nFunction of Publications \n and Sex")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=P,group=sex_F)) +
+  geom_point(aes(color=sex_F),size=2) +
+  geom_line(aes(color=sex_F),size=1) +
+  scale_color_manual(values=c("blue","red")) +
+  coord_cartesian(xlim = c(0,10), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Publications") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Probability as a \nFunction of Publications \n and Sex")
+@
+
+\textbf{\large{\textit{
+Note that the following graph can be easily misinterpreted.
+The odds ratio for the interaction is NOT the ratio of the odds for men versus women in the graph for any given value of publications.
+Instead, it is the ratio of the odds ratio for men relative to the odds ratio for women.
+The ratio of consecutive values in the graph, for men and women separately, gives the odds ratios for men and women respectively (higher odds relative to lower odds).
+}}}
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=O,group=sex_F)) +
+  geom_point(aes(color=sex_F),size=2) +
+  geom_line(aes(color=sex_F),size=1) +
+  scale_color_manual(values=c("blue","red")) +
+  coord_cartesian(xlim = c(0,10), ylim = c(0,2500)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,2500,500)) +
+  xlab("Publications") + 
+  ylab("Odds") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Odds as a \nFunction of Publications \n and Sex")
+@
+
+<<tidy=TRUE>>=
+Job_BLR_7 <- glm(Job$job ~ gre_c + pubs_c + years_c + sex_D +
+                   I(pubs_c^2),  family=binomial("logit"), data = Job)
+summary(Job_BLR_7)
+confint(Job_BLR_7) 
+confint.default(Job_BLR_7) 
+exp(cbind(OR = coef(Job_BLR_7), confint(Job_BLR_7)))
+@
+
+<<tidy=TRUE>>=
+plot_data_linear <- with(Job,data.frame(gre_c=mean(gre_c),
+                 years_c=mean(years_c),sex_D=mean(sex_D),
+                 pubs_c=seq(from=0-mean(pubs),to=10-mean(pubs),by=1)))
+plot_data_linear$P <- predict(Job_BLR_5,newdata=plot_data_linear,type="response")
+plot_data_linear$L <- predict(Job_BLR_5,newdata=plot_data_linear)
+plot_data_linear$O <- plot_data_linear$P/(1-plot_data_linear$P)
+plot_data_quad <- with(Job,data.frame(gre_c=mean(gre_c),
+                 years_c=mean(years_c),sex_D=mean(sex_D),
+                 pubs_c=seq(from=0-mean(pubs),to=10-mean(pubs),by=1)))
+plot_data_quad$P <- predict(Job_BLR_7,newdata=plot_data_quad,type="response")
+plot_data_quad$L <- predict(Job_BLR_7,newdata=plot_data_quad)
+plot_data_quad$O <- plot_data_quad$P/(1-plot_data_quad$P)
+plot_data <- rbind(plot_data_linear,plot_data_quad)
+plot_data$IV_Original <- rep(seq(0,10,1),2)
+plot_data$model <- c(rep("Linear",11),rep("Quadratic",11))
+plot_data$model_F <- factor(plot_data$model,levels=c("Linear","Quadratic"),labels=c("Linear Model","Quadratic Model"))
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=L,group=model_F)) +
+  geom_point(aes(color=model_F),size=2) +
+  geom_line(aes(color=model_F),size=1) +
+  scale_color_manual(values=c("blue","red")) +
+  coord_cartesian(xlim = c(0,10), ylim = c(-14,8)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(-14,8,2)) +
+  xlab("Publications") + 
+  ylab("Logit") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Logit as a \nFunction of Publications \n and Model")
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=P,group=model_F)) +
+  geom_point(aes(color=model_F),size=2) +
+  geom_line(aes(color=model_F),size=1) +
+  scale_color_manual(values=c("blue","red")) +
+  coord_cartesian(xlim = c(0,10), ylim = c(0,1)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  xlab("Publications") + 
+  ylab("Probability") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Probability as a \nFunction of Publications \n and Model")
+@
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = IV_Original,y=O,group=model_F)) +
+  geom_point(aes(color=model_F),size=2) +
+  geom_line(aes(color=model_F),size=1) +
+  scale_color_manual(values=c("blue","red")) +
+  coord_cartesian(xlim = c(0,10), ylim = c(0,2000)) +
+  scale_x_continuous(breaks=c(seq(0,10,1))) +
+  scale_y_continuous(breaks=seq(0,2000,500)) +
+  xlab("Publications") + 
+  ylab("Odds") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Predicted Odds as a \nFunction of Publications \n and Model")
+@
+
+\clearpage
+\subsection{Classification}
+\textbf{\large{\textit{
+The predicted logit for each person can be transformed to a probability and then used to classify cases into predicted job status. 
+These predictions can be compared to actual job status in a manner that resembles that used in discriminant analysis. 
+The same indices of classification quality can be applied.
+For example, Klecka'a ($\tau$) can be used:\newline
+\begin{equation*}
+	\tau = \dfrac{N_o - \sum\limits_{i = 1}^G p_in_i}{N - \sum\limits_{i = 1}^G p_in_i} \\
+\end{equation*}
+$N_o$ is the observed number of correct classifications, $n_i$ is the number of cases in group i, $p_i$ is the proportion of the total sample expected to be in group i, G is the number of groups, and N is the total sample size. \newline
+\newline
+The confusionMatrix( ) function from the caret package provides quite a number of other indices.
+Of note, it provides Cohen's kappa, a chance-corrected agreement statistic.
+If the data are arranged in a confusion table as follows: \newline
+}}}
+\begin{tabular}{| L{2cm} | C{2cm} | C{2.75cm} | C{2.75cm} | C{2cm} |}
+\hline
+  &   & \multicolumn{2}{|c|}{Actual} & \\
+\hline
+  &   & \multicolumn{1}{|c|}{\textit{Absent}}  & \multicolumn{1}{|c|}{\textit{Present}} & \multicolumn{1}{|c|}{\textit{Marginal}} \\
+\hline
+\multirow{2}{*}{Prediction} & Absent & d & c & Row 1 = d+c \\ \cline{2-5}
+ & Present & b & a & Row 2 = b+a  \\ 
+\hline 
+ & Marginal & Column 1 = d+b & Column 2 = c+a & N=a+b+c+d  \\ 
+\hline 
+\end{tabular}
+\textbf{\large{\textit{
+\newline
+\newline
+Cohen's $\kappa$ is defined as: \newline
+\begin{equation*}
+	\kappa = \dfrac{N_o - N_e}{N - N_e} = \dfrac{p_o - p_e}{1 - p_e} \\
+\end{equation*}
+$N_o$ is the number of correct classifications (the sum of the main diagonal: d+a).
+$N_e$ is the number of correct classifications expected by chance.
+This is calculated using the marginals: [(Row 1 x Column 1)+(Row 2 x Column 2)]/N.
+N is the total sample size. 
+Or, $\kappa$ can be estimated with proportions, $p_o$ and $p_e$. \newline
+\newline
+The other indices reported are likewise a function of elements in the table.
+They are commonly used when there are only two groups (as here).
+When there are more than two groups, then these are also reported, but for all combinations of each group versus the combination of the remaining groups. 
+Some of the more useful are precision, recall, and F1. \newline
+\newline
+Precision is defined as: \newline
+\begin{equation*}
+	Precision = \dfrac{a}{a + b} \\
+\end{equation*}
+This index answers the question, "What percentage of predicted events are correct?" \newline
+\newline
+Recall is defined as: \newline
+\begin{equation*}
+	Recall = \dfrac{a}{a + c} \\
+\end{equation*}
+This index answers the question, "What percentage of events were correctly predicted?" \newline
+\newline
+Precision and recall are negatively related; as one increases, the other decreases.
+An index that combines them is F1, defined as: \newline
+\begin{equation*}
+	F1 = \dfrac{2*Precision*Recall}{Precision + Recall} \\
+\end{equation*}
+This is the harmonic mean of precision and recall. \newline
+\newline
+Some of the remaining indices are often useful. 
+These are the most common. \newline
+\newline
+Sensitivity is defined as: \newline
+\begin{equation*}
+	Sensitivity = \dfrac{a}{a + c} \\
+\end{equation*}
+Sensitivity is the same as recall: "What percentage of events were correctly predicted?" \newline
+\newline
+Specificity is defined as: \newline
+\begin{equation*}
+	Specificity = \dfrac{d}{b + d} \\
+\end{equation*}
+This index answers the question: "What percentage of event absences were correctly predicted?" \newline
+\newline
+Prevalence is defined as: \newline
+\begin{equation*}
+	Prevalence = \dfrac{a + c}{a + b + c + d} \\
+\end{equation*}
+This index aswers the question: "What is the proportion of actual events in the sample?" \newline
+\newline
+Detection Rate is defined as: \newline
+\begin{equation*}
+	Detection \hspace{2mm} Rate = \dfrac{a}{a + b + c + d} \\
+\end{equation*}
+This index answers the question: "What proportion of the entire sample are correctly predicted events?" \newline
+\newline
+Detection Prevalence is defined as: \newline
+\begin{equation*}
+	Detection \hspace{2mm} Prevalence = \dfrac{a + b}{a + b + c + d} \\
+\end{equation*}
+This index answers the question: "What proportion of the entire sample are predicted events?"
+}}}
+
+<<tidy=TRUE>>=
+Job$job_P <- ifelse(Job_BLR_5$fitted.values>.5,1,0)
+Class_T <- table(Original=Job$job,Predicted=Job$job_P)
+PC <- sum(diag(Class_T))/sum(Class_T)
+MO1 <- sum(Class_T[1,])
+MO2 <- sum(Class_T[2,])
+MP1 <- MO1
+MP2 <- MO2
+N <- sum(Class_T)
+O <- sum(diag(Class_T))
+E <- (MO1*MP1/N) + (MO2*MP2/N)
+Tau <- (O-E)/(N-E)
+t <- (O-E)/sqrt(length(Job[,1])*(E/length(Job[,1]))*(1-E/length(Job[,1])))
+T
+PC
+Tau
+t
+@
+
+<<tidy=TRUE>>=
+chi_squared <- (((O-E)^2)/E)+((((500-O)-(500-E))^2)/(500-E))
+chi_squared
+@
+
+<<tidy=TRUE>>=
+Job_Predicted <- factor(Job$job_P, levels=c(0,1),labels=c("No Job","Job"))
+Job_Actual <- factor(Job$job, levels=c(0,1),labels=c("No Job","Job"))
+confusionMatrix(Job_Predicted, Job_Actual, positive="Job", mode="everything")
+@
+\end{document}
