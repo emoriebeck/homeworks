@@ -1,0 +1,295 @@
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 12\\
+\large Applied Mutlivariate Analysis}
+\date{November 27, 2018}
+\author{Emorie Beck}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(car)}
+\hlkwd{library}\hlstd{(knitr)}
+\hlkwd{library}\hlstd{(kableExtra)}
+\hlkwd{library}\hlstd{(psych)}
+\hlkwd{library}\hlstd{(MASS)}
+\hlkwd{library}\hlstd{(Rmisc)}
+\hlkwd{library}\hlstd{(mlogit)}
+\hlkwd{library}\hlstd{(broom)}
+\hlkwd{library}\hlstd{(plyr)}
+\hlkwd{library}\hlstd{(tidyverse)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+
+\subsection{data}
+The file, Set\_10.csv, contains the following data from the job search study: number of publications while in graduate school, length of time to complete the Ph.D. (in years), sex of candidate (1 = men, 2 = women), quality of the degree-granting institution (1 = top-tier research institution, 2 = middle-tier research institution, and 3 = lower-tier research institution), and the outcome of the job search (1 = no interviews, 2 = interviewed but not hired, 3 = hired).
+
+Conduct a multinomial logistic regression on these data, predicting job search outcome from the other variables. Use the "no interviews" outcome as the reference for the dependent variable. Use the lower-tier category as the reference for the quality of the degree-granting institution predictor. Use women as the reference for the sex of candidate predictor.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{wd} \hlkwb{<-} \hlstr{"https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework12"}
+
+\hlstd{dat} \hlkwb{<-} \hlkwd{sprintf}\hlstd{(}\hlstr{"%s/Set_10.csv"}\hlstd{, wd)} \hlopt{%>%} \hlkwd{read.csv}\hlstd{(.,} \hlkwc{stringsAsFactors} \hlstd{= F)} \hlopt{%>%} \hlstd{tbl_df} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{outcome} \hlstd{=} \hlkwd{factor}\hlstd{(outcome,} \hlkwc{levels} \hlstd{=} \hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,}\hlnum{2}\hlstd{,}\hlnum{3}\hlstd{),} \hlkwc{labels} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"no interview"}\hlstd{,} \hlstr{"interview"}\hlstd{,} \hlstr{"hired"}\hlstd{)),}
+         \hlkwc{sex} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{mapvalues}\hlstd{(sex,} \hlnum{1}\hlopt{:}\hlnum{2}\hlstd{,} \hlnum{0}\hlopt{:}\hlnum{1}\hlstd{)))} \hlopt{%>%}
+  \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(pubs, years),} \hlkwd{funs}\hlstd{(}\hlkwc{c} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{scale}\hlstd{(.,} \hlkwc{scale} \hlstd{= F))))}
+
+\hlkwd{head}\hlstd{(dat)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 6 x 8
+##      ID Institution   sex years  pubs outcome      pubs_c years_c
+##   <int>       <int> <dbl> <int> <int> <fct>         <dbl>   <dbl>
+## 1   122           3     0     5     0 interview     -4.30 -1.09  
+## 2     1           3     0     6     0 no interview  -4.30 -0.0900
+## 3   191           3     1     6     0 no interview  -4.30 -0.0900
+## 4   194           2     1     6     0 no interview  -4.30 -0.0900
+## 5     4           3     0     7     0 no interview  -4.30  0.91  
+## 6     6           2     0     7     0 no interview  -4.30  0.91
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\section{Question 1}
+1. When the "interviewed but not hired" outcome is compared to the reference outcome: 
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{jobs} \hlkwb{<-} \hlstd{dat} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{NI} \hlstd{=} \hlkwd{ifelse}\hlstd{(outcome} \hlopt{==} \hlstr{"no interview"}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{0}\hlstd{),}
+         \hlkwc{I} \hlstd{=} \hlkwd{ifelse}\hlstd{(outcome} \hlopt{==} \hlstr{"interview"}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{0}\hlstd{),}
+         \hlkwc{H} \hlstd{=} \hlkwd{ifelse}\hlstd{(outcome} \hlopt{==} \hlstr{"hired"}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{0}\hlstd{))} \hlopt{%>%}
+  \hlkwd{select}\hlstd{(ID}\hlopt{:}\hlstd{pubs, NI}\hlopt{:}\hlstd{H)} \hlopt{%>%}
+  \hlkwd{gather}\hlstd{(}\hlkwc{key} \hlstd{= outcome.ids,} \hlkwc{value} \hlstd{= outcome, NI}\hlopt{:}\hlstd{H)} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{outcome.ids} \hlstd{=} \hlkwd{factor}\hlstd{(outcome.ids,} \hlkwc{levels} \hlstd{=} \hlkwd{c}\hlstd{(}\hlstr{"NI"}\hlstd{,} \hlstr{"I"}\hlstd{,} \hlstr{"H"}\hlstd{)))} \hlopt{%>%}
+  \hlkwd{arrange}\hlstd{(ID, outcome.ids)} \hlopt{%>%} \hlstd{data.frame}
+
+\hlstd{J} \hlkwb{<-} \hlkwd{mlogit.data}\hlstd{(jobs,}\hlkwc{shape}\hlstd{=}\hlstr{"long"}\hlstd{,}\hlkwc{choice}\hlstd{=}\hlstr{"outcome"}\hlstd{,}\hlkwc{alt.var}\hlstd{=}\hlstr{"outcome.ids"}\hlstd{)}
+
+\hlstd{Ref_Level} \hlkwb{<-} \hlstr{"NI"}
+\hlstd{fit_1} \hlkwb{<-} \hlkwd{mlogit}\hlstd{(outcome} \hlopt{~} \hlnum{0} \hlopt{|} \hlnum{1} \hlopt{+} \hlstd{sex} \hlopt{+} \hlstd{Institution} \hlopt{+} \hlstd{years} \hlopt{+} \hlstd{pubs,} \hlkwc{data} \hlstd{= J,} \hlkwc{reflevel} \hlstd{= Ref_Level)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{cbind}\hlstd{(}\hlkwd{data.frame}\hlstd{(}\hlkwc{b} \hlstd{=} \hlkwd{coef}\hlstd{(fit_1)),} \hlkwd{confint}\hlstd{(fit_1))} \hlopt{%>%} \hlkwd{data.frame}\hlstd{()} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{term} \hlstd{=} \hlkwd{rownames}\hlstd{(.))} \hlopt{%>%}
+  \hlstd{tbl_df} \hlopt{%>%}
+  \hlkwd{select}\hlstd{(term,} \hlkwd{everything}\hlstd{())} \hlopt{%>%}
+  \hlkwd{setNames}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{"term"}\hlstd{,} \hlstr{"b"}\hlstd{,} \hlstr{"lower"}\hlstd{,} \hlstr{"upper"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{sig} \hlstd{=} \hlkwd{ifelse}\hlstd{(}\hlkwd{sign}\hlstd{(lower)} \hlopt{==} \hlkwd{sign}\hlstd{(upper),} \hlstr{"sig"}\hlstd{,} \hlstr{"ns"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(b, lower, upper),} \hlkwd{funs}\hlstd{(exp))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{CI} \hlstd{=} \hlkwd{sprintf}\hlstd{(}\hlstr{"[%.2f, %.2f]"}\hlstd{, lower, upper),} \hlkwc{b} \hlstd{=} \hlkwd{sprintf}\hlstd{(}\hlstr{"%.2f"}\hlstd{, b))} \hlopt{%>%}
+  \hlkwd{mutate_at}\hlstd{(}\hlkwd{vars}\hlstd{(b, CI),} \hlkwd{funs}\hlstd{(}\hlkwd{ifelse}\hlstd{(sig} \hlopt{==} \hlstr{"sig"}\hlstd{,} \hlkwd{sprintf}\hlstd{(}\hlstr{"\textbackslash{}\textbackslash{}textbf\{%s\}"}\hlstd{, .), .)))} \hlopt{%>%}
+  \hlkwd{select}\hlstd{(term, b, CI)} \hlopt{%>%}
+  \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{escape} \hlstd{= F)} \hlopt{%>%}
+  \hlkwd{kable_styling}\hlstd{(}\hlkwc{full_width} \hlstd{= F)}
+\end{alltt}
+\end{kframe}\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+term & b & CI\\
+\midrule
+I:(intercept) & \textbf{272925.12} & \textbf{[1096.35, 67941793.17]}\\
+H:(intercept) & \textbf{15268.19} & \textbf{[43.09, 5410328.25]}\\
+I:sex & 0.54 & [0.14, 2.11]\\
+H:sex & 0.34 & [0.08, 1.52]\\
+I:Institution & 0.85 & [0.31, 2.33]\\
+\addlinespace
+H:Institution & 0.98 & [0.32, 2.95]\\
+I:years & \textbf{0.08} & \textbf{[0.03, 0.19]}\\
+H:years & \textbf{0.03} & \textbf{[0.01, 0.08]}\\
+I:pubs & \textbf{8.97} & \textbf{[4.26, 18.88]}\\
+H:pubs & \textbf{33.44} & \textbf{[15.09, 74.11]}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\end{knitrout}
+
+\subsection{Part A}
+What are the significant predictors?
+
+Both years and publications are significant predictors of the outcome. 
+
+\subsection{Part B}
+How should the significant predictors be interpreted?
+
+\textbf{Years}: An additional year in graduate school is associated with a .08 increase in odds of being interviewed.
+
+\textbf{Publications}: Each additional publication is assocatied with a 9.19 increase in odds of being interviewed.
+
+\section{Question 2}
+When the "hired" outcome is compared to the reference outcome: 
+
+\subsection{Part A}
+What are the significant predictors?
+
+Both years and publications are significant predictors of the outcome. 
+
+\subsection{Part B}
+How should the significant predictors be interpreted?
+
+\textbf{Years}: An additional year in graduate school is associated with a .03 increase in odds of being hired.
+
+\textbf{Publications}: Each additional publication is assocatied with a 33.82 increase in odds of being hired.
+
+\section{Question 3}
+What is the probability that a man will be hired if he completes his degree in 5 years at a third-tier institution and enters the job market with 5 publications?
+
+$Y_H = b_{0H} + b_{1H}*sex + b_{2H}*years + b_{3H}*pubs$
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{# get cases that match this because I'm too lazy to  create a data frame}
+\hlstd{dat} \hlopt{%>%} \hlkwd{filter}\hlstd{(years} \hlopt{==} \hlnum{5} \hlopt{&} \hlstd{pubs} \hlopt{==} \hlnum{5} \hlopt{&} \hlstd{sex} \hlopt{==} \hlnum{0} \hlopt{&} \hlstd{Institution} \hlopt{==} \hlnum{3} \hlopt{&} \hlstd{outcome} \hlopt{==} \hlstr{"interview"}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 3 x 8
+##      ID Institution   sex years  pubs outcome   pubs_c years_c
+##   <int>       <int> <dbl> <int> <int> <fct>      <dbl>   <dbl>
+## 1   124           3     0     5     5 interview  0.698   -1.09
+## 2   140           3     0     5     5 interview  0.698   -1.09
+## 3   141           3     0     5     5 interview  0.698   -1.09
+\end{verbatim}
+\begin{alltt}
+\hlstd{O1} \hlkwb{<-} \hlkwd{exp}\hlstd{(}\hlkwd{predict}\hlstd{(fit_1,} \hlkwc{newdata} \hlstd{= jobs} \hlopt{%>%} \hlkwd{filter}\hlstd{(ID} \hlopt{==} \hlnum{124}\hlstd{)))[}\hlstr{"H"}\hlstd{]}
+\hlstd{O1} \hlopt{/} \hlstd{(}\hlnum{1} \hlopt{+} \hlstd{O1)}
+\end{alltt}
+\begin{verbatim}
+##        H 
+## 0.590306
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+The probability would be 59\%.
+
+\section{Question 4}
+4. How do his odds of getting hired change if he gets 2 more publications but takes a year longer to finish?
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{# get cases that match this because I'm too lazy to  create a data frame}
+\hlstd{dat} \hlopt{%>%} \hlkwd{filter}\hlstd{(years} \hlopt{==} \hlnum{6} \hlopt{&} \hlstd{pubs} \hlopt{==} \hlnum{7} \hlopt{&} \hlstd{sex} \hlopt{==} \hlnum{0} \hlopt{&} \hlstd{Institution} \hlopt{==} \hlnum{3} \hlopt{&} \hlstd{outcome} \hlopt{==} \hlstr{"interview"}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 1 x 8
+##      ID Institution   sex years  pubs outcome   pubs_c years_c
+##   <int>       <int> <dbl> <int> <int> <fct>      <dbl>   <dbl>
+## 1   152           3     0     6     7 interview   2.70 -0.0900
+\end{verbatim}
+\begin{alltt}
+\hlstd{O2} \hlkwb{<-} \hlkwd{exp}\hlstd{(}\hlkwd{predict}\hlstd{(fit_1,} \hlkwc{newdata} \hlstd{= jobs} \hlopt{%>%} \hlkwd{filter}\hlstd{(ID} \hlopt{==} \hlnum{152}\hlstd{)))[}\hlstr{"H"}\hlstd{]}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+The difference in odds will be -0.69 lower odds of being hired.
+
+\end{document}
