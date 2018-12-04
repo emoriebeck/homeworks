@@ -1,0 +1,1330 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{MANOVA III}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+The RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Then some packages are loaded and the required data files are input.
+}}}
+\subsection{Clear the Console Panes and Load Packages}
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(dplyr)
+library(aod)
+library(MVN)
+library(boot)
+library(car)
+library(LogisticDx)
+library(biotools)
+library(multcomp)
+library(candisc)
+library(ez)
+library(GGally)
+library(qqplotr)
+library(gridExtra)
+library(reshape)
+library(emmeans)
+library(profileR)
+library(Rmisc)
+@
+
+\subsection{Data}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+# Get the data for the main MANOVA examples.
+Skills <- read.table('manova.csv',sep=',',header=TRUE)
+Skills <- as.data.frame(Skills)
+
+# Get the data for profile analyses.
+Profiles <- read.table('profile.csv',sep=',',header=TRUE)
+Profiles <- as.data.frame(Profiles)
+Profiles <- Profiles[which(Profiles$agemate!=6),]
+Profiles <- Profiles[order(Profiles$agemate),] 
+Profiles$AgeMate[Profiles$agemate=="1"] <- "Younger"
+Profiles$AgeMate[Profiles$agemate=="2"] <- "Older"
+Profiles$AgeMate[Profiles$agemate=="3"] <- "Same"
+Profiles$AgeMate <- as.factor(Profiles$AgeMate)
+
+# Get the data for the doubly multivariate example.
+Double <- read.table('doubly_multivariate.csv',sep=',',header=TRUE)
+Double <- as.data.frame(Double)
+Double$Group <- as.factor(Double$Group)
+Double$Group2[Double$Group=="1"] <- "Healthy Controls"
+Double$Group2[Double$Group=="2"] <- "Patients"
+Double$Group2 <- as.factor(Double$Group2)
+@
+
+\subsection{Data Modifications}
+\textbf{\large{\textit{
+Residualized versions of continuous predictors are created so that preliminary analyses are not contaminated by outcome differences.
+Labeled variables are created to assist in creation of some tables and graphs.
+Dummy codes and linear combinations are created for specialized analyses (not all used here).
+}}}
+<<tidy=TRUE>>=
+# Residuals
+Skills$P_Verbal_R <- lm(P_Verbal ~ as.factor(Group), data=Skills)$residuals
+Skills$P_Quant_R <- lm(P_Quant ~ as.factor(Group), data=Skills)$residuals
+Skills$C_Verbal_R <- lm(C_Verbal ~ as.factor(Group), data=Skills)$residuals
+Skills$C_Quant_R <- lm(C_Quant ~ as.factor(Group), data=Skills)$residuals
+
+# Labels
+Skills$Tx_P2[Skills$Tx_P=="1"] <- "No Paper Tx"
+Skills$Tx_P2[Skills$Tx_P=="2"] <- "Paper Tx"
+
+Skills$Tx_C2[Skills$Tx_C=="1"] <- "No Computer Tx"
+Skills$Tx_C2[Skills$Tx_C=="2"] <- "Computer Tx"
+
+Skills$Group2[Skills$Group=="1"] <- "No Paper Tx and No Computer Tx"
+Skills$Group2[Skills$Group=="2"] <- "Paper Tx and No Computer Tx"
+Skills$Group2[Skills$Group=="3"] <- "No Paper Tx and Computer Tx"
+Skills$Group2[Skills$Group=="4"] <- "Paper Tx and Computer Tx"
+
+Skills$Group3[Skills$Group=="1"] <- "No P, No C"
+Skills$Group3[Skills$Group=="2"] <- "P, No C"
+Skills$Group3[Skills$Group=="3"] <- "No P, C"
+Skills$Group3[Skills$Group=="4"] <- "P, C"
+
+# Dummy variables to be used in between-groups analyses.
+Skills$D1[Skills$Group==1] <- 1
+Skills$D2[Skills$Group==1] <- 0
+Skills$D3[Skills$Group==1] <- 0
+Skills$D4[Skills$Group==1] <- 0
+Skills$D1[Skills$Group==2] <- 0
+Skills$D2[Skills$Group==2] <- 1
+Skills$D3[Skills$Group==2] <- 0
+Skills$D4[Skills$Group==2] <- 0
+Skills$D1[Skills$Group==3] <- 0
+Skills$D2[Skills$Group==3] <- 0
+Skills$D3[Skills$Group==3] <- 1
+Skills$D4[Skills$Group==3] <- 0
+Skills$D1[Skills$Group==4] <- 0
+Skills$D2[Skills$Group==4] <- 0
+Skills$D3[Skills$Group==4] <- 0
+Skills$D4[Skills$Group==4] <- 1
+
+# Add contrast codes to reflect main effects and interactions.
+Skills$C1[Skills$Group==1] <- -1
+Skills$C2[Skills$Group==1] <- -1
+Skills$C3[Skills$Group==1] <- 1
+Skills$C1[Skills$Group==2] <- 1
+Skills$C2[Skills$Group==2] <- -1
+Skills$C3[Skills$Group==2] <- -1
+Skills$C1[Skills$Group==3] <- -1
+Skills$C2[Skills$Group==3] <- 1
+Skills$C3[Skills$Group==3] <- -1
+Skills$C1[Skills$Group==4] <- 1
+Skills$C2[Skills$Group==4] <- 1
+Skills$C3[Skills$Group==4] <- 1
+
+# Add contrast codes to reflect specialized comparisons.
+Skills$S1[Skills$Group==1] <- 3
+Skills$S2[Skills$Group==1] <- 0
+Skills$S3[Skills$Group==1] <- 0
+Skills$S1[Skills$Group==2] <- -1
+Skills$S2[Skills$Group==2] <- 2
+Skills$S3[Skills$Group==2] <- 0
+Skills$S1[Skills$Group==3] <- -1
+Skills$S2[Skills$Group==3] <- -1
+Skills$S3[Skills$Group==3] <- 1
+Skills$S1[Skills$Group==4] <- -1
+Skills$S2[Skills$Group==4] <- -1
+Skills$S3[Skills$Group==4] <- -1
+
+# Outcome linear combinations to be used in repeated measures analyses.
+Skills$Sum <- Skills$P_Verbal+Skills$P_Quant+Skills$C_Verbal+Skills$C_Quant
+Skills$Domain <- Skills$P_Verbal-Skills$P_Quant+Skills$C_Verbal-Skills$C_Quant
+Skills$Mode <- Skills$P_Verbal+Skills$P_Quant-Skills$C_Verbal-Skills$C_Quant
+Skills$DxM <- Skills$P_Verbal-Skills$P_Quant-Skills$C_Verbal+Skills$C_Quant
+
+# Create a non-factor version of the condition variables
+# before converting them to factors.
+Skills$Tx_P_NF <- Skills$Tx_P
+Skills$Tx_C_NF <- Skills$Tx_C
+
+# Convert to factors
+Skills$Tx_P = factor(Skills$Tx_P, levels=c(1,2), labels=c("No Tx(P)","Tx(P)"))
+Skills$Tx_C = factor(Skills$Tx_C, levels=c(1,2), labels=c("No Tx(C)","Tx(C)"))
+
+# Sort file by Group
+Skills <- Skills[order(Skills$Group),] 
+@
+
+\clearpage
+\section{Multivariate Assumptions and Diagnostics}
+\subsection{Multivariate Normality}
+\textbf{\large{\textit{
+The classification part of discriminant analysis (as well as any significance tests for the discriminant functions) rely on the multivariate normality assumption.
+Because MANOVA is inherently a discriminant analysis, we make the same assumption.
+The tests are performed on the residualized data so that group differences do not affect the results.
+Note that a violation of multivariate normality will also affect the test of homogeneity of covariance matrices.
+}}}
+
+\subsection{Full Sample}
+<<tidy=TRUE>>=
+mvn(Skills[,9:12],mvnTest="mardia")
+@
+
+<<tidy=TRUE>>=
+CV <- cov(Skills[,9:12])
+D2_1 <- mahalanobis(Skills[,9:12],center=colMeans(Skills[,9:12]),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=4)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=4)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=4)) +
+    scale_y_continuous(breaks=seq(0,24,2)) +
+    scale_x_continuous(breaks=seq(0,16,1)) +
+    coord_cartesian(xlim = c(0,16), ylim =c(0,24)) +
+    xlab(expression("Expected Values from" * ~ chi[4]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[4]^2))
+@
+
+\subsection{Outlier Excluded}
+<<tidy=TRUE>>=
+Skills$D2_1 <- D2_1
+Skills_Trimmed <- Skills[which(Skills$D2_1!=max(Skills$D2_1)),]
+
+mvn(Skills_Trimmed[,9:12],mvnTest="mardia")
+@
+
+<<tidy=TRUE>>=
+CV <- cov(Skills_Trimmed[,9:12])
+D2_1 <- mahalanobis(Skills_Trimmed[,9:12],center=colMeans(Skills_Trimmed[,9:12]),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=4)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=4)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=4)) +
+    scale_y_continuous(breaks=seq(0,24,2)) +
+    scale_x_continuous(breaks=seq(0,16,1)) +
+    coord_cartesian(xlim = c(0,16), ylim =c(0,24)) +
+    xlab(expression("Expected Values from" * ~ chi[4]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[4]^2))
+@
+
+\subsection{Univariate Normality}
+<<tidy=TRUE>>=
+Skills_Trimmed_QQ <- scale(Skills_Trimmed[,9:12])
+Data_long <- melt(Skills_Trimmed_QQ)
+Data_long <- as.data.frame(Data_long)
+names(Data_long) <- c("Index","feature","value")
+Data_long$feature_F <- factor(Data_long$feature,levels=c("P_Verbal_R","P_Quant_R","C_Verbal_R","C_Quant_R"),
+                         labels = c("Paper: Verbal","Paper: Quantitative","Computer: Verbal","Computer: Quantitative"))
+p <- ggplot(Data_long, aes(sample=value)) +
+        stat_qq_band() + stat_qq_line() + stat_qq(distribution=qnorm,size=1) +
+        scale_y_continuous(breaks=seq(-4,4,1)) +
+        scale_x_continuous(breaks=seq(-4,4,1)) +
+        coord_cartesian(xlim = c(-4,4), ylim =c(-4,4)) +
+        xlab("Theoretical Quantiles") + 
+        ylab("Sample Quantiles") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),  
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+      ggtitle("Q-Q Plots for Job Search Features")
+p + facet_wrap(~feature_F)
+@
+
+\subsection{Homogeneity Assumption}
+\textbf{\large{\textit{
+We assume in discriminant analysis that the separate group variance-covariance matrices are homogeneous.
+Box's test can be used to test this assumption.
+Note, however, that it is also sensitive to violations of multivariate normality.
+}}}
+<<tidy=TRUE>>=
+boxM(Skills[,2:5], Skills$Group)
+boxM(Skills[,2:5], Skills$Group)$cov
+boxM(Skills[,2:5], Skills$Group)$pooled
+
+boxM(Skills_Trimmed[,2:5], Skills_Trimmed$Group)
+boxM(Skills_Trimmed[,2:5], Skills_Trimmed$Group)$cov
+boxM(Skills_Trimmed[,2:5], Skills_Trimmed$Group)$pooled
+@
+
+\section{Original MANOVA}
+\textbf{\large{\textit{
+Here is the original MANOVA that may be suspect because of the violations of homogeneity and multivariate normality.
+}}}
+
+<<tidy=TRUE>>=
+# This function takes as input the data frame used 
+# for a discriminant analysis along with the
+# object into which the discriminant analysis results
+# are saved. The candisc( ) function is assumed to
+# be used for the discriminant analysis. The function
+# return a chi-square test of the hypothesis that the
+# current discriminant function and all subsequent
+# discriminant functions provide no significant
+# group separation. The test parallels the F ratio
+# version reported by candisc( ) function.
+DA_Chi_Square <- function(data_frame,candisc_object) {
+  n <- length(data_frame[,1])
+  q <- length(candisc_object$coeffs.std[,1])
+  g <- candisc_object$dfh+1
+  W <- Wilks(candisc_object)
+  results <- matrix(NA,nrow=candisc_object$ndim,ncol=3)
+  for(i in seq(1,candisc_object$ndim,1)) {
+    k <- i-1
+    chi_test <- -(n-(q+g)/2-1)*log(W$`LR test stat`[i])
+    chi_df <- (q-k)*(g-k-1)
+    chi_p <-   pchisq(chi_test,chi_df,lower.tail=FALSE)
+    results[i,] <- c(chi_test,chi_df,chi_p)
+  }
+  results <- as.data.frame(results)
+  names(results) <- c("Chi_Sq","df","p")
+  return(results)
+}
+@
+
+<<tidy=TRUE>>=
+LM_1 <- lm(cbind(P_Verbal,P_Quant,C_Verbal,C_Quant) ~ as.factor(Group),data=Skills)
+LDA_1 <- candisc(LM_1, data=Skills)
+LDA_1
+summary(LDA_1)
+LDA_1$coeffs.raw
+LDA_1$coeffs.std
+LDA_1$structure
+
+DA_Chi_Square(Skills,LDA_1)
+
+#Wilks' Lambda
+Actual_Wilks_1 <- (1/(1+LDA_1$eigenvalues[1]))*
+  (1/(1+LDA_1$eigenvalues[2]))*
+  (1/(1+LDA_1$eigenvalues[3]))
+Actual_Wilks_2 <- (1/(1+LDA_1$eigenvalues[2]))*
+  (1/(1+LDA_1$eigenvalues[3]))
+Actual_Wilks_3 <- (1/(1+LDA_1$eigenvalues[3]))
+
+# Hotelling-Lawley Trace
+Actual_HL_1 <- LDA_1$eigenvalues[1]+LDA_1$eigenvalues[2]+
+  LDA_1$eigenvalues[3]
+Actual_HL_2 <- LDA_1$eigenvalues[2]+LDA_1$eigenvalues[3]
+Actual_HL_3 <- LDA_1$eigenvalues[3]
+
+# Piallai's Trace
+Actual_Pillai_1 <- (LDA_1$eigenvalues[1]/(1+LDA_1$eigenvalues[1]))+
+  (LDA_1$eigenvalues[2]/(1+LDA_1$eigenvalues[2]))+
+  (LDA_1$eigenvalues[3]/(1+LDA_1$eigenvalues[3]))
+Actual_Pillai_2 <- (LDA_1$eigenvalues[2]/(1+LDA_1$eigenvalues[2]))+
+  (LDA_1$eigenvalues[3]/(1+LDA_1$eigenvalues[3]))
+Actual_Pillai_3 <- (LDA_1$eigenvalues[3]/(1+LDA_1$eigenvalues[3]))
+
+Actual_Wilks_1
+Actual_Wilks_2
+Actual_Wilks_3
+Actual_HL_1
+Actual_HL_2
+Actual_HL_3
+Actual_Pillai_1
+Actual_Pillai_2
+Actual_Pillai_3
+
+plot(LDA_1,main=list("Group Locations on Discriminant Functions",cex=1.5),cex=1.25,font.axis=2,
+     col=c("red","blue","green","black"),pch=c(16,16,16,16),font.lab=2,cex.lab=1.5,
+     prefix="Discriminant Function ",var.col="black",var.lwd=2,which=c(1,2))
+abline(v=0,lty=2,lwd=2,col="black")
+abline(h=0,lty=2,lwd=2,col="black")
+legend("bottomright",c("No P, No C","P, No C","No P, C","P, C"),col=c("red","blue","green","black"),pch=16)
+
+plot(LDA_1,main=list("Group Locations on Discriminant Functions",cex=1.5),cex=1.25,font.axis=2,
+     col=c("red","blue","green","black"),pch=c(16,16,16,16),font.lab=2,cex.lab=1.5,
+     prefix="Discriminant Function ",var.col="black",var.lwd=2,which=c(1,3))
+abline(v=0,lty=2,lwd=2,col="black")
+abline(h=0,lty=2,lwd=2,col="black")
+legend("bottomright",c("No P, No C","P, No C","No P, C","P, C"),col=c("red","blue","green","black"),pch=16)
+
+plot(LDA_1,main=list("Group Locations on Discriminant Functions",cex=1.5),cex=1.25,font.axis=2,
+     col=c("red","blue","green","black"),pch=c(16,16,16,16),font.lab=2,cex.lab=1.5,
+     prefix="Discriminant Function ",var.col="black",var.lwd=2,which=c(2,3))
+abline(v=0,lty=2,lwd=2,col="black")
+abline(h=0,lty=2,lwd=2,col="black")
+legend("bottomright",c("No P, No C","P, No C","No P, C","P, C"),col=c("red","blue","green","black"),pch=16)
+@
+
+\section{Bootstrap Analysis}
+\textbf{\large{\textit{
+If the assumptions underlying the MANOVA (homogeneous covariance matrices, multivariate normality) are not viable, an alternative approach can be taken that does not make these assumptions: bootstrapping.
+In the bootstrapping approach, we assume that whatever population the sample came from, it is representative of that population.
+Therefore we can sample randomly from the sample, with replacement, to get repeated representative samples of the same size on which we can repeat the analyses.
+The resulting empirical sampling distributions of parameters can be used to make inferences.
+Note that we may want to randomly sample with replacement from the sample of cases, but leave intact each case's response profile, so that the covariance structure that underlies the responses is retained. \newline
+\newline
+Because we are interested in a test of the null hypothesis that the discriminant functions cannot separate the groups, we will draw the bootstrap samples from the residualized data.
+This will produce null-consistent sampling distributions of Wilks, Hotelling-Lawley, and Pillai indices that we can then compare to the values from the original analysis.
+We will use the original data, including the outlier, in order explore the robustness of this approach. \newline
+\newline
+Note that the only confidence interval method that will make sense here is the percentile method.
+Because we are using the residualized data, the adjustments made with the normative, basic, and bias-corrected and accelerated methods will not be correct; they rely on the original parameter estimates using the non-residualized data.
+}}}
+
+<<tidy=TRUE>>=
+# This function will conduct the linear discriminant analysis
+# using resamples of the data in order to get the MANOVA 
+# results.  The formula that is passed is for the lm( ) function
+# that the candisc( ) function uses in order to get discriminant 
+# function results. The functions uses the eigenvalues to calculate
+# estimates of Wilks Lambda, Hotelling-Lawley trace, and Pillai
+# trace, using the step-down method (test all three, exclude the
+# largest and test the remaining two, test the last).
+lda_boot <- function(formula,data,indices) {
+  boot_data <- data[indices,]
+  boot_MLM <- lm(formula,data=boot_data)
+  boot_fit <- candisc(boot_MLM, data=boot_data)
+  Wilks_1 <- (1/(1+boot_fit$eigenvalues[1]))*
+    (1/(1+boot_fit$eigenvalues[2]))*
+    (1/(1+boot_fit$eigenvalues[3]))
+  Wilks_2 <- (1/(1+boot_fit$eigenvalues[2]))*
+    (1/(1+boot_fit$eigenvalues[3]))
+  Wilks_3 <- (1/(1+boot_fit$eigenvalues[3]))
+  HL_1 <- boot_fit$eigenvalues[1]+boot_fit$eigenvalues[2]+
+    boot_fit$eigenvalues[3]
+  HL_2 <- boot_fit$eigenvalues[2]+boot_fit$eigenvalues[3]
+  HL_3 <- boot_fit$eigenvalues[3]
+  Pillai_1 <- (boot_fit$eigenvalues[1]/(1+boot_fit$eigenvalues[1]))+
+    (boot_fit$eigenvalues[2]/(1+boot_fit$eigenvalues[2]))+
+    (boot_fit$eigenvalues[3]/(1+boot_fit$eigenvalues[3]))
+  Pillai_2 <- (boot_fit$eigenvalues[2]/(1+boot_fit$eigenvalues[2]))+
+    (boot_fit$eigenvalues[3]/(1+boot_fit$eigenvalues[3]))
+  Pillai_3 <- (boot_fit$eigenvalues[3]/(1+boot_fit$eigenvalues[3]))
+  results <- rbind(Wilks_1,Wilks_2,Wilks_3,HL_1,HL_2,HL_3,
+                   Pillai_1,Pillai_2,Pillai_3)
+  return(results)
+}
+@
+
+<<tidy=TRUE>>=
+# Select the data from the original file that will be passed to
+# the bootstrapping function.
+boot_input <- Skills[,c(6,9:12)]
+
+# Call the boot( ) function from the boot library and
+# request 10000 resamples.
+boot_results <- boot(data=boot_input, statistic=lda_boot, R=10000,
+formula=cbind(P_Verbal_R,P_Quant_R,C_Verbal_R,C_Quant_R) ~ as.factor(Group))
+@
+
+<<tidy=TRUE>>=
+# Plot the bootstrapping results using the default
+# plot( ) function.
+plot(boot_results, index=1)
+plot(boot_results, index=2)
+plot(boot_results, index=3)
+plot(boot_results, index=4)
+plot(boot_results, index=5)
+plot(boot_results, index=6)
+plot(boot_results, index=7)
+plot(boot_results, index=8)
+plot(boot_results, index=9)
+@
+
+\subsection{Outlier Elimination Function}
+\textbf{\large{\textit{
+Occasionally the bootstrapping process will produce extreme outliers due to the vagaries of random sampling.
+Those outliers can create problems for histograms.
+This function identifies and eliminates outliers from the data frame to be used in a histogram.
+It tallies the number of eliminated outliers so that can be indicated on the histogram.
+}}}
+
+<<tidy=TRUE>>=
+outlier_detect <- function(data,Z=4) {
+  data_2a <- matrix(NA,nrow=(length(data[1])))
+  data_2b <- matrix(NA,nrow=(length(data[1])))  
+  data_3 <- scale(data)
+  counter_a <- 0
+  counter_b <- 0
+  for(i in seq(1,length(data),1)) {
+    if(abs(data_3[i])<=Z) {
+      counter_a <- counter_a+1
+      data_2a[counter_a] <- data[i]
+    } else {
+      counter_b <- counter_b+1
+      data_2b[counter_b] <- data[i]
+    }
+  }
+  data_2a <- na.omit(data_2a)
+  data_2b <- na.omit(data_2b)
+  results <- list(data_2a,data_2b,counter_a,counter_b)
+  return(results)
+}
+@
+
+\subsection{Simple Bootstrapping with \\ Percentile Method Confidence Intervals}
+\textbf{\large{\textit{
+Of the several ways to calculate bootstrap confidence intervals, the bias corrected and accelerated is the most commonly recommended. 
+Because we are using the residualized data, the adjustments made with the bias-corrected and accelerated method (as well as the normative and basic methods) will not be correct; they rely on the original parameter estimates using the non-residualized data.
+The percentile method is used.
+}}}
+
+<<tidy=TRUE>>=
+Effects <- c("Wilks Functions 1, 2, & 3","Wilks Functions 2 & 3", "Wilks Function 3",
+             "Hotelling-Lawley Functions 1, 2, & 3","Hotelling-Lawley Functions 2 & 3",
+             "Hotelling-Lawley Function 3",
+             "Pillai Functions 1, 2, & 3","Pillai Functions 2 & 3", "Pillai Function 3")
+
+Original <- matrix(NA,nrow=9)
+Original[1] <- Actual_Wilks_1
+Original[2] <- Actual_Wilks_2
+Original[3] <- Actual_Wilks_3
+Original[4] <- Actual_HL_1
+Original[5] <- Actual_HL_2
+Original[6] <- Actual_HL_3
+Original[7] <- Actual_Pillai_1
+Original[8] <- Actual_Pillai_2
+Original[9] <- Actual_Pillai_3
+
+Outlier_Z <- 5
+
+# Number of bins specified using the Friedman-Diaconis rule.
+for (j in seq(1,9,1)) {
+  trimmed_data <- outlier_detect(boot_results$t[,j],Outlier_Z)
+  plot_data <- as.data.frame(trimmed_data[[1]])
+  names(plot_data) <- c("t")
+  plot <- ggplot(plot_data, aes(x = t)) +
+      geom_histogram(bins=round((max(plot_data$t)-min(plot_data$t))/(2*IQR(plot_data$t)*length(plot_data$t)^(-1/3)))
+                     ,color = "grey30",fill="grey",
+                     size=.01,na.rm=TRUE)
+  
+  p <-  ggplot(plot_data, aes(x = t)) +
+      geom_histogram(bins=round((max(plot_data$t)-min(plot_data$t))/(2*IQR(plot_data$t)*length(plot_data$t)^(-1/3)))
+                     ,color = "grey30",fill="grey",
+                     size=.25,na.rm=TRUE) +
+      xlab(paste("Bootstrap Estimate (Actual = ",
+                toString(round(Original[j],digits=3)),")",sep="")) + 
+      ylab("Frequency") +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+          geom_vline(xintercept=boot.ci(boot_results, type="perc", index=j)$perc[4],size=1.25,color="red") +
+          geom_vline(xintercept=boot.ci(boot_results, type="perc", index=j)$perc[5],size=1.25,color="red") +
+          annotate("text",x=min(plot_data$t),y=max(ggplot_build(plot)$data[[1]]$count),
+                   label = paste("Outliers (|Z| > ",
+                   toString(round(Outlier_Z,2)),") = ",toString(trimmed_data[[4]]),sep=""),
+                   color="black",
+                   angle=0,hjust=0,size=3) +  
+          ggtitle(paste("Bootstrap 95% Confidence Intervals \nPercentile Method (",toString(Effects[j]),")",sep=""))
+print(p)
+}  
+@
+
+\section{Randomization Tests}
+\textbf{\large{\textit{
+An alternative to the bootstrap takes a different approach to the data.
+When participants are randomly assigned to groups, we assume under the null hypothesis that these assignment are inconsequential or arbitrary.
+In a randomization test, we actually make the group assignments arbitrary.
+On each of a large number of trials, the group assignments are shuffled randomly so that participants will get new group assignments that may not match their original assignments.
+The statistical analyses are conducted on each of these reshuffled samples and the location of the parameters from the original analysis are compared to the permutation distributions to determine if the original estimates are rare under the null.
+}}}
+
+<<tidy=TRUE>>=
+# First, reserve space in the variable, diffs
+rand_fits <- matrix(NA,nrow=10000,ncol=9)
+# Execute a loop 10000 times
+for(i in 1:10000) {
+  # Shuffle the data in the group assignment vector.
+  Skills$Group_perm <- sample(Skills$Group)
+  # Run the MANOVA and get the parameter estimates.
+  LM_P <- lm(cbind(P_Verbal,P_Quant,C_Verbal,C_Quant) ~ as.factor(Group_perm),data=Skills)
+  LDA_P <- candisc(LM_P, data=Skills)
+  rand_fits[i,1] <- (1/(1+LDA_P$eigenvalues[1]))*
+    (1/(1+LDA_P$eigenvalues[2]))*
+    (1/(1+LDA_P$eigenvalues[3]))
+  rand_fits[i,2] <- (1/(1+LDA_P$eigenvalues[2]))*
+    (1/(1+LDA_P$eigenvalues[3]))
+  rand_fits[i,3] <- (1/(1+LDA_P$eigenvalues[3]))
+  rand_fits[i,4] <- LDA_P$eigenvalues[1]+LDA_P$eigenvalues[2]+
+    LDA_P$eigenvalues[3]
+  rand_fits[i,5] <- LDA_P$eigenvalues[2]+LDA_P$eigenvalues[3]
+  rand_fits[i,6] <- LDA_P$eigenvalues[3]
+  rand_fits[i,7] <- (LDA_P$eigenvalues[1]/(1+LDA_P$eigenvalues[1]))+
+    (LDA_P$eigenvalues[2]/(1+LDA_P$eigenvalues[2]))+
+    (LDA_P$eigenvalues[3]/(1+LDA_P$eigenvalues[3]))
+  rand_fits[i,8] <- (LDA_P$eigenvalues[2]/(1+LDA_P$eigenvalues[2]))+
+    (LDA_P$eigenvalues[3]/(1+LDA_P$eigenvalues[3]))
+  rand_fits[i,9] <- (LDA_P$eigenvalues[3]/(1+LDA_P$eigenvalues[3]))
+}
+@
+
+<<tidy=TRUE>>=
+# Number of bins specified using the Friedman-Diaconis rule.
+for (j in seq(1,9,1)) {
+  plot_data <- as.data.frame(rand_fits[,j])
+  names(plot_data) <- c("t")
+  plot <- ggplot(plot_data, aes(x = t)) +
+      geom_histogram(bins=round((max(plot_data$t)-min(plot_data$t))/(2*IQR(plot_data$t)*length(plot_data$t)^(-1/3)))
+                     ,color = "grey30",fill="grey",
+                     size=.01,na.rm=TRUE)
+  
+  p <-  ggplot(plot_data, aes(x = t)) +
+      geom_histogram(bins=round((max(plot_data$t)-min(plot_data$t))/(2*IQR(plot_data$t)*length(plot_data$t)^(-1/3)))
+                     ,color = "grey30",fill="grey",
+                     size=.25,na.rm=TRUE) +
+      xlab(paste("Randomization Estimate (Actual = ",
+                toString(round(Original[j],digits=3)),")",sep="")) + 
+      ylab("Frequency") +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+          geom_vline(xintercept=quantile(rand_fits[,j], c(.025)),size=1.25,color="red") +
+          geom_vline(xintercept=quantile(rand_fits[,j], c(.975)),size=1.25,color="red") +
+          ggtitle(paste("Randomization 95% Confidence Intervals \n",toString(Effects[j]),sep=""))
+print(p)
+}  
+@
+
+\section{MANCOVA}
+\textbf{\large{\textit{
+Adding covariates to a multivariate analysis is a direct extension of univariate analysis of covariance.  
+The goals are (a) to reduce the error for testing a target effect and (b) to adjust for differences that might otherwise make inferences ambiguous.
+The interest is in asking a question that begins, "controlling for  . . ."
+}}}
+
+<<tidy=TRUE>>=
+LM_2 <- lm(cbind(C_Verbal,C_Quant) ~ Tx_C,data=Skills_Trimmed)
+LDA_2 <- candisc(LM_2, data=Skills_Trimmed)
+LDA_2
+summary(LDA_2)
+DA_Chi_Square(Skills_Trimmed,LDA_2)
+LDA_2$coeffs.std
+LDA_2$structure
+summary(aov(C_Verbal ~ C_Quant + Tx_C, data=Skills_Trimmed))
+summary(aov(C_Quant ~ C_Verbal +  Tx_C, data=Skills_Trimmed))
+
+MANOVA_2 <- manova(cbind(C_Verbal,C_Quant) ~ Tx_C,data=Skills_Trimmed)
+summary(MANOVA_2, test="Wilks")
+
+cor(MANOVA_2$residuals)
+@
+
+<<tidy=TRUE>>=
+LM_3 <- lm(cbind(C_Verbal,C_Quant) ~ P_Verbal + P_Quant + Tx_C,data=Skills_Trimmed)
+LDA_3 <- candisc(LM_3, data=Skills_Trimmed)
+LDA_3
+summary(LDA_3)
+DA_Chi_Square(Skills_Trimmed,LDA_3)
+LDA_3$coeffs.std
+LDA_3$structure
+summary(aov(C_Verbal ~ C_Quant + P_Verbal + P_Quant + Tx_C, data=Skills_Trimmed))
+summary(aov(C_Quant ~ C_Verbal + P_Verbal + P_Quant + Tx_C, data=Skills_Trimmed))
+
+MANOVA_3 <- manova(cbind(C_Verbal,C_Quant) ~ P_Verbal + P_Quant + Tx_C,data=Skills_Trimmed)
+summary(MANOVA_3, test="Wilks")
+
+cor(MANOVA_3$residuals)
+@
+
+<<tidy=TRUE>>=
+LM_4 <- lm(cbind(C_Verbal,C_Quant) ~ P_Verbal + P_Quant + Tx_C +
+             Tx_C:P_Verbal + Tx_C:P_Quant,data=Skills_Trimmed)
+LDA_4 <- candisc(LM_4, data=Skills_Trimmed)
+LDA_4
+summary(LDA_4)
+DA_Chi_Square(Skills_Trimmed,LDA_4)
+LDA_4$coeffs.std
+LDA_4$structure
+
+MANOVA_4 <- manova(cbind(C_Verbal,C_Quant) ~ P_Verbal + P_Quant + Tx_C +
+                     Tx_C:P_Verbal + Tx_C:P_Quant,data=Skills_Trimmed)
+summary(MANOVA_4, test="Wilks")
+@
+
+\section{Profile Analysis}
+\textbf{\large{\textit{
+Extending MANOVA to repeated measures has some advantages.  
+One of the simplest is a profile analysis.
+In a profile analysis, several different measures that use the same scale are compared---their profile is assessed, often by comparing groups.
+A key assumption is that the measures can be directly compared---their metrics are the same.
+This is no problem when the "different measures" are simple replications over time.  
+The assumption is very important to consider when the measures are truly different conceptually. \newline
+\newline
+When the same measures are collected over time, a profile analysis is the multivariate approach to repeated measures that might be used if the assumptions for a univariate repeated measures ANOVA (e.g., sphericity) are not met.
+When used with different measures, collected on one occasion with a common measurement scale, a profile analysis addresses questions such as "is X elevated relative to Y and Z?"  
+If groups are included, the question becomes "is the difference between X and Y greater in Group A than in Group B?" \newline
+\newline
+A profile analysis addresses three major questions: \newline
+\begin{addmargin}[3em]{0em}
+\begin{enumerate}[leftmargin=!,labelindent=5pt,itemindent=-3pt,label=(\alph*)]
+\item
+Are the profiles parallel? 
+This addresses whether the pattern of differences across measures is similar for the several groups compared (the interaction). \newline
+\item
+If the profiles are parallel, are they coincident?  
+Coincident and parallel profiles will have no group differences in the between-subjects part of the design---there will be no group main effect). \newline
+\item
+If the profiles are parallel, are they also level?
+The flatness of the profiles is addressed by collapsing across groups and testing for whether the measures are similar in their means (the within-subjects part of the design---a main effect).
+\end{enumerate}
+\end{addmargin}
+}}}
+
+<<tidy=TRUE>>=
+Profile_1 <- manova(as.matrix(Profiles[,1:11]) ~ Profiles[,12],data=Profiles)
+summary(Profile_1, test="Wilks")
+
+Measure <- factor(c("info","comp","arith","simil","vocab","digit","pictcomp",
+                    "parang","block","object","coding"),
+                  levels=c("info","comp","arith","simil","vocab","digit","pictcomp",
+                    "parang","block","object","coding"))
+idata <- data.frame(Measure)
+
+LM_1 <- lm(cbind(info,comp,arith,simil,vocab,digit,pictcomp,
+                    parang,block,object,coding)~Profiles$AgeMate,data=Profiles)
+ANOVA_1 <- Anova(LM_1,idata=idata,idesign=~Measure,type=2)
+summary(ANOVA_1,multivariate=FALSE)
+MANOVA_1 <- Manova(LM_1,idata=idata,idesign=~Measure,type=2)
+summary(MANOVA_1)
+
+Profile_Means <- aggregate(cbind(info,comp,arith,simil,vocab,digit,pictcomp,
+                    parang,block,object,coding)~AgeMate, Profiles, mean)
+
+plot_data <- rbind(t(Profile_Means[1,2:12]),t(Profile_Means[2,2:12]),t(Profile_Means[3,2:12]))
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("values")
+plot_data$group <- c(rep("Older",11),rep("Same",11),rep("Younger",11))
+plot_data$scale <- c("Information","Comprehension","Arithmetic","Similarities","Vocabulary","Digit Span",
+                          "Picture Completion","Picture Arrangement","Block Design","Object Assembly","Coding",
+                     "Information","Comprehension","Arithmetic","Similarities","Vocabulary","Digit Span",
+                          "Picture Completion","Picture Arrangement","Block Design","Object Assembly","Coding",
+                     "Information","Comprehension","Arithmetic","Similarities","Vocabulary","Digit Span",
+                          "Picture Completion","Picture Arrangement","Block Design","Object Assembly","Coding")
+plot_data$scale_n <- c(rep(seq(1,11,1),3))
+@
+
+<<tidy=TRUE>>=
+ggplot(plot_data, aes(x = scale_n,y=values,color=as.factor(group))) +
+  geom_line(size=1) + 
+  geom_point(size=2) +
+  scale_color_manual(values=c('red','blue','green4')) +
+  coord_cartesian(xlim = c(1,11), ylim = c(8,12)) +
+  scale_y_continuous(breaks=seq(8,12,1)) +
+  scale_x_continuous(breaks=seq(1,11,1),
+        labels=c( "Information","Comprehension","Arithmetic","Similarities","Vocabulary","Digit Span",
+                          "Picture Completion","Picture Arrangement","Block Design","Object Assembly","Coding")) +  
+  xlab("Scale") + 
+  ylab("Scale Mean") +
+  theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+    axis.text.y = element_text(colour = "black",size=12,face="bold"),
+    axis.text.x = element_text(colour = "black",size=10,face="bold",angle=45,hjust=1),
+    axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+    axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+    axis.line.x = element_blank(),
+    axis.line.y = element_blank(),
+    plot.title = element_text(size=16, face="bold", 
+                              margin = margin(0, 0, 20, 0),hjust=.5),
+    panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),  
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    legend.position = "bottom", 
+    legend.title = element_blank()) +
+ggtitle("Scale Means as a Function of Group")
+@
+
+\section{Doubly Multivariate Designs}
+\textbf{\large{\textit{
+When variables have different metrics (not commensurate), but are measured repeatedly, a doubly multivariate analysis is used.
+This approach can be thought of as a multivariate analysis of transformed scores (sums and differences). \newline
+\newline
+In this study, 38 healthy young men and 37 age-matched psychiatric male in-patients were asked to engage in brief 10-minute conversations with two other people (the targets, actually research assistants blind to the study purpose or participant status).  
+Participants were given some brief background information about the targets before meeting them. 
+Both targets were described as holding steady jobs, having hobbies, and going to school part time.\newline  
+\newline
+One target (A) was described as having had a lifetime problem with seasonal allergies.  
+The other target (B) was described has having been hospitalized in the past for a psychiatric problem.
+During each interview, the distance the participant sat from the other person (in cm) and the amount of eye contact (in seconds) were assessed. 
+At the end of the 10-minute conversation, participants were asked to rate their liking for the target (on a 7-point scale). \newline
+\newline
+The researchers hypothesized that all participants would distance themselves more from targets believed to have had a psychiatric problem and that they would like this target less than the target with no apparent history of psychiatric problems.
+Eye contact, however, was expected to show a different pattern.  
+Participants were expected to engage in more eye contact with targets who were different from them. 
+Healthy participants were expected to have more eye contact with targets thought to have psychiatric problems than with targets believed to be healthy. 
+Psychiatric patients were expected to show the opposite pattern.
+}}}
+
+<<tidy=TRUE>>=
+# Create a matrix that represents the sums and differences of the
+# measures. The first three columns in the following matrix create
+# sums of the distance, liking, and eye contact variables, 
+# collapsing over the two targets. The last three columns create
+# difference scores comparing the responses to each target,
+# separately for each measure (distance, liking, eye contact).
+imatrix <- matrix(c(
+    1,0,0, 1, 0, 0,
+    1,0,0,-1, 0, 0,
+    0,1,0, 0, 1, 0,
+    0,1,0, 0,-1, 0,
+    0,0,1, 0, 0, 1,
+    0,0,1, 0, 0,-1), nrow=6, ncol=6, byrow=TRUE)
+colnames(imatrix) <- c("Distance_Sum", "Liking_Sum", "Eye_Contant_Sum",
+                       "Distance_Diff", "Liking_Diff", "Eye_Contanct_Diff")
+rownames(imatrix) <- colnames(Double)[-c(7:9)]
+(imatrix <- list(measure=imatrix[,1:3], target=imatrix[,4:6]))
+# Contrast the two groups.
+contrasts(Double$Group) <- matrix(c(1,-1), ncol=1) 
+# Fit each measure in a linear model.
+Double_Fit<-lm(cbind(Interpersonal_Distance_A,Interpersonal_Distance_B,
+                      Liking_A,Liking_B,
+                      Eye_Contact_A,Eye_Contact_B)~Group, data=Double)
+# Get the doubly multivariate results.
+Anova(Double_Fit, imatrix=imatrix, test="Wilks")
+summary.aov(Double_Fit)
+
+# Get the separate repeated measures ANOVAs for each measure.
+Measure <- factor(c("Target_A","Target_B"),levels=c("Target_A","Target_B"))
+idata <- data.frame(Measure)
+
+LM_2 <- lm(cbind(Interpersonal_Distance_A,Interpersonal_Distance_B) ~ Group2, data=Double)
+Repeat_2 <- Anova(LM_2,idata=idata,idesign=~Measure,type=2)
+summary(Repeat_2,multivariate=TRUE)
+
+LM_3 <- lm(cbind(Liking_A,Liking_B) ~ Group2, data=Double)
+Repeat_3 <- Anova(LM_3,idata=idata,idesign=~Measure,type=2)
+summary(Repeat_3,multivariate=TRUE)
+
+LM_4 <- lm(cbind(Eye_Contact_A,Eye_Contact_B) ~ Group2, data=Double)
+Repeat_4 <- Anova(LM_4,idata=idata,idesign=~Measure,type=2)
+summary(Repeat_4,multivariate=TRUE)
+
+# Display the means.
+describeBy(Double[,1:6],group=Double$Group2,digits=2)
+
+# Create the sums and differences for entry in
+# discriminant analysis to produce additional results.
+Double$Distance_Sum <- .7071*Double$Interpersonal_Distance_A + .7071*Double$Interpersonal_Distance_B
+Double$Liking_Sum <- .7071*Double$Liking_A + .7071*Double$Liking_B
+Double$Eye_Contact_Sum <- .7071*Double$Eye_Contact_A + .7071*Double$Eye_Contact_B
+Double$Distance_Diff <- .7071*Double$Interpersonal_Distance_A - .7071*Double$Interpersonal_Distance_B
+Double$Liking_Diff <- .7071*Double$Liking_A - .7071*Double$Liking_B
+Double$Eye_Contact_Diff <- .7071*Double$Eye_Contact_A - .7071*Double$Eye_Contact_B
+
+LM_Sum <- lm(cbind(Distance_Sum,Liking_Sum,Eye_Contact_Sum) ~ Group2,data=Double)
+LDA_Sum <- candisc(LM_Sum, data=Double)
+LDA_Sum
+summary(LDA_Sum)
+LDA_Sum$coeffs.std
+LDA_Sum$structure
+
+LM_Diff <- lm(cbind(Distance_Diff,Liking_Diff,Eye_Contact_Diff) ~ Group2,data=Double)
+LDA_Diff <- candisc(LM_Diff, data=Double)
+LDA_Diff
+summary(LDA_Diff)
+LDA_Diff$coeffs.std
+LDA_Diff$structure
+
+MANOVA_5 <- manova(cbind(Distance_Sum,Liking_Sum,Eye_Contact_Sum) ~ Group2,data=Double)
+cor(MANOVA_5$residuals)
+
+MANOVA_6 <- manova(cbind(Distance_Diff,Liking_Diff,Eye_Contact_Diff) ~ Group2,data=Double)
+cor(MANOVA_6$residuals)
+@
+
+\clearpage
+\section{Means and Confidence Intervals}
+\textbf{\large{\textit{
+Displayed here are bar graphs of the condition means with 95\% confidence intervals.
+}}}
+
+<<tidy=TRUE>>=
+D <- describeBy(Double[,1:6],group=Double$Group2)
+
+plot_data <- matrix(NA,nrow=2,ncol=12)
+
+for(i in 1:2) {
+  for(j in 1:6) {
+    plot_data[i,j] <- D[[i]]$mean[j]
+    plot_data[i,j+6] <- qt(.975,D[[i]]$n[j])*D[[i]]$sd[j]/sqrt(D[[i]]$n[j])
+  }
+}
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("ID_A_mean","ID_B_mean","Like_A_mean","Like_B_mean","Eye_A_mean","Eye_B_mean",
+                      "ID_A_CI","ID_B_CI","Like_A_CI","Like_B_CI","Eye_A_CI","Eye_B_CI")
+plot_data$Group <- factor(c("Healthy Controls","Patients"))
+plot_data$Group_F <- factor(plot_data$Group,levels=c("Healthy Controls","Patients"),
+                        labels=c("Healthy Controls","Patients"))
+@
+
+<<tidy=TRUE>>=
+p1 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=ID_A_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=ID_A_mean-ID_A_CI, ymax=ID_A_mean+ID_A_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,200,50))) +  
+        coord_cartesian(ylim = c(0,200)) +
+        xlab("Participant Group") + 
+        ylab("Interpersonal Distance (cm)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Interpersonal Distance from \nAllergy Target by Group (95% CI)")
+print(p1)
+@
+
+<<tidy=TRUE>>=
+p2 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=ID_B_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=ID_B_mean-ID_B_CI, ymax=ID_B_mean+ID_B_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,200,50))) +  
+        coord_cartesian(ylim = c(0,200)) +
+        xlab("Participant Group") + 
+        ylab("Interpersonal Distance (cm)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Interpersonal Distance from \nPsychiatric Target by Group (95% CI)")
+print(p2)
+@
+
+<<tidy=TRUE>>=
+p3 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=Like_A_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=Like_A_mean-Like_A_CI, ymax=Like_A_mean+Like_A_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(1,7,1))) +  
+        coord_cartesian(ylim = c(1,7)) +
+        xlab("Participant Group") + 
+        ylab("Liking (1-7)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Liking for \nAllergy Target by Group (95% CI)")
+print(p3)
+@
+
+<<tidy=TRUE>>=
+p4 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=Like_B_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=Like_B_mean-Like_B_CI, ymax=Like_B_mean+Like_B_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(1,7,1))) +  
+        coord_cartesian(ylim = c(1,7)) +
+        xlab("Participant Group") + 
+        ylab("Liking (1-7)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Liking for \nPsychiatric Target by Group (95% CI)")
+print(p4)
+@
+
+<<tidy=TRUE>>=
+p5 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=Eye_A_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=Eye_A_mean-Eye_A_CI, ymax=Eye_A_mean+Eye_A_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,80,10))) +  
+        coord_cartesian(ylim = c(0,80)) +
+        xlab("Participant Group") + 
+        ylab("Eye Contact (s)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Eye Contact with \nAllergy Target by Group (95% CI)")
+print(p5)
+@
+
+<<tidy=TRUE>>=
+p6<- ggplot(plot_data, aes(x=as.factor(Group_F), y=Eye_B_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=Eye_B_mean-Eye_B_CI, ymax=Eye_B_mean+Eye_B_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,80,10))) +  
+        coord_cartesian(ylim = c(0,80)) +
+        xlab("Participant Group") + 
+        ylab("Eye Contact (s)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=12,face="bold"),
+              axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Eye Contact with \nPsychiatric Target by Group (95% CI)")
+print(p6)
+@
+
+<<tidy=TRUE>>=
+p1 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=ID_A_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=ID_A_mean-ID_A_CI, ymax=ID_A_mean+ID_A_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,200,50))) +  
+        coord_cartesian(ylim = c(0,200)) +
+        xlab("") + 
+        ylab("Distance \n(cm)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=8,face="bold"),
+              axis.text.x = element_text(colour = "black",size=8,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_blank(),
+              axis.title.y = element_text(margin=margin(0,10,0,0),size=10),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=10, face="bold", 
+                                        margin = margin(0, 0, 10, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(.3, .3, .3, .3), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Allergy Target \nby Group (95% CI)")
+@
+
+<<tidy=TRUE>>=
+p2 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=ID_B_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=ID_B_mean-ID_B_CI, ymax=ID_B_mean+ID_B_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,200,50))) +  
+        coord_cartesian(ylim = c(0,200)) +
+        xlab("") + 
+        ylab("") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=8,face="bold"),
+              axis.text.x = element_text(colour = "black",size=8,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_blank(), 
+              axis.title.y = element_text(margin=margin(0,10,0,0),size=10),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=10, face="bold", 
+                                        margin = margin(0, 0, 10, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(.3, .3, .3, .3), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Psychiatric Target \nby Group (95% CI)")
+@
+
+<<tidy=TRUE>>=
+p3 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=Like_A_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=Like_A_mean-Like_A_CI, ymax=Like_A_mean+Like_A_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(1,7,1))) +  
+        coord_cartesian(ylim = c(1,7)) +
+        xlab("") + 
+        ylab("Liking \n(1-7)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=8,face="bold"),
+              axis.text.x = element_text(colour = "black",size=8,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_blank(),
+              axis.title.y = element_text(margin=margin(0,10,0,0),size=10),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_blank(),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(.3, .3, .3, .3), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Liking for \nAllergy Target by Group (95% CI)")
+@
+
+<<tidy=TRUE>>=
+p4 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=Like_B_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=Like_B_mean-Like_B_CI, ymax=Like_B_mean+Like_B_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(1,7,1))) +  
+        coord_cartesian(ylim = c(1,7)) +
+        xlab("Participant Group") + 
+        ylab("") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=8,face="bold"),
+              axis.text.x = element_text(colour = "black",size=8,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_blank(),
+              axis.title.y = element_text(margin=margin(0,10,0,0),size=10),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_blank(),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(.3, .3, .3, .3), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Liking for \nPsychiatric Target by Group (95% CI)")
+@
+
+<<tidy=TRUE>>=
+p5 <- ggplot(plot_data, aes(x=as.factor(Group_F), y=Eye_A_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=Eye_A_mean-Eye_A_CI, ymax=Eye_A_mean+Eye_A_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,80,10))) +  
+        coord_cartesian(ylim = c(0,80)) +
+        xlab("Participant Group") + 
+        ylab("Eye Contact \n(s)") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=8,face="bold"),
+              axis.text.x = element_text(colour = "black",size=8,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_text(margin=margin(10,0,0,0),size=10), 
+              axis.title.y = element_text(margin=margin(0,10,0,0),size=10),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_blank(),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(.3, .3, .3, .3), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Eye Contact with \nAllergy Target by Group (95% CI)")
+@
+
+<<tidy=TRUE>>=
+p6<- ggplot(plot_data, aes(x=as.factor(Group_F), y=Eye_B_mean)) + 
+        geom_bar(position=position_dodge(), stat="identity",color="black",width=.5,fill="grey") +
+        geom_errorbar(aes(ymin=Eye_B_mean-Eye_B_CI, ymax=Eye_B_mean+Eye_B_CI),
+                      width=.1,position = position_dodge(0.5)) +
+        scale_y_continuous(breaks=c(seq(0,80,10))) +  
+        coord_cartesian(ylim = c(0,80)) +
+        xlab("Participant Group") + 
+        ylab("") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=8,face="bold"),
+              axis.text.x = element_text(colour = "black",size=8,face="bold",angle=0,hjust=.5),
+              axis.title.x = element_text(margin=margin(10,0,0,0),size=10), 
+              axis.title.y = element_text(margin=margin(0,10,0,0),size=10),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_blank(),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill = NA, size=.5),
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(.3, .3, .3, .3), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+        ggtitle("Eye Contact with \nPsychiatric Target by Group (95% CI)")
+@
+
+<<tidy=TRUE>>=
+grid.arrange(p1,p2,p3,p4,p5,p6,nrow=3)
+@
+
+<<tidy=TRUE>>=
+Sys.time()-how_long
+@
+\end{document}

@@ -1,0 +1,361 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Canonical Correlation Analysis I}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+The RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Then some packages are loaded and the required data files are input.
+}}}
+\subsection{Clear the Console Panes and Load Packages}
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(dplyr)
+library(aod)
+library(MVN)
+library(boot)
+library(car)
+library(LogisticDx)
+library(biotools)
+library(multcomp)
+library(candisc)
+library(ez)
+library(GGally)
+library(qqplotr)
+library(gridExtra)
+library(reshape)
+library(emmeans)
+library(profileR)
+library(Rmisc)
+@ 
+
+\subsection{Data}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+# Get the data for the main MANOVA examples.
+CCA <- read.table('cancorr_neo.csv',sep=',',header=TRUE)
+CCA <- as.data.frame(CCA)
+@
+
+\subsection{Basic Visualization}
+\textbf{\large{\textit{
+The basic nature of the data is easily viewed with some simple graphics.
+}}}
+
+<<tidy=TRUE>>=
+ggpairs(CCA[2:9],
+      lower = list(continuous = "smooth"),
+      upper = list(continuous = "cor"),
+      columnLabels=c("SE","NA","PA","N","E","O","A","C")) +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=9,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Correlations Among Measures")
+@
+
+<<tidy=TRUE>>=
+CCA_Z <- scale(CCA[-1])
+plot_data <- melt(CCA_Z)
+plot_data <- as.data.frame(plot_data)
+names(plot_data) <- c("Case","Measure","Z")
+plot_data$Measure_F <- factor(plot_data$Measure,levels=c("rosen_se","panas_p","panas_n",
+                                                         "neo_n","neo_e","neo_o","neo_a","neo_c"),
+                         labels = c("Self-Esteem","Positive Affect","Negative Affect","Neuroticism",
+                                    "Extraversion","Openness","Agreeableness","Conscientiousness"))
+
+ggplot(plot_data, aes(x=Measure_F, y=Z)) + 
+        geom_boxplot(fill="gray") +
+        ylab("Z") +
+        xlab("Measure") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=45,hjust=1),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=14), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=14),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+        ggtitle("Standardized Outcomes")
+@
+
+\section{Multivariate Normality Assumption}
+\subsection{Full Sample}
+<<tidy=TRUE>>=
+mvn(CCA[,2:9],mvnTest="mardia")
+@
+
+<<tidy=TRUE>>=
+CV <- cov(CCA[,2:9])
+D2_1 <- mahalanobis(CCA[,2:9],center=colMeans(CCA[,2:9]),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=8)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=8)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=8)) +
+    scale_y_continuous(breaks=seq(0,45,5)) +
+    scale_x_continuous(breaks=seq(0,25,5)) +
+    coord_cartesian(xlim = c(0,25), ylim =c(0,45)) +
+    xlab(expression("Expected Values from" * ~ chi[8]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[8]^2))
+@
+
+\subsection{Outlier Excluded}
+<<tidy=TRUE>>=
+CCA$D2_1 <- D2_1
+CCA_Trimmed <- CCA[which(CCA$D2_1!=max(CCA$D2_1)),]
+
+mvn(CCA_Trimmed[,2:9],mvnTest="mardia")
+@
+
+<<tidy=TRUE>>=
+CV <- cov(CCA_Trimmed[,2:9])
+D2_1 <- mahalanobis(CCA_Trimmed[,2:9],center=colMeans(CCA_Trimmed[,2:9]),cov=CV)
+D2_1 <- as.data.frame(D2_1)
+ggplot(D2_1, aes(sample=D2_1)) +
+    stat_qq_band(distribution = "chisq", dparams = list(df=8)) +
+    stat_qq_line(distribution = "chisq", dparams = list(df=8)) + 
+    stat_qq(distribution = "qchisq", dparams = list(df=8)) +
+    scale_y_continuous(breaks=seq(0,35,5)) +
+    scale_x_continuous(breaks=seq(0,25,5)) +
+    coord_cartesian(xlim = c(0,25), ylim =c(0,35)) +
+    xlab(expression("Expected Values from" * ~ chi[8]^2)) + 
+    ylab(expression("Mahalanobis " * ~D^2)) +
+    theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,face="bold",angle=0),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle(expression("Q-Q Plot of Mahalanobis" * ~D^2 *
+                         " vs. Quantiles of" * ~ chi[8]^2))
+@
+
+<<tidy=TRUE>>=
+CCA_Trimmed_QQ <- scale(CCA_Trimmed[,2:9])
+plot_data <- melt(CCA_Trimmed_QQ)
+
+names(plot_data) <- c("Case","Measure","Z")
+plot_data$Measure_F <- factor(plot_data$Measure,levels=c("rosen_se","panas_p","panas_n",
+                                                         "neo_n","neo_e","neo_o","neo_a","neo_c"),
+                         labels = c("Self-Esteem","Positive Affect","Negative Affect","Neuroticism",
+                                    "Extraversion","Openness","Agreeableness","Conscientiousness"))
+
+p <- ggplot(plot_data, aes(sample=Z)) +
+        stat_qq_band() + stat_qq_line() + stat_qq(distribution=qnorm,size=1) +
+        scale_y_continuous(breaks=seq(-4,4,1)) +
+        scale_x_continuous(breaks=seq(-4,4,1)) +
+        coord_cartesian(xlim = c(-4,4), ylim =c(-4,4)) +
+        xlab("Theoretical Quantiles") + 
+        ylab("Sample Quantiles") +
+        theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+              axis.text.y = element_text(colour = "black",size=10,face="bold"),
+              axis.text.x = element_text(colour = "black",size=10,face="bold",angle=90),
+              axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+              axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+              axis.line.x = element_blank(),
+              axis.line.y = element_blank(),
+              plot.title = element_text(size=16, face="bold", 
+                                        margin = margin(0, 0, 20, 0),hjust=.5),
+              panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),  
+              plot.background = element_rect(fill = "white"),
+              plot.margin = unit(c(1, 1, 1, 1), "cm"),
+              legend.position = "bottom", 
+              legend.title = element_blank()) +
+      ggtitle("Q-Q Plots for Measures")
+p + facet_wrap(~Measure_F)
+@
+
+\textbf{\large{\textit{
+The QQ-plot looks good but we still violate multivariate normality.
+It would probably be prudent to verify any claims about significance with a bootstrap or permutation test.
+}}}
+
+\section{Correlations}
+\textbf{\large{\textit{
+The correlations among the variables can be examined to detect simple patterns and to get a sense of the relations across sets.
+}}}
+<<tidy=TRUE>>=
+cor(CCA_Trimmed[,5:9])
+cor(CCA_Trimmed[,2:4])
+cor(CCA_Trimmed[,2:4],CCA_Trimmed[,5:9])
+@
+
+\section{Canonical Correlation Analysis}
+\textbf{\large{\textit{
+A simple canonical correlation analysis can be conducted using the cancor( ) function from the candisc package.
+}}}
+<<tidy=TRUE>>=
+CCA_1 <- cancor(cbind(rosen_se,panas_n,panas_p)~neo_n+neo_e+neo_o+neo_a+neo_c,
+                data=CCA_Trimmed,prefix=c("NEO","Well_Being"),standardize=TRUE)
+CCA_2 <- cancor(cbind(neo_n,neo_e,neo_o,neo_a,neo_c)~rosen_se+panas_n+panas_p,
+                data=CCA_Trimmed,prefix=c("Well-Being","NEO"),standardize=TRUE)
+CCA_1
+CCA_1$coef
+CCA_1$structure
+coef(CCA_1,type="both",standardize=TRUE)
+
+CCA_1_Scores <- cbind(CCA_1$scores$X,CCA_1$scores$Y)
+
+plot(CCA_1,which=1,main=list("First Canonical Functions",cex=1.5),
+     xlab=list("NEO Set",cex=1.25),
+     ylab=list("Well-Being Set",cex=1.25),font.axis=2,pch=16,col="blue")
+plot(CCA_1,which=2,main=list("Second Canonical Functions",cex=1.5),
+     xlab=list("NEO Set",cex=1.25),
+     ylab=list("Well-Being Set",cex=1.25),font.axis=2,pch=16,col="blue")
+plot(CCA_1,which=3,main=list("Third Canonical Functions",cex=1.5),
+     xlab=list("NEO Set",cex=1.25),
+     ylab=list("Well-Being Set",cex=1.25),font.axis=2,pch=16,col="blue")
+
+Well_Being_Loadings <- CCA_1$structure$Y.yscores
+NEO_Loadings <- CCA_1$structure$X.xscores
+
+(Well_Being_Communalities <- rowSums((Well_Being_Loadings)^2))
+(NEO_Communalities <- rowSums((NEO_Loadings)^2))
+
+(Well_Being_Adequacy <- colSums((Well_Being_Loadings)^2)/
+  length(Well_Being_Loadings[,1]))
+(NEO_Adequacy <- colSums((NEO_Loadings)^2)/length(NEO_Loadings[,1]))
+
+(Well_Being_Redundancy <- Well_Being_Adequacy*(CCA_1$cancor)^2)
+(NEO_Redundancy <- NEO_Adequacy*(CCA_1$cancor)^2)
+redundancy(CCA_1)
+
+# Including the outlier.
+CCA_3 <- cancor(cbind(rosen_se,panas_n,panas_p)~neo_n+neo_e+neo_o+neo_a+neo_c,
+                data=CCA,prefix=c("NEO","Well-Being"),standardize=TRUE)
+CCA_3
+@
+
+<<tidy=TRUE>>=
+plot_data <- as.data.frame(CCA_1_Scores)
+ggpairs(plot_data,
+      lower = list(continuous = "smooth"),
+      upper = list(continuous = "cor"),
+      columnLabels=c("NEO 1","NEO 2","NEO 3","Well- \nBeing 1","Well- \nBeing 2","Well- \nBeing 3")) +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=9,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Correlations Among Measures")
+@
+
+\end{document}
