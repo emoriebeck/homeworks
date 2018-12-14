@@ -1,0 +1,1125 @@
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 12\\
+\large Applied Mutlivariate Analysis}
+\date{November 27, 2018}
+\author{Emorie Beck}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hlstd{(car)}
+\hlkwd{library}\hlstd{(knitr)}
+\hlkwd{library}\hlstd{(kableExtra)}
+\hlkwd{library}\hlstd{(psych)}
+\hlkwd{library}\hlstd{(MASS)}
+\hlkwd{library}\hlstd{(car)}
+\hlkwd{library}\hlstd{(multcomp)}
+\hlkwd{library}\hlstd{(Rmisc)}
+\hlkwd{library}\hlstd{(broom)}
+\hlkwd{library}\hlstd{(plyr)}
+\hlkwd{library}\hlstd{(tidyverse)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+
+\subsection{data}
+The file, Set\_11.csv, contains the data from an experiment investigating the effects of goal- related instructions on performance, persistence, and anxiety. Participants attempted to solve challenging anagrams (words with their letters scrambled, e.g., ULERITO = OUTLIER) during a 30-minute period. Participants could attempt as many anagrams as they wished and could give up and move on to a new one at any time. Persistence was the number of anagrams attempted. Performance was the percentage of anagrams solved correctly, of those attempted. Anxiety was the total score on a questionnaire designed to measure performance-related anxiety, given after the instructions, immediately before starting the task (scores could range from 10 to 40).
+Participants were given a set of 10 practice anagrams to give them an idea of their difficulty. Performance on this practice set was 51\%.
+
+Prior to beginning the task, groups were given instructions intended to influence their motivation on the task. Group 1 was told to simply "do your best." Group 2 was told, “most students are able to correctly solve about 60\% of the anagrams you will attempt." Given the practice test experience, these instructions were expected to make the task seem challenging, but not impossible. Group 3 was told, “most students are able to correctly solve 80\% of the anagrams you will attempt." These instructions were expected to make the task seem very difficult.
+
+The researchers posed the following hypotheses:
+
+\begin{enumerate}
+\item The increasingly challenging instructions should lead to increasing levels of anxiety.
+\item Groups 2 and 3 should exert more persistence than Group 1 but should not differ from each other because there is an upper limit to the number of anagrams that can reasonably be attempted in 30 minutes.
+\item Performance should be greatest in Group 2. Group 1 should have lower performance than Group 2 because of lower motivation. Group 3 should have lower performance than Group 2 because of the incapacitating effects of high anxiety.
+\end{enumerate}
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{wd} \hlkwb{<-} \hlstr{"https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework13"}
+
+\hlstd{dat} \hlkwb{<-} \hlkwd{sprintf}\hlstd{(}\hlstr{"%s/Set_11.csv"}\hlstd{, wd)} \hlopt{%>%} \hlkwd{read.csv}\hlstd{(.,} \hlkwc{stringsAsFactors} \hlstd{= F)} \hlopt{%>%} \hlstd{tbl_df} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{Group} \hlstd{=} \hlkwd{factor}\hlstd{(Group))}
+
+\hlkwd{head}\hlstd{(dat)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 6 x 5
+##   Perform Persist Anxiety Group    ID
+##     <int>   <int>   <int> <fct> <int>
+## 1      43      19      15 1         1
+## 2      40      21      15 1         2
+## 3      43      27      11 1         3
+## 4      36      19      13 1         4
+## 5      25      15      19 1         5
+## 6      51      34      10 1         6
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\section{Question 1}
+Analyze each outcome measure separately and comment on the support those analyses provide for the hypotheses. Use any contrasts or follow-up comparisons that you think are important for testing each hypothesis.
+
+\begin{kframe}
+\begin{alltt}
+\hlstd{nested1} \hlkwb{<-} \hlstd{dat} \hlopt{%>%}
+  \hlkwd{gather}\hlstd{(}\hlkwc{key} \hlstd{= outcome,} \hlkwc{value} \hlstd{= value, Perform}\hlopt{:}\hlstd{Anxiety)} \hlopt{%>%}
+  \hlkwd{group_by}\hlstd{(outcome)} \hlopt{%>%}
+  \hlkwd{nest}\hlstd{()} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{lm} \hlstd{=} \hlkwd{map}\hlstd{(data,} \hlopt{~}\hlkwd{lm}\hlstd{(value} \hlopt{~} \hlstd{Group,} \hlkwc{data} \hlstd{= . )),}
+         \hlkwc{aov} \hlstd{=} \hlkwd{map}\hlstd{(data,} \hlopt{~}\hlkwd{aov}\hlstd{(value} \hlopt{~} \hlstd{Group,} \hlkwc{data} \hlstd{= .)),}
+         \hlkwc{tidy.lm} \hlstd{=} \hlkwd{map}\hlstd{(lm, broom}\hlopt{::}\hlstd{tidy),}
+         \hlkwc{tidy.aov} \hlstd{=} \hlkwd{map}\hlstd{(aov, broom}\hlopt{::}\hlstd{tidy))}
+
+\hlstd{nested1} \hlopt{%>%}
+  \hlkwd{unnest}\hlstd{(tidy.lm)} \hlopt{%>%}
+  \hlkwd{filter}\hlstd{(}\hlkwd{grepl}\hlstd{(}\hlstr{"Group"}\hlstd{, term))} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{p.value} \hlstd{=} \hlkwd{ifelse}\hlstd{(p.value} \hlopt{<} \hlnum{.001}\hlstd{,} \hlstr{"<.001"}\hlstd{,} \hlkwd{ifelse}\hlstd{(p.value} \hlopt{<} \hlnum{.01}\hlstd{,}
+                      \hlstr{"<.01"}\hlstd{,} \hlkwd{ifelse}\hlstd{(p.value} \hlopt{<} \hlnum{.05}\hlstd{,} \hlstr{"<.05"}\hlstd{,} \hlstr{">.05"}\hlstd{))))} \hlopt{%>%}
+  \hlkwd{kable}\hlstd{(.,} \hlstr{"latex"}\hlstd{,} \hlkwc{booktabs} \hlstd{= T,} \hlkwc{escape} \hlstd{= F,} \hlkwc{digits} \hlstd{=} \hlnum{2}\hlstd{)} \hlopt{%>%}
+  \hlkwd{kable_styling}\hlstd{(}\hlkwc{full_width} \hlstd{= F)}
+\end{alltt}
+\end{kframe}\begin{table}[H]
+\centering
+\begin{tabular}{llrrrl}
+\toprule
+outcome & term & estimate & std.error & statistic & p.value\\
+\midrule
+Perform & Group2 & 13.75 & 4.25 & 3.23 & <.01\\
+Perform & Group3 & 3.35 & 4.17 & 0.80 & >.05\\
+Persist & Group2 & 17.15 & 2.78 & 6.16 & <.001\\
+Persist & Group3 & 15.74 & 2.73 & 5.77 & <.001\\
+Anxiety & Group2 & 4.29 & 1.68 & 2.56 & <.05\\
+Anxiety & Group3 & 8.50 & 1.64 & 5.18 & <.001\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{# linear contrast -1*G1 + 0*G2 + 1*G3 = 0}
+\hlcom{# -1*(I) + 0*(I + D1) + 1*(I + D2) = 0}
+\hlcom{# -I + I + D2 = 0}
+\hlcom{# D2 = 0}
+\hlstd{H1.1} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{0}\hlstd{)}
+\hlcom{# quadratic contrast: 1*G1 + -2*G2 + 1*G3 = 0}
+\hlcom{# 1*(I) + -2*(I + D1) + 1*(I + D2) = 0}
+\hlcom{# I -2*I -2*D1 + I + D2 = 0}
+\hlcom{# -2*D1 + D2 = 0}
+\hlstd{H1.2} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,} \hlopt{-}\hlnum{2}\hlstd{,} \hlnum{1}\hlstd{)}
+\hlcom{# group 1 differs from 2 + 3: G1 = G2 + G3}
+\hlcom{# (I) = (I + D1 + I + D2)}
+\hlcom{# 0 = I + D1 + D2}
+\hlstd{H2.1} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{1}\hlstd{)}
+\hlcom{# group 2 and 3 don't differ: G2 = G3}
+\hlcom{# (I + D1) = (I + D2)}
+\hlcom{# D1 - D2 = 0}
+\hlstd{H2.2} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,} \hlopt{-}\hlnum{1}\hlstd{,} \hlnum{1}\hlstd{)}
+
+\hlcom{# H3: G2 performance best: G1 + G3 = G2}
+\hlcom{# I + I + D2 = I + D1}
+\hlcom{# I - D1 + D2 = 0}
+\hlstd{H3.1} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,} \hlopt{-}\hlnum{1}\hlstd{,} \hlnum{1}\hlstd{)}
+\hlcom{# H3: G3 < G2 performance: G3 = G2}
+\hlcom{# (I + D2) = (I + D1)}
+\hlcom{# D2 - D1 = 0}
+\hlstd{H3.2} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,} \hlnum{1}\hlstd{,} \hlopt{-}\hlnum{1}\hlstd{)}
+
+\hlstd{H.1} \hlkwb{<-} \hlkwd{rbind}\hlstd{(H1.1, H1.2, H2.1, H2.2, H3.1, H3.2)}
+\hlkwd{rownames}\hlstd{(H.1)} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"H1 linear"}\hlstd{,} \hlstr{"H1 quadratic"}\hlstd{,}
+                   \hlstr{"H2: G1 = G2 + G3"}\hlstd{,} \hlstr{"H2: G2 - G3 = 0"}\hlstd{,}
+                   \hlstr{"H3: G2 = G1 + G3"}\hlstd{,} \hlstr{"H3: G2 = G3"}\hlstd{)}
+
+\hlstd{tab_fun} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{x}\hlstd{)\{}
+  \hlstd{x}\hlopt{$}\hlstd{confint} \hlopt{%>%} \hlstd{data.frame} \hlopt{%>%}
+    \hlkwd{mutate}\hlstd{(}\hlkwc{Group} \hlstd{=} \hlkwd{rownames}\hlstd{(x}\hlopt{$}\hlstd{confint))} \hlopt{%>%}
+    \hlkwd{select}\hlstd{(Group,} \hlkwd{everything}\hlstd{())}
+\hlstd{\}}
+
+\hlstd{nested1} \hlkwb{<-} \hlstd{nested1} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{comp} \hlstd{=} \hlkwd{map}\hlstd{(lm,} \hlopt{~}\hlkwd{glht}\hlstd{(.,} \hlkwc{linfct}\hlstd{=H.1,} \hlkwc{alternative}\hlstd{=}\hlstr{"two.sided"}\hlstd{,}\hlkwc{rhs}\hlstd{=}\hlnum{0}\hlstd{)),}
+         \hlkwc{summ} \hlstd{=} \hlkwd{map}\hlstd{(comp,} \hlopt{~}\hlkwd{confint}\hlstd{(.,} \hlkwd{adjusted}\hlstd{(}\hlstr{"holm"}\hlstd{),} \hlkwc{calpha} \hlstd{=} \hlkwd{univariate_calpha}\hlstd{())),}
+         \hlkwc{tab} \hlstd{=} \hlkwd{map}\hlstd{(summ, tab_fun))}
+
+\hlstd{nested1} \hlopt{%>%} \hlkwd{unnest}\hlstd{(tab)} \hlopt{%>%}
+  \hlkwd{filter}\hlstd{((outcome} \hlopt{==} \hlstr{"Anxiety"} \hlopt{&} \hlstd{Group} \hlopt{==} \hlstr{"H1 linear"}\hlstd{)} \hlopt{|} \hlcom{# H1 linear contrast}
+         \hlstd{(outcome} \hlopt{==} \hlstr{"Anxiety"} \hlopt{&} \hlstd{Group} \hlopt{==} \hlstr{"H1 quadratic"}\hlstd{)} \hlopt{|} \hlcom{# H1 quadratic }
+         \hlstd{(outcome} \hlopt{==} \hlstr{"Persist"} \hlopt{&} \hlstd{Group} \hlopt{==} \hlstr{"H2: G1 = G2 + G3"}\hlstd{)} \hlopt{|}
+         \hlstd{(outcome} \hlopt{==} \hlstr{"Persist"} \hlopt{&} \hlstd{Group} \hlopt{==} \hlstr{"H2: G2 - G3 = 0"}\hlstd{)} \hlopt{|}
+         \hlstd{(outcome} \hlopt{==} \hlstr{"Perform"} \hlopt{&} \hlstd{Group} \hlopt{==} \hlstr{"H3: G2 = G1 + G3"}\hlstd{)} \hlopt{|}
+         \hlstd{(outcome} \hlopt{==} \hlstr{"Perform"} \hlopt{&} \hlstd{Group} \hlopt{==} \hlstr{"H3: G2 = G3"}\hlstd{)} \hlopt{|}
+         \hlstd{(outcome} \hlopt{==} \hlstr{"Anxiety"} \hlopt{&} \hlstd{Group} \hlopt{==} \hlstr{"H3: G2 = G3"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{arrange}\hlstd{(Group)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 7 x 5
+##   outcome Group            Estimate     lwr     upr
+##   <chr>   <chr>               <dbl>   <dbl>   <dbl>
+## 1 Anxiety H1 linear          4.29     0.946   7.63 
+## 2 Anxiety H1 quadratic      -0.0687  -5.86    5.72 
+## 3 Persist H2: G1 = G2 + G3  60.5     53.8    67.3  
+## 4 Persist H2: G2 - G3 = 0   -1.41    -6.91    4.09 
+## 5 Perform H3: G2 = G1 + G3  39.5     29.2    49.8  
+## 6 Perform H3: G2 = G3       10.4      2.00   18.8  
+## 7 Anxiety H3: G2 = G3       -4.22    -7.53   -0.909
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Hypothesis 1: A linear contrast supports the hypothesis that the increasingly challenging instructions should lead to increasing levels of anxiety. This is further supported by the non-significant quadratic contrast.
+
+Hypothesis 2: On average, Groups 2 and 3 persisted longer than group 1, which is further supported by the non-significant difference between groups 2 and 3.
+
+Hypothesis 3: Group 2 performed the best of the of the other groups on average and better than Group 3 specifically but Group 2 appears to have had lower anxiety than Group 3.
+
+
+\section{Question 2}
+Then conduct a multivariate analysis and indicate if this approach adds any additional insight or qualification to the univariate analyses.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{dat}\hlopt{$}\hlstd{Group.sum} \hlkwb{<-} \hlstd{dat}\hlopt{$}\hlstd{Group}
+\hlkwd{contrasts}\hlstd{(dat}\hlopt{$}\hlstd{Group.sum)} \hlkwb{<-} \hlkwd{contr.sum}\hlstd{(}\hlnum{3}\hlstd{)}
+\hlstd{manova1} \hlkwb{<-} \hlkwd{manova}\hlstd{(}\hlkwd{cbind}\hlstd{(Perform, Persist, Anxiety)} \hlopt{~} \hlstd{Group.sum,} \hlkwc{data} \hlstd{= dat)}
+\hlstd{m1} \hlkwb{<-} \hlkwd{lm}\hlstd{(}\hlkwd{cbind}\hlstd{(Anxiety, Persist, Perform)} \hlopt{~} \hlstd{Group,} \hlkwc{data} \hlstd{= dat)}
+\hlstd{id} \hlkwb{<-} \hlkwd{data.frame}\hlstd{(}\hlkwc{measure} \hlstd{=} \hlkwd{factor}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{"Anxiety"}\hlstd{,} \hlstr{"Persist"}\hlstd{,} \hlstr{"Perform"}\hlstd{)))}
+\hlstd{manova2} \hlkwb{<-} \hlkwd{Anova}\hlstd{(m1,} \hlkwc{data} \hlstd{= dat,} \hlkwc{idesign} \hlstd{=} \hlopt{~}\hlstd{measure,} \hlkwc{idata} \hlstd{= id,} \hlkwc{multivariate} \hlstd{= T)}
+
+\hlkwd{summary}\hlstd{(manova2)}
+\end{alltt}
+\begin{verbatim}
+## 
+## Type II Repeated Measures MANOVA Tests:
+## 
+## ------------------------------------------
+##  
+## Term: (Intercept) 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    911905.3
+## 
+## Multivariate Tests: (Intercept)
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1   0.96988 2318.506      1     72 < 2.22e-16 ***
+## Wilks             1   0.03012 2318.506      1     72 < 2.22e-16 ***
+## Hotelling-Lawley  1  32.20147 2318.506      1     72 < 2.22e-16 ***
+## Roy               1  32.20147 2318.506      1     72 < 2.22e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: Group 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    16983.92
+## 
+## Multivariate Tests: Group
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            2 0.3748989 21.59069      2     72 4.5103e-08 ***
+## Wilks             2 0.6251011 21.59069      2     72 4.5103e-08 ***
+## Hotelling-Lawley  2 0.5997412 21.59069      2     72 4.5103e-08 ***
+## Roy               2 0.5997412 21.59069      2     72 4.5103e-08 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##           measure1  measure2
+## measure1  37587.21 -28363.91
+## measure2 -28363.91  21403.85
+## 
+## Multivariate Tests: measure
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1  0.825154 167.5359      2     71 < 2.22e-16 ***
+## Wilks             1  0.174846 167.5359      2     71 < 2.22e-16 ***
+## Hotelling-Lawley  1  4.719320 167.5359      2     71 < 2.22e-16 ***
+## Roy               1  4.719320 167.5359      2     71 < 2.22e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: Group:measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##           measure1  measure2
+## measure1 2041.6017  707.4617
+## measure2  707.4617 2096.8278
+## 
+## Multivariate Tests: Group:measure
+##                  Df test stat  approx F num Df den Df     Pr(>F)    
+## Pillai            2 0.4072735  9.205501      4    144 1.1881e-06 ***
+## Wilks             2 0.6206264  9.562287      4    142 7.1021e-07 ***
+## Hotelling-Lawley  2 0.5663209  9.910616      4    140 4.3294e-07 ***
+## Roy               2 0.4708449 16.950416      2     72 9.2810e-07 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Univariate Type II Repeated-Measures ANOVA Assuming Sphericity
+## 
+##               Sum Sq num Df Error SS den Df   F value    Pr(>F)    
+## (Intercept)   303968      1   9439.6     72 2318.5060 < 2.2e-16 ***
+## Group           5661      2   9439.6     72   21.5907  4.51e-08 ***
+## measure        58237      2  15832.7    144  264.8340 < 2.2e-16 ***
+## Group:measure   2287      4  15832.7    144    5.2008 0.0006087 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## 
+## Mauchly Tests for Sphericity
+## 
+##               Test statistic    p-value
+## measure              0.44729 3.9448e-13
+## Group:measure        0.44729 3.9448e-13
+## 
+## 
+## Greenhouse-Geisser and Huynh-Feldt Corrections
+##  for Departure from Sphericity
+## 
+##                GG eps Pr(>F[GG])    
+## measure       0.64404  < 2.2e-16 ***
+## Group:measure 0.64404   0.003697 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+##                  HF eps   Pr(>F[HF])
+## measure       0.6507342 8.217931e-33
+## Group:measure 0.6507342 3.572024e-03
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+\subsection{Hypothesis 1}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{dat} \hlkwb{<-} \hlstd{dat} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{H1.1} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{mapvalues}\hlstd{(Group,} \hlnum{1}\hlopt{:}\hlnum{3}\hlstd{,} \hlkwd{c}\hlstd{(}\hlopt{-}\hlnum{1}\hlstd{,}\hlnum{0}\hlstd{,}\hlnum{1}\hlstd{))),} \hlcom{# linear cntrast}
+         \hlkwc{H1.2} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{mapvalues}\hlstd{(Group,} \hlnum{1}\hlopt{:}\hlnum{3}\hlstd{,} \hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,}\hlopt{-}\hlnum{2}\hlstd{,}\hlnum{1}\hlstd{))))} \hlcom{# quadratic contrast}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+Linear change
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{m2} \hlkwb{<-} \hlkwd{lm}\hlstd{(}\hlkwd{cbind}\hlstd{(Anxiety, Persist, Perform)} \hlopt{~} \hlstd{H1.1,} \hlkwc{data} \hlstd{= dat)}
+\hlstd{manova.H1.1} \hlkwb{<-} \hlkwd{Anova}\hlstd{(m2,} \hlkwc{data} \hlstd{= dat,} \hlkwc{idesign} \hlstd{=} \hlopt{~}\hlstd{measure,} \hlkwc{idata} \hlstd{= id,} \hlkwc{multivariate} \hlstd{= T)}
+\hlkwd{summary}\hlstd{(manova.H1.1)}
+\end{alltt}
+\begin{verbatim}
+## 
+## Type II Repeated Measures MANOVA Tests:
+## 
+## ------------------------------------------
+##  
+## Term: (Intercept) 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    911905.3
+## 
+## Multivariate Tests: (Intercept)
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1  0.962243 1860.418      1     73 < 2.22e-16 ***
+## Wilks             1  0.037757 1860.418      1     73 < 2.22e-16 ***
+## Hotelling-Lawley  1 25.485173 1860.418      1     73 < 2.22e-16 ***
+## Roy               1 25.485173 1860.418      1     73 < 2.22e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: H1.1 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    9520.868
+## 
+## Multivariate Tests: H1.1
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1 0.2101613 19.42394      1     73 3.5324e-05 ***
+## Wilks             1 0.7898387 19.42394      1     73 3.5324e-05 ***
+## Hotelling-Lawley  1 0.2660813 19.42394      1     73 3.5324e-05 ***
+## Roy               1 0.2660813 19.42394      1     73 3.5324e-05 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##           measure1  measure2
+## measure1  37587.21 -28363.91
+## measure2 -28363.91  21403.85
+## 
+## Multivariate Tests: measure
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1  0.815442 159.0609      2     72 < 2.22e-16 ***
+## Wilks             1  0.184558 159.0609      2     72 < 2.22e-16 ***
+## Hotelling-Lawley  1  4.418358 159.0609      2     72 < 2.22e-16 ***
+## Roy               1  4.418358 159.0609      2     72 < 2.22e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: H1.1:measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##           measure1 measure2
+## measure1  646.9025 1128.767
+## measure2 1128.7668 1969.562
+## 
+## Multivariate Tests: H1.1:measure
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1 0.3191665 16.87636      2     72 9.7605e-07 ***
+## Wilks             1 0.6808335 16.87636      2     72 9.7605e-07 ***
+## Hotelling-Lawley  1 0.4687878 16.87636      2     72 9.7605e-07 ***
+## Roy               1 0.4687878 16.87636      2     72 9.7605e-07 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Univariate Type II Repeated-Measures ANOVA Assuming Sphericity
+## 
+##              Sum Sq num Df Error SS den Df  F value    Pr(>F)    
+## (Intercept)  303968      1    11927     73 1860.418 < 2.2e-16 ***
+## H1.1           3174      1    11927     73   19.424 3.532e-05 ***
+## measure       58237      2    17128    146  248.203 < 2.2e-16 ***
+## H1.1:measure    992      2    17128    146    4.227   0.01642 *  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## 
+## Mauchly Tests for Sphericity
+## 
+##              Test statistic   p-value
+## measure             0.41927 2.568e-14
+## H1.1:measure        0.41927 2.568e-14
+## 
+## 
+## Greenhouse-Geisser and Huynh-Feldt Corrections
+##  for Departure from Sphericity
+## 
+##               GG eps Pr(>F[GG])    
+## measure      0.63262     <2e-16 ***
+## H1.1:measure 0.63262     0.0336 *  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+##                 HF eps   Pr(>F[HF])
+## measure      0.6386537 1.941780e-31
+## H1.1:measure 0.6386537 3.320521e-02
+\end{verbatim}
+\begin{alltt}
+\hlstd{m3} \hlkwb{<-} \hlkwd{lm}\hlstd{(}\hlkwd{cbind}\hlstd{(Anxiety, Persist, Perform)} \hlopt{~} \hlstd{H1.2,} \hlkwc{data} \hlstd{= dat)}
+\hlstd{manova.H1.2} \hlkwb{<-} \hlkwd{Anova}\hlstd{(m3,} \hlkwc{data} \hlstd{= dat,} \hlkwc{idesign} \hlstd{=} \hlopt{~}\hlstd{measure,} \hlkwc{idata} \hlstd{= id,} \hlkwc{multivariate} \hlstd{= T)}
+\hlkwd{summary}\hlstd{(manova.H1.2)}
+\end{alltt}
+\begin{verbatim}
+## 
+## Type II Repeated Measures MANOVA Tests:
+## 
+## ------------------------------------------
+##  
+## Term: (Intercept) 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    911905.3
+## 
+## Multivariate Tests: (Intercept)
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1  0.959969 1750.603      1     73 < 2.22e-16 ***
+## Wilks             1  0.040031 1750.603      1     73 < 2.22e-16 ***
+## Hotelling-Lawley  1 23.980867 1750.603      1     73 < 2.22e-16 ***
+## Roy               1 23.980867 1750.603      1     73 < 2.22e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: H1.2 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    7276.297
+## 
+## Multivariate Tests: H1.2
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1 0.1606152 13.96846      1     73 0.00036657 ***
+## Wilks             1 0.8393848 13.96846      1     73 0.00036657 ***
+## Hotelling-Lawley  1 0.1913487 13.96846      1     73 0.00036657 ***
+## Roy               1 0.1913487 13.96846      1     73 0.00036657 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##           measure1  measure2
+## measure1  37587.21 -28363.91
+## measure2 -28363.91  21403.85
+## 
+## Multivariate Tests: measure
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1  0.816413 160.0922      2     72 < 2.22e-16 ***
+## Wilks             1  0.183587 160.0922      2     72 < 2.22e-16 ***
+## Hotelling-Lawley  1  4.447005 160.0922      2     72 < 2.22e-16 ***
+## Roy               1  4.447005 160.0922      2     72 < 2.22e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: H1.2:measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##           measure1  measure2
+## measure1 1373.5342 -436.3164
+## measure2 -436.3164  138.6001
+## 
+## Multivariate Tests: H1.2:measure
+##                  Df test stat approx F num Df den Df   Pr(>F)  
+## Pillai            1 0.0878057 3.465277      2     72 0.036572 *
+## Wilks             1 0.9121943 3.465277      2     72 0.036572 *
+## Hotelling-Lawley  1 0.0962577 3.465277      2     72 0.036572 *
+## Roy               1 0.0962577 3.465277      2     72 0.036572 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Univariate Type II Repeated-Measures ANOVA Assuming Sphericity
+## 
+##              Sum Sq num Df Error SS den Df   F value    Pr(>F)    
+## (Intercept)  303968      1    12676     73 1750.6033 < 2.2e-16 ***
+## H1.2           2425      1    12676     73   13.9685 0.0003666 ***
+## measure       58237      2    16821    146  252.7354 < 2.2e-16 ***
+## H1.2:measure   1299      2    16821    146    5.6373 0.0043823 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## 
+## Mauchly Tests for Sphericity
+## 
+##              Test statistic   p-value
+## measure             0.58244 3.541e-09
+## H1.2:measure        0.58244 3.541e-09
+## 
+## 
+## Greenhouse-Geisser and Huynh-Feldt Corrections
+##  for Departure from Sphericity
+## 
+##               GG eps Pr(>F[GG])    
+## measure      0.70544    < 2e-16 ***
+## H1.2:measure 0.70544    0.01077 *  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+##                 HF eps   Pr(>F[HF])
+## measure      0.7152272 3.324336e-35
+## H1.2:measure 0.7152272 1.045538e-02
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Groups have different linear and quad trends
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{# simple effects, controlling for other outcomes}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(}\hlkwd{aov}\hlstd{(Anxiety} \hlopt{~} \hlstd{H1.1} \hlopt{+} \hlstd{Persist} \hlopt{+} \hlstd{Perform,} \hlkwc{data} \hlstd{= dat))}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 4 x 6
+##   term         df  sumsq meansq statistic  p.value
+##   <chr>     <dbl>  <dbl>  <dbl>     <dbl>    <dbl>
+## 1 H1.1          1  922.   922.      44.5   4.64e-9
+## 2 Persist       1  958.   958.      46.3   2.70e-9
+## 3 Perform       1   48.5   48.5      2.34  1.30e-1
+## 4 Residuals    71 1470.    20.7     NA    NA
+\end{verbatim}
+\begin{alltt}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(}\hlkwd{aov}\hlstd{(Anxiety} \hlopt{~} \hlstd{H1.2} \hlopt{+} \hlstd{Persist} \hlopt{+} \hlstd{Perform,} \hlkwc{data} \hlstd{= dat))}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 4 x 6
+##   term         df     sumsq   meansq statistic     p.value
+##   <chr>     <dbl>     <dbl>    <dbl>     <dbl>       <dbl>
+## 1 H1.2          1    0.0392   0.0392   0.00116  0.973     
+## 2 Persist       1  123.     123.       3.64     0.0606    
+## 3 Perform       1  875.     875.      25.9      0.00000285
+## 4 Residuals    71 2400.      33.8     NA       NA
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+evidence for linear, not quadratic trend for anxiety, in accordance with the hypothesis
+
+\subsection{Hypothesis 2}
+Groups 2 and 3 should exert more persistence than Group 1 but should not differ from each other because there is an upper limit to the number of anagrams that can reasonably be attempted in 30 minutes.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{dat} \hlkwb{<-} \hlstd{dat} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{H2.1} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{mapvalues}\hlstd{(Group,} \hlnum{1}\hlopt{:}\hlnum{3}\hlstd{,} \hlkwd{c}\hlstd{(}\hlopt{-}\hlnum{2}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{1}\hlstd{))),} \hlcom{# G1 v. G2 + G3}
+         \hlkwc{H2.2} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{mapvalues}\hlstd{(Group,} \hlnum{1}\hlopt{:}\hlnum{3}\hlstd{,} \hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,} \hlopt{-}\hlnum{1}\hlstd{,} \hlnum{1}\hlstd{))))} \hlcom{# G2 v. G3}
+\hlcom{# ombnius test}
+\hlstd{m4} \hlkwb{<-} \hlkwd{lm}\hlstd{(}\hlkwd{cbind}\hlstd{(Anxiety, Persist, Perform)} \hlopt{~} \hlstd{H2.1} \hlopt{+} \hlstd{H2.2,} \hlkwc{data} \hlstd{= dat)}
+\hlstd{manova.H2.1} \hlkwb{<-} \hlkwd{Anova}\hlstd{(m4,} \hlkwc{data} \hlstd{= dat,} \hlkwc{idesign} \hlstd{=} \hlopt{~}\hlstd{measure,} \hlkwc{idata} \hlstd{= id,} \hlkwc{multivariate} \hlstd{= T)}
+\hlkwd{summary}\hlstd{(manova.H2.1)}
+\end{alltt}
+\begin{verbatim}
+## 
+## Type II Repeated Measures MANOVA Tests:
+## 
+## ------------------------------------------
+##  
+## Term: (Intercept) 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    911905.3
+## 
+## Multivariate Tests: (Intercept)
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1   0.96988 2318.506      1     72 < 2.22e-16 ***
+## Wilks             1   0.03012 2318.506      1     72 < 2.22e-16 ***
+## Hotelling-Lawley  1  32.20147 2318.506      1     72 < 2.22e-16 ***
+## Roy               1  32.20147 2318.506      1     72 < 2.22e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: H2.1 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    7463.052
+## 
+## Multivariate Tests: H2.1
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1 0.2085712  18.9747      1     72 4.3148e-05 ***
+## Wilks             1 0.7914288  18.9747      1     72 4.3148e-05 ***
+## Hotelling-Lawley  1 0.2635375  18.9747      1     72 4.3148e-05 ***
+## Roy               1 0.2635375  18.9747      1     72 4.3148e-05 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: H2.2 
+## 
+##  Response transformation matrix:
+##         (Intercept)
+## Anxiety           1
+## Persist           1
+## Perform           1
+## 
+## Sum of squares and products for the hypothesis:
+##             (Intercept)
+## (Intercept)    718.2935
+## 
+## Multivariate Tests: H2.2
+##                  Df test stat approx F num Df den Df Pr(>F)
+## Pillai            1 0.0247371 1.826251      1     72 0.1808
+## Wilks             1 0.9752629 1.826251      1     72 0.1808
+## Hotelling-Lawley  1 0.0253646 1.826251      1     72 0.1808
+## Roy               1 0.0253646 1.826251      1     72 0.1808
+## 
+## ------------------------------------------
+##  
+## Term: measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##           measure1  measure2
+## measure1  37587.21 -28363.91
+## measure2 -28363.91  21403.85
+## 
+## Multivariate Tests: measure
+##                  Df test stat approx F num Df den Df     Pr(>F)    
+## Pillai            1  0.825154 167.5359      2     71 < 2.22e-16 ***
+## Wilks             1  0.174846 167.5359      2     71 < 2.22e-16 ***
+## Hotelling-Lawley  1  4.719320 167.5359      2     71 < 2.22e-16 ***
+## Roy               1  4.719320 167.5359      2     71 < 2.22e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: H2.1:measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##           measure1  measure2
+## measure1 1394.6992 -421.3051
+## measure2 -421.3051  127.2661
+## 
+## Multivariate Tests: H2.1:measure
+##                  Df test stat approx F num Df den Df  Pr(>F)  
+## Pillai            1 0.0884315 3.443865      2     71 0.03737 *
+## Wilks             1 0.9115685 3.443865      2     71 0.03737 *
+## Hotelling-Lawley  1 0.0970103 3.443865      2     71 0.03737 *
+## Roy               1 0.0970103 3.443865      2     71 0.03737 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------
+##  
+## Term: H2.2:measure 
+## 
+##  Response transformation matrix:
+##         measure1 measure2
+## Anxiety        1        0
+## Persist       -1       -1
+## Perform        0        1
+## 
+## Sum of squares and products for the hypothesis:
+##          measure1 measure2
+## measure1  394.875 -631.125
+## measure2 -631.125 1008.721
+## 
+## Multivariate Tests: H2.2:measure
+##                  Df test stat approx F num Df den Df    Pr(>F)   
+## Pillai            1 0.1435015 5.947826      2     71 0.0040907 **
+## Wilks             1 0.8564985 5.947826      2     71 0.0040907 **
+## Hotelling-Lawley  1 0.1675444 5.947826      2     71 0.0040907 **
+## Roy               1 0.1675444 5.947826      2     71 0.0040907 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Univariate Type II Repeated-Measures ANOVA Assuming Sphericity
+## 
+##              Sum Sq num Df Error SS den Df   F value    Pr(>F)    
+## (Intercept)  303968      1   9439.6     72 2318.5060 < 2.2e-16 ***
+## H2.1           2488      1   9439.6     72   18.9747 4.315e-05 ***
+## H2.2            239      1   9439.6     72    1.8263  0.180802    
+## measure       58237      2  15832.7    144  264.8340 < 2.2e-16 ***
+## H2.1:measure   1296      2  15832.7    144    5.8914  0.003473 ** 
+## H2.2:measure   1356      2  15832.7    144    6.1687  0.002689 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## 
+## Mauchly Tests for Sphericity
+## 
+##              Test statistic    p-value
+## measure             0.44729 3.9448e-13
+## H2.1:measure        0.44729 3.9448e-13
+## H2.2:measure        0.44729 3.9448e-13
+## 
+## 
+## Greenhouse-Geisser and Huynh-Feldt Corrections
+##  for Departure from Sphericity
+## 
+##               GG eps Pr(>F[GG])    
+## measure      0.64404  < 2.2e-16 ***
+## H2.1:measure 0.64404   0.011069 *  
+## H2.2:measure 0.64404   0.009272 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+##                 HF eps   Pr(>F[HF])
+## measure      0.6507342 8.217931e-33
+## H2.1:measure 0.6507342 1.082916e-02
+## H2.2:measure 0.6507342 9.057900e-03
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+across the different measures, the groups differed, but we really just need a univariate test
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(}\hlkwd{aov}\hlstd{(Persist} \hlopt{~} \hlstd{H2.1,} \hlkwc{data} \hlstd{= dat))}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 2 x 6
+##   term         df sumsq meansq statistic  p.value
+##   <chr>     <dbl> <dbl>  <dbl>     <dbl>    <dbl>
+## 1 H2.1          1 4494. 4494.       47.8  1.50e-9
+## 2 Residuals    73 6863.   94.0      NA   NA
+\end{verbatim}
+\begin{alltt}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(}\hlkwd{aov}\hlstd{(Persist} \hlopt{~} \hlstd{H2.1} \hlopt{+} \hlstd{Anxiety} \hlopt{+} \hlstd{Perform,} \hlkwc{data} \hlstd{= dat))}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 4 x 6
+##   term         df sumsq meansq statistic   p.value
+##   <chr>     <dbl> <dbl>  <dbl>     <dbl>     <dbl>
+## 1 H2.1          1 4494. 4494.      134.   5.40e-18
+## 2 Anxiety       1 3094. 3094.       92.1  1.87e-14
+## 3 Perform       1 1384. 1384.       41.2  1.33e- 8
+## 4 Residuals    71 2385.   33.6      NA   NA
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Groups 2 + 3 differ from 1 on persistence
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(}\hlkwd{aov}\hlstd{(Persist} \hlopt{~} \hlstd{H2.2,} \hlkwc{data} \hlstd{= dat))}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 2 x 6
+##   term         df sumsq meansq statistic     p.value
+##   <chr>     <dbl> <dbl>  <dbl>     <dbl>       <dbl>
+## 1 H2.2          1 3113.  3113.      27.6  0.00000143
+## 2 Residuals    73 8243.   113.      NA   NA
+\end{verbatim}
+\begin{alltt}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(}\hlkwd{aov}\hlstd{(Persist} \hlopt{~} \hlstd{H2.2} \hlopt{+} \hlstd{Anxiety} \hlopt{+} \hlstd{Perform,} \hlkwc{data} \hlstd{= dat))}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 4 x 6
+##   term         df sumsq meansq statistic   p.value
+##   <chr>     <dbl> <dbl>  <dbl>     <dbl>     <dbl>
+## 1 H2.2          1 3113. 3113.       92.7  1.62e-14
+## 2 Anxiety       1 3189. 3189.       95.0  9.96e-15
+## 3 Perform       1 2671. 2671.       79.6  3.29e-13
+## 4 Residuals    71 2383.   33.6      NA   NA
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+But groups 1 and 2 also differ from one another, not in accordance with teh hypothesis
+
+\subsection{Hypothesis 3}
+Performance should be greatest in Group 2. Group 1 should have lower performance than Group 2 because of lower motivation. Group 3 should have lower performance than Group 2 because of the incapacitating effects of high anxiety.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{dat} \hlkwb{<-} \hlstd{dat} \hlopt{%>%}
+  \hlkwd{mutate}\hlstd{(}\hlkwc{H3.1} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{mapvalues}\hlstd{(Group,} \hlnum{1}\hlopt{:}\hlnum{3}\hlstd{,}  \hlkwd{c}\hlstd{(}\hlopt{-}\hlnum{1}\hlstd{,} \hlnum{2}\hlstd{,} \hlopt{-}\hlnum{1}\hlstd{))),} \hlcom{# G2 v. G1 + G3}
+         \hlkwc{H3.2} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{mapvalues}\hlstd{(Group,} \hlnum{1}\hlopt{:}\hlnum{3}\hlstd{,} \hlkwd{c}\hlstd{(}\hlopt{-}\hlnum{1}\hlstd{,} \hlnum{1}\hlstd{,} \hlnum{0}\hlstd{))),} \hlcom{# G1 v. G2, perf, mod, mot}
+         \hlkwc{H3.3} \hlstd{=} \hlkwd{as.numeric}\hlstd{(}\hlkwd{mapvalues}\hlstd{(Group,} \hlnum{1}\hlopt{:}\hlnum{3}\hlstd{,} \hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,} \hlnum{1}\hlstd{,} \hlopt{-}\hlnum{1}\hlstd{))))} \hlcom{# G2 v. G3, perf, mod anx}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+Performance should be greatest in Group 2. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{mH3.1} \hlkwb{<-} \hlkwd{lm}\hlstd{(Perform} \hlopt{~} \hlstd{H3.1} \hlopt{+} \hlstd{Anxiety} \hlopt{+} \hlstd{Persist,} \hlkwc{data} \hlstd{= dat)}
+\hlkwd{anova}\hlstd{(mH3.1)}
+\end{alltt}
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Response: Perform
+##           Df Sum Sq Mean Sq F value    Pr(>F)    
+## H3.1       1 2365.5  2365.5  28.739 9.803e-07 ***
+## Anxiety    1 3900.5  3900.5  47.388 1.916e-09 ***
+## Persist    1 6356.8  6356.8  77.230 5.787e-13 ***
+## Residuals 71 5844.0    82.3                      
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+\begin{alltt}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(mH3.1)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 4 x 5
+##   term        estimate std.error statistic  p.value
+##   <chr>          <dbl>     <dbl>     <dbl>    <dbl>
+## 1 (Intercept)   31.1      5.00        6.23 2.87e- 8
+## 2 H3.1           4.59     2.40        1.91 5.98e- 2
+## 3 Anxiety       -0.806    0.159      -5.09 2.85e- 6
+## 4 Persist        0.812    0.0924      8.79 5.79e-13
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Group 2's performance was better than the other groups, on average.
+
+Group 1 should have lower performance than Group 2 because of lower motivation.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{mH3.2} \hlkwb{<-} \hlkwd{lm}\hlstd{(Perform} \hlopt{~} \hlstd{H3.2}\hlopt{*}\hlstd{Persist} \hlopt{+} \hlstd{Anxiety,} \hlkwc{data} \hlstd{= dat)}
+\hlkwd{anova}\hlstd{(mH3.2)}
+\end{alltt}
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Response: Perform
+##              Df  Sum Sq Mean Sq  F value Pr(>F)    
+## H3.2          1   130.3   130.3   1.6282 0.2062    
+## Persist       1 12547.2 12547.2 156.7402 <2e-16 ***
+## Anxiety       1   185.1   185.1   2.3119 0.1329    
+## H3.2:Persist  1     0.5     0.5   0.0060 0.9384    
+## Residuals    70  5603.6    80.1                    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+\begin{alltt}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(mH3.2)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 5 x 5
+##   term         estimate std.error statistic  p.value
+##   <chr>           <dbl>     <dbl>     <dbl>    <dbl>
+## 1 (Intercept)   30.0        9.19     3.27   0.00168 
+## 2 H3.2          -6.03       5.68    -1.06   0.292   
+## 3 Persist        1.10       0.275    3.98   0.000167
+## 4 Anxiety       -0.343      0.241   -1.42   0.160   
+## 5 H3.2:Persist   0.0104     0.134    0.0776 0.938
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Groups 1 and 2 don't differ as a function of persistence.
+
+Group 3 should have lower performance than Group 2 because of the incapacitating effects of high anxiety.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{mH3.3} \hlkwb{<-} \hlkwd{lm}\hlstd{(Perform} \hlopt{~} \hlstd{H3.3}\hlopt{*}\hlstd{Anxiety} \hlopt{+} \hlstd{Persist,} \hlkwc{data} \hlstd{= dat)}
+\hlkwd{anova}\hlstd{(mH3.3)}
+\end{alltt}
+\begin{verbatim}
+## Analysis of Variance Table
+## 
+## Response: Perform
+##              Df Sum Sq Mean Sq F value    Pr(>F)    
+## H3.3          1  130.3   130.3  1.6532    0.2028    
+## Anxiety       1 6451.4  6451.4 81.8313 2.177e-13 ***
+## Persist       1 6280.9  6280.9 79.6683 3.618e-13 ***
+## H3.3:Anxiety  1   85.4    85.4  1.0833    0.3015    
+## Residuals    70 5518.7    78.8                      
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+\begin{alltt}
+\hlstd{broom}\hlopt{::}\hlkwd{tidy}\hlstd{(mH3.3)}
+\end{alltt}
+\begin{verbatim}
+## # A tibble: 5 x 5
+##   term         estimate std.error statistic  p.value
+##   <chr>           <dbl>     <dbl>     <dbl>    <dbl>
+## 1 (Intercept)    36.1       8.06       4.47 2.90e- 5
+## 2 H3.3           -9.60      4.38      -2.19 3.17e- 2
+## 3 Anxiety        -0.866     0.547     -1.58 1.18e- 1
+## 4 Persist         1.15      0.129      8.91 3.84e-13
+## 5 H3.3:Anxiety    0.240     0.231      1.04 3.02e- 1
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+Groups 2 and 3 don't differ in performance as a function of anxiety.
+
+\end{document}

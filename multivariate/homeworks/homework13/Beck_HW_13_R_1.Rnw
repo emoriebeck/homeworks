@@ -40,6 +40,7 @@ Homework 12\\
 \author{Emorie Beck}
 
 \begin{document}
+\SweaveOpts{concordance=TRUE}
 \maketitle
 % \SweaveOpts{concordance=TRUE}
 
@@ -59,8 +60,6 @@ library(MASS)
 library(car)
 library(multcomp)
 library(Rmisc)
-library(mlogit)
-library(candisc)
 library(broom)
 library(plyr)
 library(tidyverse)
@@ -94,7 +93,7 @@ head(dat)
 \section{Question 1}
 Analyze each outcome measure separately and comment on the support those analyses provide for the hypotheses. Use any contrasts or follow-up comparisons that you think are important for testing each hypothesis.
 
-<<>>=
+<<results = 'asis'>>=
 nested1 <- dat %>%
   gather(key = outcome, value = value, Perform:Anxiety) %>%
   group_by(outcome) %>%
@@ -111,7 +110,9 @@ nested1 %>%
                       "<.01", ifelse(p.value < .05, "<.05", ">.05")))) %>%
   kable(., "latex", booktabs = T, escape = F, digits = 2) %>%
   kable_styling(full_width = F)
+@
 
+<<>>=
 # linear contrast -1*G1 + 0*G2 + 1*G3 = 0
 # -1*(I) + 0*(I + D1) + 1*(I + D2) = 0
 # -I + I + D2 = 0
@@ -181,30 +182,103 @@ dat$Group.sum <- dat$Group
 contrasts(dat$Group.sum) <- contr.sum(3)
 manova1 <- manova(cbind(Perform, Persist, Anxiety) ~ Group.sum, data = dat)
 m1 <- lm(cbind(Anxiety, Persist, Perform) ~ Group, data = dat)
-idata <- tibble(measure = factor(c("Anxiety", "Persist", "Perform")))
-manova2 <- car::Anova(m1, data = dat, idesign = ~measure, idata = idata, multivariate = T)
+id <- data.frame(measure = factor(c("Anxiety", "Persist", "Perform")))
+manova2 <- Anova(m1, data = dat, idesign = ~measure, idata = id, multivariate = T)
 
 summary(manova2)
-
-m1$coefficients
-
-dat <- dat %>% 
-  mutate(H1.1 = as.numeric(as.character(mapvalues(Group, 1:3, c(0,1,0)))),
-         H2.1 = as.numeric(as.character(mapvalues(Group, 1:3, c(2,-1,-1)))),
-         H3.1 = as.numeric(as.character(mapvalues(Group, 1:3, c(-1, 1, 0)))),
-         H3.2 = as.numeric(as.character(mapvalues(Group, 1:3, c(0, 1, -1)))))
-
-H1.2lm <- lm(cbind(Perform, Persist, Anxiety) ~ H1, data = dat)
-H1.2 <- candisc(H1.2lm, term="H1", data = dat ,type="2")
-H1.2$coeffs.raw
-
-H2.2lm <- lm(cbind(Perform, Persist, Anxiety) ~ H2, data = dat)
-H2.2 <- candisc(H2.2lm, term="H2", data = dat ,type="2")
-H2.2$coeffs.raw
-
-H3.2lm <- lm(cbind(Perform, Persist, Anxiety) ~ H3.1 + H3.2, data = dat)
-H3.2 <- candisc(H3.2lm, term="H3.2", data = dat ,type="2")
-H3.2$coeffs.raw
 @
+
+\subsection{Hypothesis 1}
+<<>>=
+dat <- dat %>% 
+  mutate(H1.1 = as.numeric(mapvalues(Group, 1:3, c(-1,0,1))), # linear cntrast
+         H1.2 = as.numeric(mapvalues(Group, 1:3, c(1,-2,1)))) # quadratic contrast
+@ 
+
+Linear change
+
+<<>>=
+m2 <- lm(cbind(Anxiety, Persist, Perform) ~ H1.1, data = dat)
+manova.H1.1 <- Anova(m2, data = dat, idesign = ~measure, idata = id, multivariate = T)
+summary(manova.H1.1)
+
+m3 <- lm(cbind(Anxiety, Persist, Perform) ~ H1.2, data = dat)
+manova.H1.2 <- Anova(m3, data = dat, idesign = ~measure, idata = id, multivariate = T)
+summary(manova.H1.2)
+@
+
+Groups have different linear and quad trends
+
+<<>>=
+# simple effects, controlling for other outcomes
+broom::tidy(aov(Anxiety ~ H1.1 + Persist + Perform, data = dat))
+broom::tidy(aov(Anxiety ~ H1.2 + Persist + Perform, data = dat))
+@
+
+evidence for linear, not quadratic trend for anxiety, in accordance with the hypothesis
+
+\subsection{Hypothesis 2}
+Groups 2 and 3 should exert more persistence than Group 1 but should not differ from each other because there is an upper limit to the number of anagrams that can reasonably be attempted in 30 minutes.
+<<>>=
+dat <- dat %>% 
+  mutate(H2.1 = as.numeric(mapvalues(Group, 1:3, c(-2, 1, 1))), # G1 v. G2 + G3
+         H2.2 = as.numeric(mapvalues(Group, 1:3, c(0, -1, 1)))) # G2 v. G3
+# ombnius test
+m4 <- lm(cbind(Anxiety, Persist, Perform) ~ H2.1 + H2.2, data = dat)
+manova.H2.1 <- Anova(m4, data = dat, idesign = ~measure, idata = id, multivariate = T)
+summary(manova.H2.1)
+@
+
+across the different measures, the groups differed, but we really just need a univariate test
+
+<<>>=
+broom::tidy(aov(Persist ~ H2.1, data = dat))
+broom::tidy(aov(Persist ~ H2.1 + Anxiety + Perform, data = dat))
+@
+
+Groups 2 + 3 differ from 1 on persistence
+
+<<>>=
+broom::tidy(aov(Persist ~ H2.2, data = dat))
+broom::tidy(aov(Persist ~ H2.2 + Anxiety + Perform, data = dat))
+@
+
+But groups 1 and 2 also differ from one another, not in accordance with teh hypothesis
+
+\subsection{Hypothesis 3}
+Performance should be greatest in Group 2. Group 1 should have lower performance than Group 2 because of lower motivation. Group 3 should have lower performance than Group 2 because of the incapacitating effects of high anxiety.
+<<>>=
+dat <- dat %>%
+  mutate(H3.1 = as.numeric(mapvalues(Group, 1:3,  c(-1, 2, -1))), # G2 v. G1 + G3
+         H3.2 = as.numeric(mapvalues(Group, 1:3, c(-1, 1, 0))), # G1 v. G2, perf, mod, mot
+         H3.3 = as.numeric(mapvalues(Group, 1:3, c(0, 1, -1)))) # G2 v. G3, perf, mod anx
+@
+
+Performance should be greatest in Group 2. 
+<<>>=
+mH3.1 <- lm(Perform ~ H3.1 + Anxiety + Persist, data = dat)
+anova(mH3.1)
+broom::tidy(mH3.1)
+@
+
+Group 2's performance was better than the other groups, on average.
+
+Group 1 should have lower performance than Group 2 because of lower motivation.
+<<>>=
+mH3.2 <- lm(Perform ~ H3.2*Persist + Anxiety, data = dat)
+anova(mH3.2)
+broom::tidy(mH3.2)
+@
+
+Groups 1 and 2 don't differ as a function of persistence.
+
+Group 3 should have lower performance than Group 2 because of the incapacitating effects of high anxiety.
+<<>>=
+mH3.3 <- lm(Perform ~ H3.3*Anxiety + Persist, data = dat)
+anova(mH3.3)
+broom::tidy(mH3.3)
+@
+
+Groups 2 and 3 don't differ in performance as a function of anxiety.
 
 \end{document}
