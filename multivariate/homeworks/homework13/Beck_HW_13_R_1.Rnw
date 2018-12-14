@@ -1,0 +1,210 @@
+\documentclass{article}
+
+% \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{lscape}
+\newcommand{\blandscape}{\begin{landscape}}
+\newcommand{\elandscape}{\end{landscape}}
+\usepackage{dcolumn}
+\usepackage{bbm}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{expex}
+\usepackage{pdflscape}
+\usepackage{rotating, graphicx}
+\usepackage{tabulary}
+\usepackage{lscape}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+
+\title{%
+Homework 12\\
+\large Applied Mutlivariate Analysis}
+\date{November 27, 2018}
+\author{Emorie Beck}
+
+\begin{document}
+\maketitle
+% \SweaveOpts{concordance=TRUE}
+
+\section{Workspace}
+\subsection{Packages}
+
+<<include=FALSE>>=
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+@
+
+<<>>=
+library(car)
+library(knitr)
+library(kableExtra)
+library(psych)
+library(MASS)
+library(car)
+library(multcomp)
+library(Rmisc)
+library(mlogit)
+library(candisc)
+library(broom)
+library(plyr)
+library(tidyverse)
+@
+
+
+
+\subsection{data}
+The file, Set\_11.csv, contains the data from an experiment investigating the effects of goal- related instructions on performance, persistence, and anxiety. Participants attempted to solve challenging anagrams (words with their letters scrambled, e.g., ULERITO = OUTLIER) during a 30-minute period. Participants could attempt as many anagrams as they wished and could give up and move on to a new one at any time. Persistence was the number of anagrams attempted. Performance was the percentage of anagrams solved correctly, of those attempted. Anxiety was the total score on a questionnaire designed to measure performance-related anxiety, given after the instructions, immediately before starting the task (scores could range from 10 to 40).
+Participants were given a set of 10 practice anagrams to give them an idea of their difficulty. Performance on this practice set was 51\%.
+
+Prior to beginning the task, groups were given instructions intended to influence their motivation on the task. Group 1 was told to simply "do your best." Group 2 was told, “most students are able to correctly solve about 60\% of the anagrams you will attempt." Given the practice test experience, these instructions were expected to make the task seem challenging, but not impossible. Group 3 was told, “most students are able to correctly solve 80\% of the anagrams you will attempt." These instructions were expected to make the task seem very difficult.
+
+The researchers posed the following hypotheses:
+
+\begin{enumerate}
+\item The increasingly challenging instructions should lead to increasing levels of anxiety.
+\item Groups 2 and 3 should exert more persistence than Group 1 but should not differ from each other because there is an upper limit to the number of anagrams that can reasonably be attempted in 30 minutes.
+\item Performance should be greatest in Group 2. Group 1 should have lower performance than Group 2 because of lower motivation. Group 3 should have lower performance than Group 2 because of the incapacitating effects of high anxiety.
+\end{enumerate}
+
+<<>>=
+wd <- "https://github.com/emoriebeck/homeworks/raw/master/multivariate/homeworks/homework13"
+
+dat <- sprintf("%s/Set_11.csv", wd) %>% read.csv(., stringsAsFactors = F) %>% tbl_df %>%
+  mutate(Group = factor(Group))
+
+head(dat)
+@
+
+\section{Question 1}
+Analyze each outcome measure separately and comment on the support those analyses provide for the hypotheses. Use any contrasts or follow-up comparisons that you think are important for testing each hypothesis.
+
+<<>>=
+nested1 <- dat %>%
+  gather(key = outcome, value = value, Perform:Anxiety) %>%
+  group_by(outcome) %>%
+  nest() %>%
+  mutate(lm = map(data, ~lm(value ~ Group, data = . )), 
+         aov = map(data, ~aov(value ~ Group, data = .)),
+         tidy.lm = map(lm, broom::tidy),
+         tidy.aov = map(aov, broom::tidy))
+
+nested1 %>%
+  unnest(tidy.lm) %>%
+  filter(grepl("Group", term)) %>%
+  mutate(p.value = ifelse(p.value < .001, "<.001", ifelse(p.value < .01, 
+                      "<.01", ifelse(p.value < .05, "<.05", ">.05")))) %>%
+  kable(., "latex", booktabs = T, escape = F, digits = 2) %>%
+  kable_styling(full_width = F)
+
+# linear contrast -1*G1 + 0*G2 + 1*G3 = 0
+# -1*(I) + 0*(I + D1) + 1*(I + D2) = 0
+# -I + I + D2 = 0
+# D2 = 0
+H1.1 <- c(0, 1, 0) 
+# quadratic contrast: 1*G1 + -2*G2 + 1*G3 = 0
+# 1*(I) + -2*(I + D1) + 1*(I + D2) = 0
+# I -2*I -2*D1 + I + D2 = 0
+# -2*D1 + D2 = 0
+H1.2 <- c(0, -2, 1) 
+# group 1 differs from 2 + 3: G1 = G2 + G3
+# (I) = (I + D1 + I + D2)
+# 0 = I + D1 + D2
+H2.1 <- c(1, 1, 1)  
+# group 2 and 3 don't differ: G2 = G3
+# (I + D1) = (I + D2)
+# D1 - D2 = 0
+H2.2 <- c(0, -1, 1)
+
+# H3: G2 performance best: G1 + G3 = G2
+# I + I + D2 = I + D1
+# I - D1 + D2 = 0
+H3.1 <- c(1, -1, 1) 
+# H3: G3 < G2 performance: G3 = G2
+# (I + D2) = (I + D1)
+# D2 - D1 = 0
+H3.2 <- c(0, 1, -1)
+
+H.1 <- rbind(H1.1, H1.2, H2.1, H2.2, H3.1, H3.2)
+rownames(H.1) <- c("H1 linear", "H1 quadratic", 
+                   "H2: G1 = G2 + G3", "H2: G2 - G3 = 0",
+                   "H3: G2 = G1 + G3", "H3: G2 = G3")
+
+tab_fun <- function(x){
+  x$confint %>% data.frame %>% 
+    mutate(Group = rownames(x$confint)) %>%
+    select(Group, everything())
+}
+
+nested1 <- nested1 %>%
+  mutate(comp = map(lm, ~glht(., linfct=H.1, alternative="two.sided",rhs=0)),
+         summ = map(comp, ~confint(., adjusted("holm"), calpha = univariate_calpha())),
+         tab = map(summ, tab_fun))
+
+nested1 %>% unnest(tab) %>%
+  filter((outcome == "Anxiety" & Group == "H1 linear") | # H1 linear contrast
+         (outcome == "Anxiety" & Group == "H1 quadratic") | # H1 quadratic 
+         (outcome == "Persist" & Group == "H2: G1 = G2 + G3") | 
+         (outcome == "Persist" & Group == "H2: G2 - G3 = 0") |
+         (outcome == "Perform" & Group == "H3: G2 = G1 + G3") |
+         (outcome == "Perform" & Group == "H3: G2 = G3") | 
+         (outcome == "Anxiety" & Group == "H3: G2 = G3")) %>%
+  arrange(Group)
+@
+
+Hypothesis 1: A linear contrast supports the hypothesis that the increasingly challenging instructions should lead to increasing levels of anxiety. This is further supported by the non-significant quadratic contrast.
+
+Hypothesis 2: On average, Groups 2 and 3 persisted longer than group 1, which is further supported by the non-significant difference between groups 2 and 3.
+
+Hypothesis 3: Group 2 performed the best of the of the other groups on average and better than Group 3 specifically but Group 2 appears to have had lower anxiety than Group 3.
+
+
+\section{Question 2}
+Then conduct a multivariate analysis and indicate if this approach adds any additional insight or qualification to the univariate analyses.
+<<>>=
+dat$Group.sum <- dat$Group
+contrasts(dat$Group.sum) <- contr.sum(3)
+manova1 <- manova(cbind(Perform, Persist, Anxiety) ~ Group.sum, data = dat)
+m1 <- lm(cbind(Anxiety, Persist, Perform) ~ Group, data = dat)
+idata <- tibble(measure = factor(c("Anxiety", "Persist", "Perform")))
+manova2 <- car::Anova(m1, data = dat, idesign = ~measure, idata = idata, multivariate = T)
+
+summary(manova2)
+
+m1$coefficients
+
+dat <- dat %>% 
+  mutate(H1.1 = as.numeric(as.character(mapvalues(Group, 1:3, c(0,1,0)))),
+         H2.1 = as.numeric(as.character(mapvalues(Group, 1:3, c(2,-1,-1)))),
+         H3.1 = as.numeric(as.character(mapvalues(Group, 1:3, c(-1, 1, 0)))),
+         H3.2 = as.numeric(as.character(mapvalues(Group, 1:3, c(0, 1, -1)))))
+
+H1.2lm <- lm(cbind(Perform, Persist, Anxiety) ~ H1, data = dat)
+H1.2 <- candisc(H1.2lm, term="H1", data = dat ,type="2")
+H1.2$coeffs.raw
+
+H2.2lm <- lm(cbind(Perform, Persist, Anxiety) ~ H2, data = dat)
+H2.2 <- candisc(H2.2lm, term="H2", data = dat ,type="2")
+H2.2$coeffs.raw
+
+H3.2lm <- lm(cbind(Perform, Persist, Anxiety) ~ H3.1 + H3.2, data = dat)
+H3.2 <- candisc(H3.2lm, term="H3.2", data = dat ,type="2")
+H3.2$coeffs.raw
+@
+
+\end{document}
