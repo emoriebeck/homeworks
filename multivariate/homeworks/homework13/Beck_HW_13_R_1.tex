@@ -90,7 +90,7 @@ Homework 12\\
 \author{Emorie Beck}
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
-\SweaveOpts{concordance=TRUE}
+% \SweaveOpts{concordance=TRUE}
 \maketitle
 % \SweaveOpts{concordance=TRUE}
 
@@ -190,6 +190,7 @@ Perform & Group3 & 3.35 & 4.17 & 0.80 & >.05\\
 Persist & Group2 & 17.15 & 2.78 & 6.16 & <.001\\
 Persist & Group3 & 15.74 & 2.73 & 5.77 & <.001\\
 Anxiety & Group2 & 4.29 & 1.68 & 2.56 & <.05\\
+\addlinespace
 Anxiety & Group3 & 8.50 & 1.64 & 5.18 & <.001\\
 \bottomrule
 \end{tabular}
@@ -281,6 +282,7 @@ Then conduct a multivariate analysis and indicate if this approach adds any addi
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 \begin{alltt}
+\hlcom{# ombinus test}
 \hlstd{dat}\hlopt{$}\hlstd{Group.sum} \hlkwb{<-} \hlstd{dat}\hlopt{$}\hlstd{Group}
 \hlkwd{contrasts}\hlstd{(dat}\hlopt{$}\hlstd{Group.sum)} \hlkwb{<-} \hlkwd{contr.sum}\hlstd{(}\hlnum{3}\hlstd{)}
 \hlstd{manova1} \hlkwb{<-} \hlkwd{manova}\hlstd{(}\hlkwd{cbind}\hlstd{(Perform, Persist, Anxiety)} \hlopt{~} \hlstd{Group.sum,} \hlkwc{data} \hlstd{= dat)}
@@ -1122,4 +1124,5 @@ Group 3 should have lower performance than Group 2 because of the incapacitating
 
 Groups 2 and 3 don't differ in performance as a function of anxiety.
 
+On the whole, the multivariate approach seems to add little to tests of these hypotheses, which largely specify univariate questions with predetermined group structures, with the partial exception of the third question, which, even then, can also be answered with a univariate approach. 
 \end{document}

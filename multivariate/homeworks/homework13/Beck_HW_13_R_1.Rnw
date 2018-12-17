@@ -40,7 +40,7 @@ Homework 12\\
 \author{Emorie Beck}
 
 \begin{document}
-\SweaveOpts{concordance=TRUE}
+% \SweaveOpts{concordance=TRUE}
 \maketitle
 % \SweaveOpts{concordance=TRUE}
 
@@ -178,6 +178,7 @@ Hypothesis 3: Group 2 performed the best of the of the other groups on average a
 \section{Question 2}
 Then conduct a multivariate analysis and indicate if this approach adds any additional insight or qualification to the univariate analyses.
 <<>>=
+# ombinus test
 dat$Group.sum <- dat$Group
 contrasts(dat$Group.sum) <- contr.sum(3)
 manova1 <- manova(cbind(Perform, Persist, Anxiety) ~ Group.sum, data = dat)
@@ -281,4 +282,5 @@ broom::tidy(mH3.3)
 
 Groups 2 and 3 don't differ in performance as a function of anxiety.
 
+On the whole, the multivariate approach seems to add little to tests of these hypotheses, which largely specify univariate questions with predetermined group structures, with the partial exception of the third question, which, even then, can also be answered with a univariate approach. 
 \end{document}
