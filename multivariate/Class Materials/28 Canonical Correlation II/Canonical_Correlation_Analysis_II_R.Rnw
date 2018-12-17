@@ -1,0 +1,379 @@
+\documentclass[fleqn]{article}
+\setlength\parindent{0pt}
+\usepackage{fullpage} 
+\usepackage{dcolumn}
+\usepackage{fixltx2e}
+\usepackage{amsmath}
+\usepackage{scrextend}
+\usepackage[sc]{mathpazo}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+\usepackage{url}
+\usepackage[unicode=true,pdfusetitle,
+            bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+            breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+{hyperref}
+\hypersetup{
+  pdfstartview={XYZ null null 1}}
+\usepackage{breakurl}
+\usepackage{amsfonts}
+\usepackage[dvips]{epsfig}
+\usepackage{algorithm2e}
+\usepackage{verbatim}
+\usepackage{IEEEtrantools}
+\usepackage{mathtools}
+\usepackage{scrextend}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{multirow}
+\graphicspath{ {images/} }
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\begin{document}
+\title{Canonical Correlation Analysis II}
+\author{Mike Strube}
+\date{\today}
+\maketitle
+
+\section{Preliminaries}
+\textbf{\large{\textit{
+The RStudio workspace and console panes are cleared of old output, variables, and other miscellaneous debris. 
+Then some packages are loaded and the required data files are input.
+}}}
+\subsection{Clear the Console Panes and Load Packages}
+<<tidy=TRUE>>=
+options(replace.assign=TRUE,width=65, digits=4,scipen=4,fig.width=4,fig.height=4)
+# Clear the workspace and console.
+rm(list = ls(all = TRUE)) 
+cat("\014")
+# Turn off showing of significance asterisks.
+options(show.signif.stars=F)
+# Set the contrast option; important for ANOVAs.
+options(contrasts = c('contr.sum','contr.poly'))
+how_long <- Sys.time()
+set.seed(123)
+library(knitr)
+@
+
+<<tidy=TRUE>>=
+library(psych)
+library(ggplot2)
+library(MASS)
+library(sciplot)
+library(dplyr)
+library(aod)
+library(MVN)
+library(boot)
+library(car)
+library(LogisticDx)
+library(biotools)
+library(multcomp)
+library(candisc)
+library(ez)
+library(GGally)
+library(qqplotr)
+library(gridExtra)
+library(reshape)
+library(emmeans)
+library(profileR)
+library(Rmisc)
+library(CCP)
+library(caTools)
+@
+
+\subsection{Data}
+<<tidy=TRUE>>=
+setwd("C:\\Courses\\Psychology 516\\PowerPoint\\2018")
+
+# Get the data for the cross-validation example.
+CCA_Cross <- read.table('cancorr_cross.csv',sep=',',header=TRUE)
+CCA_Cross <- as.data.frame(CCA_Cross)
+
+# Separate into the calibration and hold-out samples.
+# Standardize the variables within each sample.
+Calibration <- CCA_Cross[CCA_Cross$Sample==1,]
+Calibration[,3:11] <- scale(Calibration[,3:11])
+Hold_Out <-  CCA_Cross[CCA_Cross$Sample==2,]
+Hold_Out[,3:11] <- scale(Hold_Out[,3:11])
+
+# The CCA_Cross file has a variable, Sample, that
+# represents a random splitting of the data file.
+# That can also be done in R, using a variety of 
+# methods.  Here is one based on the package, caTools.
+# To make the results replicable, set the seed:
+# set.seed(123).
+
+# sample = sample.split(CCA_Cross$ID, SplitRatio = .5)
+# Calibration = subset(CCA_Cross, sample == TRUE)
+# Hold_Out = subset(CCA_Cross, sample == FALSE).
+@
+
+\clearpage
+\section{Capitalizing on Chance}
+\textbf{\large{\textit{
+Canonical correlation analysis has elements of two procedures-principal components analysis and multiple regression analysis-that are often criticized as susceptible to capitalizing on chance.
+How worried should we be? 
+An easy way to answer questions like this is through simulation with data generated to have particular properties. \newline
+\newline
+In this demonstration, we draw variables from a multivariate normal distribution in which the correlations among variables within sets is set at .5 but the correlations between sets is set to 0.
+The simulation repeatedly draws samples, conducts a canonical correlation analysis, and saves results for inspection.
+}}}
+
+<<tidy=TRUE>>=
+# Set the population variance-covariance matrix and mean vector.
+VC <- matrix(c(1,.5,.5,.5,.5,0,0,0,0,0,
+               .5,1,.5,.5,.5,0,0,0,0,0,
+               .5,.5,1,.5,.5,0,0,0,0,0,
+               .5,.5,.5,1,.5,0,0,0,0,0,
+               .5,.5,.5,.5,1,0,0,0,0,0,
+               0,0,0,0,0,1,.5,.5,.5,.5,
+               0,0,0,0,0,.5,1,.5,.5,.5,
+               0,0,0,0,0,.5,.5,1,.5,.5,
+               0,0,0,0,0,.5,.5,.5,1,.5,
+               0,0,0,0,0,.5,.5,.5,.5,1),
+               nrow=10,ncol=10)
+VC
+M <- matrix(rep(0,10),nrow=1,ncol=10)
+
+CCA_Sim_Results <- matrix(NA,nrow=10000,ncol=20)
+CCA_Sim_Results <- as.data.frame(CCA_Sim_Results)
+names(CCA_Sim_Results) <- c("CC1","CC2","CC3","CC4","CC5",
+                    "AL1","BL1","AW1","BW1",
+                    "AC1","BC1","AA1","BA1",
+                    "AR","BR","p1","p2","p3","p4","p5")
+
+for (sim in 1:10000) {
+  sample <- as.data.frame(mvrnorm(n=500,M,VC))
+  names(sample) <- c("A1","A2","A3","A4","A5",
+                     "B1","B2","B3","B4","B5")
+  CCA_Sim <- cancor(cbind(A1,A2,A3,A4,A5)~B1+B2+B3+B4+B5,
+                data=sample,prefix=c("B_Set_","A_Set_"),
+                set.names=c("B_Set","A_Set"))
+  B_Structure <- as.matrix(CCA_Sim$structure$X.xscores)
+  A_Structure <- as.matrix(CCA_Sim$structure$Y.yscores)
+  CCA_CanCor <- as.matrix(CCA_Sim$cancor)
+  B_Weights <- as.matrix(coef(CCA_Sim,standardize=TRUE,type="both")[[1]])
+  A_Weights <- as.matrix(coef(CCA_Sim,standardize=TRUE,type="both")[[2]])
+  CCA_Red_B <- as.matrix(redundancy(CCA_Sim))[[1]]
+  CCA_Red_A <- as.matrix(redundancy(CCA_Sim))[[2]]
+  A_Communalities <- rowSums((A_Structure)^2)
+  B_Communalities <- rowSums((B_Structure)^2)
+  A_Adequacy <- colSums((A_Structure)^2)/length(A_Structure[,1])
+  B_Adequacy <- colSums((B_Structure)^2)/length(B_Structure[,1])
+  capture.output(pv <- p.asym(CCA_Sim$cancor, 500, 5, 5, tstat = "Wilks"), file='NUL')
+  CCA_Sim_Results[sim,] <- cbind(t(CCA_CanCor[,1]),A_Structure[1,1],
+                                 B_Structure[1,1],A_Weights[1,1],
+                                 B_Weights[1,1],A_Communalities[1],
+                                 B_Communalities[1],A_Adequacy[1],
+                                 B_Adequacy[1],sum(CCA_Red_A),sum(CCA_Red_B),
+                                 t(as.matrix(pv$p.value)))
+}
+@
+
+<<tidy=TRUE>>=
+ggpairs(CCA_Sim_Results[,1:5],
+      lower = list(continuous = "smooth"),
+      upper = list(continuous = "cor"),
+      columnLabels=c("Can. Cor. 1","Can. Cor. 2","Can. Cor. 3","Can. Cor. 4","Can. Cor. 5")) +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=9,face="bold"),
+          axis.text.x = element_text(colour = "black",size=9,face="bold",angle=90),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm"),
+          legend.position = "bottom", 
+          legend.title = element_blank()) +
+  ggtitle("Canonical Correlations")
+@
+
+<<tidy=TRUE>>=
+Effects <- c("Canonical Correlation 1","Canonical Correlation 2", "Canonical Correlation 3",
+             "Canonical Correlation 4","Canonical Correlation 5","A Set, Loading A1 on Function 1",
+             "B Set, Loading B1 on Function 1","A Set, Weight A1 on Function 1",
+             "B Set, Weight B1 on Function 1","A Set, Adequacy for Function 1",
+             "B Set, Adequacy for Function 1","A Set Redundancy","B Set Redundancy")
+
+can_corr_data <- CCA_Sim_Results[,c(1:9,12:15)] 
+
+# Number of bins specified using the Friedman-Diaconis rule.
+for (j in seq(1,13,1)) {
+  plot_data <- as.data.frame(can_corr_data[,j])
+  names(plot_data) <- c("t")
+  plot <- ggplot(plot_data, aes(x = t)) +
+      geom_histogram(bins=round((max(plot_data$t)-min(plot_data$t))/(2*IQR(plot_data$t)*length(plot_data$t)^(-1/3)))
+                     ,color = "grey30",fill="grey",
+                     size=.01,na.rm=TRUE)
+  
+  p <-  ggplot(plot_data, aes(x = t)) +
+      geom_histogram(bins=round((max(plot_data$t)-min(plot_data$t))/(2*IQR(plot_data$t)*length(plot_data$t)^(-1/3)))
+                     ,color = "grey30",fill="grey",
+                     size=.25,na.rm=TRUE) +
+      xlab("Simulation Estimate") + 
+      ylab("Frequency") +
+      theme(text=element_text(size = 14, family = "sans", color = "black", face="bold"),
+          axis.text.y = element_text(colour = "black",size=12,face="bold"),
+          axis.text.x = element_text(colour = "black",size=12,angle=0,face="bold"),
+          axis.title.x = element_text(margin=margin(15,0,0,0),size=16), 
+          axis.title.y = element_text(margin=margin(0,15,0,0),size=16),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank(),
+          plot.title = element_text(size=16, face="bold", 
+                                    margin = margin(0, 0, 20, 0),hjust=.5),
+          panel.background = element_rect(fill = "white",linetype = 1,color="black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),  
+          plot.background = element_rect(fill = "white"),
+          plot.margin = unit(c(1, 1, 1, 1), "cm")) +
+          geom_vline(xintercept=quantile(plot_data$t,probs=.025),size=1.25,color="red") +
+          geom_vline(xintercept=quantile(plot_data$t,probs=.975),size=1.25,color="red") +
+          ggtitle(paste("Simulation Estimates (95% Confidence Interval) \n",toString(Effects[j]),sep=""))
+print(p)
+}  
+@
+
+\textbf{\large{\textit{
+Tally false rejections for canonical correlations.
+Because the tests are sequential, the tally from the
+previous step becomes the denominator for the current
+step when calculating the proportion of rejections.
+}}}
+<<tidy=TRUE>>=
+k1 <- sum(CCA_Sim_Results$p1<.05)
+k2 <- sum(CCA_Sim_Results$p2<.05)
+k3 <- sum(CCA_Sim_Results$p3<.05)
+k4 <- sum(CCA_Sim_Results$p4<.05)
+k5 <- sum(CCA_Sim_Results$p5<.05)
+prop_1 <- prop.test(k1,10000,correct=FALSE)
+prop_2 <- prop.test(k2,k1,correct=FALSE)
+prop_3 <- prop.test(k3,k2,correct=FALSE)
+prop_4 <- prop.test(k4,k3,correct=FALSE)
+prop_5 <- prop.test(k5,k4,correct=FALSE)
+@
+
+\begin{tabular}{| C{4.5cm} | C{3cm}| C{3cm} | C{3cm} |}
+\hline
+\multicolumn{4}{|c|}{Null Rejection Summary} \\
+\hline
+Canonical Correlation   & p & Lower 95\% CL & Upper 95\% CL\\
+\hline
+ 1 & \Sexpr{ifelse(k1>0,round(prop_1$estimate,4),"-")} & \Sexpr{ifelse(k1>0,round(prop_1$conf.int[1],4),"-")} & \Sexpr{ifelse(k1>0,round(prop_1$conf.int[2],4),"-")}  \\ 
+\hline 
+ 2 & \Sexpr{ifelse(k1>0,round(prop_2$estimate,4),"-")} & \Sexpr{ifelse(k1>0,round(prop_2$conf.int[1],4),"-")} & \Sexpr{ifelse(k1>0,round(prop_2$conf.int[2],4),"-")}  \\ 
+\hline 
+ 3 & \Sexpr{ifelse(k2>0,round(prop_3$estimate,4),"-")} & \Sexpr{ifelse(k2>0,round(prop_3$conf.int[1],4),"-")} & \Sexpr{ifelse(k2>0,round(prop_3$conf.int[2],4),"-")}  \\ 
+\hline 
+ 4 & \Sexpr{ifelse(k3>0,round(prop_4$estimate,4),"-")} & \Sexpr{ifelse(k3>0,round(prop_4$conf.int[1],4),"-")} & \Sexpr{ifelse(k3>0,round(prop_4$conf.int[2],4),"-")}  \\ 
+\hline 
+ 5 & \Sexpr{ifelse(k4>0,round(prop_5$estimate,4),"-")} & \Sexpr{ifelse(k4>0,round(prop_5$conf.int[1],4),"-")} & \Sexpr{ifelse(k4>0,round(prop_5$conf.int[2],4),"-")}  \\ 
+\hline 
+\end{tabular}
+
+\clearpage
+\section{Cross-Validation}
+\textbf{\large{\textit{
+The most convincing approach to cross-validation requires a calibration sample and a separate hold-out sample. 
+The calibration sample is analyzed and the canonical coefficients derived. 
+Those coefficients are then applied to the hold-out sample. 
+A standard canonical correlation analysis is also conducted on the hold-out sample.
+The correlations among the actual and estimated canonical variates are computed. \newline
+\newline
+A sample of 400 participants completed the NEO (The Big Five, Set 1) and measures of self-esteem, optimism, life satisfaction, and happiness (Set 2).
+The sample was split randomly to produce a calibration sample and a hold-out sample.
+A canonical correlation analysis was conducted on the calibration sample to determine the nature of the relations between sets and to obtain standardized canonical coefficients to use in the hold-out sample.
+}}}
+\subsection{Calibration Sample}
+<<tidy=TRUE>>=
+CCA_Calibration <- cancor(cbind(SE,Opt,Life_Sat,Happy)~NEO_N+NEO_E+NEO_O+NEO_A+NEO_C,
+                data=Calibration,prefix=c("P_","WB_"),
+                set.names=c("Personality","Well-Being"))
+Calibration_Coef_Personality <- as.matrix(coef(CCA_Calibration,
+                                               standardization=TRUE,
+                                               type="both")[[1]])
+Calibration_Coef_Well_Being <- as.matrix(coef(CCA_Calibration,
+                                               standardization=TRUE,
+                                               type="both")[[2]])
+
+CCA_Calibration
+CCA_Calibration$coef
+CCA_Calibration$structure
+coef(CCA_Calibration,standardize=TRUE,type="both")
+p.asym(CCA_Calibration$cancor, 400, 5, 4, tstat = "Wilks")
+@
+
+\subsection{Hold-Out Sample}
+<<tidy=TRUE>>=
+CCA_Hold_Out <- cancor(cbind(SE,Opt,Life_Sat,Happy)~NEO_N+NEO_E+NEO_O+NEO_A+NEO_C,
+                data=Hold_Out,prefix=c("P_","WB_"),
+                set.names=c("Personality","Well-Being"))
+Hold_Out_Coef_Personality <- as.matrix(coef(CCA_Hold_Out,
+                                            standardization=TRUE,
+                                            type="both")[[1]])
+Hold_Out_Coef_Well_Being <- as.matrix(coef(CCA_Hold_Out,
+                                            standardization=TRUE,
+                                            type="both")[[2]])
+
+CCA_Hold_Out
+CCA_Hold_Out$coef
+CCA_Hold_Out$structure
+coef(CCA_Hold_Out,standardize=TRUE,type="both")
+@
+
+\subsection{Calculate Predicted Scores Across Samples}
+\subsubsection{Predict Scores in the Hold-Out Sample}
+<<tidy=TRUE>>=
+Est_Personality_Hold_Out <- as.matrix(Hold_Out[,3:7]) %*% Calibration_Coef_Personality
+Est_Well_Being_Hold_Out <- as.matrix(Hold_Out[,8:11]) %*% Calibration_Coef_Well_Being
+Act_Personality_Hold_Out <- CCA_Hold_Out$scores$X
+Act_Well_Being_Hold_Out <- CCA_Hold_Out$scores$Y
+Hold_Out_Scores <- as.data.frame(cbind(Act_Personality_Hold_Out,Act_Well_Being_Hold_Out,
+                         Est_Personality_Hold_Out,Est_Well_Being_Hold_Out))
+names(Hold_Out_Scores) <- c("A_P_1","A_P_2","A_P_3","A_P_4",
+                            "A_WB_1","A_WB_2","A_WB_3","A_WB_4",
+                            "E_P_1","E_P_2","E_P_3","E_P_4",
+                            "E_WB_1","E_WB_2","E_WB_3","E_WB_4")
+@
+\subsubsection{Predict Scores in the Calibration Sample}
+<<tidy=TRUE>>=
+Est_Personality_Calibration <- as.matrix(Calibration[,3:7]) %*% Hold_Out_Coef_Personality
+Est_Well_Being_Calibration <- as.matrix(Calibration[,8:11]) %*% Hold_Out_Coef_Well_Being
+Act_Personality_Calibration <- CCA_Calibration$scores$X
+Act_Well_Being_Calibration <- CCA_Calibration$scores$Y
+Calibration_Scores <- as.data.frame(cbind(Act_Personality_Calibration,Act_Well_Being_Calibration,
+                         Est_Personality_Calibration,Est_Well_Being_Calibration))
+names(Calibration_Scores) <- c("A_P_1","A_P_2","A_P_3","A_P_4",
+                            "A_WB_1","A_WB_2","A_WB_3","A_WB_4",
+                            "E_P_1","E_P_2","E_P_3","E_P_4",
+                            "E_WB_1","E_WB_2","E_WB_3","E_WB_4")
+@
+
+\subsection{Correlations Within Samples}
+\subsubsection{Calibration Sample}
+<<tidy=TRUE>>=
+round(cor(Calibration_Scores[,c(1:4,9:12)]),3)
+round(cor(Calibration_Scores[,c(5:8,13:16)]),3)
+round(cor(Calibration_Scores[,c(1:8)]),3)
+round(cor(Calibration_Scores[,c(9:16)]),3)
+@
+
+\subsubsection{Hold-Out Sample}
+<<tidy=TRUE>>=
+round(cor(Hold_Out_Scores[,c(1:4,9:12)]),3)
+round(cor(Hold_Out_Scores[,c(5:8,13:16)]),3)
+round(cor(Hold_Out_Scores[,c(1:8)]),3)
+round(cor(Hold_Out_Scores[,c(9:16)]),3)
+@
+
+\end{document}
